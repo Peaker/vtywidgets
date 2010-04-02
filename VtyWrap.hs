@@ -2,7 +2,7 @@
 
 -- TODO: Add these to Vty itself..
 
-module VtyWrap(withVty, safeMkVty, emptyImage, emptyBG, pictureOfImage) where
+module VtyWrap(withVty, safeMkVty, emptyImage, emptyBG, pictureOfImage, vtyString) where
 
 import qualified Graphics.Vty as Vty
 import Graphics.Vty(Vty)
@@ -26,3 +26,6 @@ withVty = bracket safeMkVty Vty.shutdown
 
 emptyImage :: Vty.Image
 emptyImage = Vty.horiz_cat []
+
+vtyString :: Vty.Attr -> String -> Vty.Image
+vtyString attr = Vty.vert_cat . map (Vty.string attr) . lines
