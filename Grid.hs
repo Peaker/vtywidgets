@@ -1,6 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Grid(grid, GridModel(..), centered) where
+module Grid(grid, Model(..), centered) where
 
 import qualified Graphics.Vty as Vty
 import VtyWrap(vtyString)
@@ -13,7 +13,7 @@ import Data.Monoid(mempty)
 type Alignment = (Double, Double)
 type Size = (Word, Word)
 
-data GridModel = GridModel
+data Model = Model
 
 centered :: Alignment
 centered = (0.5, 0.5)
@@ -38,10 +38,10 @@ padImage (width, height) (ax, ay) image =
     upAlign = truncate $ ay * fromIntegral totalAlignHeight
     downAlign = totalAlignHeight - upAlign
 
-grid :: Accessor model GridModel -> [[(Alignment, Widget model)]] -> Widget model
+grid :: Accessor model Model -> [[(Alignment, Widget model)]] -> Widget model
 grid acc rows model = WidgetFields image mempty
   where
-    GridModel = model ^. acc
+    Model = model ^. acc
     unpaddedChildImages = (map . map) (widgetFieldImage . ($model) . snd) rows
     rowHeights = map maximum . (map . map) Vty.image_height $ unpaddedChildImages
     columnWidths = map maximum . transpose . (map . map) Vty.image_width $ unpaddedChildImages

@@ -13,7 +13,8 @@ import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
 import Keymap(showModKey)
 import Widget(WidgetFields(widgetFieldKeymap, widgetFieldImage), adaptModel)
-import Grid(GridModel(GridModel), grid, centered)
+import Grid(grid)
+import qualified Grid
 import TextView(textView)
 
 main :: IO ()
@@ -33,5 +34,5 @@ main = do
     widget = grid first [[item (makeTextView second), item (makeTextView first)],
                          [item (makeTextView first), item (makeTextView second)]]
     makeTextView a = adaptModel (a . second) $ textView Vty.def_attr
-    item w = (centered, w)
-    initModel = (GridModel, ("hello    hello\nworld of Earth\nGalya Gerovich!", "love"))
+    item w = (Grid.centered, w)
+    initModel = (Grid.Model, ("hello    hello\nworld of Earth\nGalya Gerovich!", "love"))
