@@ -11,7 +11,6 @@ import Control.Category((.))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
-import Keymap(showModKey)
 import Widget(WidgetFields(widgetFieldKeymap, widgetFieldImage), adaptModel)
 import Grid(grid)
 import qualified Grid
@@ -26,7 +25,7 @@ main = do
     case event of
       Vty.EvKey key mods -> do
         let k = (mods, key)
-        liftIO . putStrLn $ "Key pressed: " ++ showModKey k
+        -- liftIO . putStrLn $ "Key pressed: " ++ Keymap.showModKey k
         put . fromMaybe curModel . fmap (snd . snd) .
           Keymap.lookup k . widgetFieldKeymap . widget $ curModel
       _ -> return ()
@@ -35,4 +34,4 @@ main = do
                          [item (makeTextView first), item (makeTextView second)]]
     makeTextView a = adaptModel (a . second) $ textView Vty.def_attr
     item w = (Grid.centered, w)
-    initModel = (Grid.Model, ("hello    hello\nworld of Earth\nGalya Gerovich!", "love"))
+    initModel = (Grid.Model (0, 0), ("hello    hello\nworld of Earth\nGalya Gerovich!", "love"))
