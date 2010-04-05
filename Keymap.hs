@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -O2 #-}
+{-# OPTIONS -Wall -O2 #-}
 
 module Keymap
     (Keymap(keymapGroups),
