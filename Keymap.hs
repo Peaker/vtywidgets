@@ -27,7 +27,7 @@ instance Functor Keymap where
            ((fmap . fmap . fmap) f cache)
 
 instance Monoid (Keymap a) where
-  mempty = make Map.empty
+  mempty = make mempty
   x `mappend` y = make $ keymapGroups x `mappend` keymapGroups y
 
 lookup :: ModKey -> Keymap a -> Maybe (KeyGroupName, (Doc, a))

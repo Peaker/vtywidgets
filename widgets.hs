@@ -33,8 +33,9 @@ main = do
   where
     mkCursor Nothing = Vty.NoCursor
     mkCursor (Just (Vector2 x y)) = Vty.Cursor x y
-    widget = grid first [[item (makeTextView second), item (makeTextView first)],
-                         [item (makeTextView first), item (makeTextView second)]]
-    makeTextView a = adaptModel (a . second) $ textView Vty.def_attr
+    widget = grid first . (map . map) (item . makeTextView) $
+             [[second, first],
+              [first, second]]
+    makeTextView x = adaptModel (x . second) $ textView (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
     item w = (Grid.centered, w)
-    initModel = (Grid.Model (0, 0), ("hello    hello\nworld of Earth\nGalya Gerovich!", "love"))
+    initModel = (Grid.Model (0, 0), ("abc\ndefsdkjflkdlfjasd\n asfdahjsd", "Eliwwwww"))

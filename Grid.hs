@@ -55,13 +55,13 @@ enumerate = zip [0..]
 gridKeymap :: Size -> Cursor -> Keymap Cursor
 gridKeymap (width, height) (cursorX, cursorY) = mconcat . concat $ [
   [ Keymap.singleton "Left" "Move left" ([], Vty.KLeft) (cursorX-1, cursorY)
-  | cursorX > 0],
+  | cursorX > 0 ],
   [ Keymap.singleton "Right" "Move right" ([], Vty.KRight) (cursorX+1, cursorY)
-  | cursorX < width - 1],
+  | cursorX < width - 1 ],
   [ Keymap.singleton "Up" "Move up" ([], Vty.KUp) (cursorX, cursorY-1)
-  | cursorY > 0],
+  | cursorY > 0 ],
   [ Keymap.singleton "Down" "Move down" ([], Vty.KDown) (cursorX, cursorY+1)
-  | cursorY < height - 1]
+  | cursorY < height - 1 ]
   ]
 
 grid :: Accessor model Model -> [[(Alignment, Widget model)]] -> Widget model
@@ -71,7 +71,6 @@ grid acc rows model = WidgetFields image vtyCursor keymap
     unpaddedChildImages = (map . map) (widgetFieldImage . ($model) . snd) rows
     rowHeights = map maximum . (map . map) Vty.image_height $ unpaddedChildImages
     columnWidths = map maximum . transpose . (map . map) Vty.image_width $ unpaddedChildImages
-    ranges :: [Word] -> [(Word, Word)]
     ranges xs = zip (scanl (+) 0 xs) xs
 
     childImageCursors =
