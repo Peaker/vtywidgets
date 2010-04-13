@@ -31,6 +31,7 @@ first f (Vector2 x y) = Vector2 (f x) y
 second :: Endo a -> Endo (Vector2 a)
 second f (Vector2 x y) = Vector2 x (f y)
 
+infixr 3 ***
 (***) :: Endo a -> Endo a -> Endo (Vector2 a)
 (f *** g) (Vector2 x y) = Vector2 (f x) (g y)
 
