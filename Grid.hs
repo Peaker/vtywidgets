@@ -1,22 +1,27 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Grid(grid, Model(..), centered) where
+module Grid(Cursor(..), grid, Model(..), centered) where
 
 import qualified Graphics.Vty as Vty
 import qualified Keymap
 import Keymap(Keymap)
-import VtyWrap(vtyString)
-import Widget(Widget, WidgetFields(WidgetFields, widgetFieldImage, widgetFieldCursor), adaptKeymap)
+import Widget(Widget, WidgetFields(WidgetFields),
+              widgetFieldImage, widgetFieldCursor,
+              adaptKeymap)
+import qualified Widget
 import Data.List(transpose, genericLength)
 import Data.Word(Word)
 import Data.Accessor(Accessor, (^.))
 import Data.Monoid(mconcat)
-import Control.Monad(msum)
 import Control.Applicative(liftA2)
+import Control.Monad(msum)
 import Vector2(Vector2(..))
+import qualified Vector2
+import qualified TermImage
   
-type Alignment = (Double, Double)
-type Cursor = (Word, Word)
+type Alignment = Vector2 Double
+newtype Cursor = Cursor (Vector2 Word)
+  deriving (Show, Read, Eq, Ord)
 type Size = Cursor
 
 data Model = Model {
@@ -24,54 +29,46 @@ data Model = Model {
   }
 
 centered :: Alignment
-centered = (0.5, 0.5)
+centered = Vector2 0.5 0.5
 
-padImage :: Size -> Alignment -> Vty.Image -> (Vector2 Word, Vty.Image)
-padImage (width, height) (ax, ay) image =
-  (
-    Vector2 leftAlign upAlign,
-    Vty.vert_cat [
-      alignImage " \n" upAlign,
-      Vty.horiz_cat [
-        alignImage " " leftAlign,
-        image,
-        alignImage " " rightAlign
-        ],
-      alignImage " \n" downAlign
-      ]
-  )
+relativeImagePos :: Widget.ImageSize -> Alignment -> Widget.ImageSize -> Widget.ImageSize
+relativeImagePos totalSize align imageSize = alignLeftTop
   where
-    alignImage c n = vtyString Vty.def_attr (concat . replicate (fromIntegral n) $ c)
-    totalAlignWidth = width - Vty.image_width image
-    totalAlignHeight = height - Vty.image_height image
-    leftAlign = truncate $ ax * fromIntegral totalAlignWidth
-    rightAlign = totalAlignWidth - leftAlign
-    upAlign = truncate $ ay * fromIntegral totalAlignHeight
-    downAlign = totalAlignHeight - upAlign
+    totalAlign = liftA2 (-) totalSize imageSize
+    alignLeftTop = fmap truncate . liftA2 (*) align . fmap fromIntegral $ totalAlign
 
 enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
 enumerate = zip [0..]
 
 gridKeymap :: Size -> Cursor -> Keymap Cursor
-gridKeymap (width, height) (cursorX, cursorY) = mconcat . concat $ [
-  [ Keymap.singleton "Left" "Move left" ([], Vty.KLeft) (cursorX-1, cursorY)
+gridKeymap (Cursor (Vector2 width height))
+           (Cursor (Vector2 cursorX cursorY)) = fmap Cursor . mconcat . concat $ [
+  [ Keymap.singleton "Left" "Move left" ([], Vty.KLeft) (Vector2 (cursorX-1) cursorY)
   | cursorX > 0 ],
-  [ Keymap.singleton "Right" "Move right" ([], Vty.KRight) (cursorX+1, cursorY)
+  [ Keymap.singleton "Right" "Move right" ([], Vty.KRight) (Vector2 (cursorX+1) cursorY)
   | cursorX < width - 1 ],
-  [ Keymap.singleton "Up" "Move up" ([], Vty.KUp) (cursorX, cursorY-1)
+  [ Keymap.singleton "Up" "Move up" ([], Vty.KUp) (Vector2 cursorX (cursorY-1))
   | cursorY > 0 ],
-  [ Keymap.singleton "Down" "Move down" ([], Vty.KDown) (cursorX, cursorY+1)
+  [ Keymap.singleton "Down" "Move down" ([], Vty.KDown) (Vector2 cursorX (cursorY+1))
   | cursorY < height - 1 ]
   ]
 
+length2D :: Integral i => [[a]] -> Vector2 i
+length2D [] = Vector2 0 0
+length2D l@(x:_) = Vector2 (genericLength x) (genericLength l)
+
 grid :: Accessor model Model -> [[(Alignment, Widget model)]] -> Widget model
-grid acc rows model = WidgetFields image vtyCursor keymap
+grid acc rows model = WidgetFields image cursor keymap
   where
-    Model cursor = model ^. acc
+    Model gcursor = model ^. acc
     unpaddedChildImages = (map . map) (widgetFieldImage . ($model) . snd) rows
-    rowHeights = map maximum . (map . map) Vty.image_height $ unpaddedChildImages
-    columnWidths = map maximum . transpose . (map . map) Vty.image_width $ unpaddedChildImages
+    rowHeights = map maximum . (map . map) (Vector2.snd . Widget.imageSize) $ unpaddedChildImages
+    columnWidths = map maximum . transpose . (map . map) (Vector2.fst . Widget.imageSize) $ unpaddedChildImages
     ranges xs = zip (scanl (+) 0 xs) xs
+    image = mconcat . map fst . concat $ childImageCursors
+    cursor = msum . map snd . concat $ childImageCursors
+    size = Cursor (length2D rows)
+    keymap = adaptKeymap acc model . fmap Model . gridKeymap size $ gcursor
 
     childImageCursors =
       zipWith childImageCursorsOfRow (ranges rowHeights) (enumerate rows)
@@ -82,17 +79,14 @@ grid acc rows model = WidgetFields image vtyCursor keymap
     childImageCursor y height yIndex (x, width) (xIndex, (alignment, child)) =
       (childImage, childCursor)
       where
+        gpos = Cursor (Vector2 xIndex yIndex)
+        basePos = Vector2 x y
+        pos = liftA2 (+) padSize basePos
         childFields = child model
-        baseCursorPos = if (xIndex, yIndex) == cursor
-                        then Just (liftA2 (+) padSize (Vector2 x y))
+        baseCursorPos = if gpos == gcursor
+                        then Just pos
                         else Nothing
-        (padSize, childImage) = padImage (width, height) alignment . widgetFieldImage $ childFields
+        padSize = relativeImagePos (Vector2 width height) alignment . Widget.size $
+                  childFields
+        childImage = TermImage.translate pos . widgetFieldImage $ childFields
         childCursor = (liftA2 . liftA2) (+) baseCursorPos . widgetFieldCursor $ childFields
-
-    image = Vty.vert_cat . map Vty.horiz_cat . (map . map) fst $ childImageCursors
-    vtyCursor = msum . map snd . concat $ childImageCursors
-    size = (case rows of
-               [] -> 0
-               (x:_) -> genericLength x,
-            genericLength rows)
-    keymap = adaptKeymap acc model . fmap Model . gridKeymap size $ cursor

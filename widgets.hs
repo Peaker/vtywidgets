@@ -16,13 +16,14 @@ import Grid(grid)
 import qualified Grid
 import TextView(textView)
 import Vector2(Vector2(..))
+import qualified TermImage
 
 main :: IO ()
 main = do
   withVty $ \vty -> (`evalStateT` initModel) . forever $ do
     curModel <- get
     let WidgetFields image cursor keymap = widget curModel
-    liftIO . Vty.update vty $ Vty.Picture (mkCursor cursor) image emptyBG
+    liftIO . Vty.update vty $ Vty.Picture (mkCursor cursor) (TermImage.render image) emptyBG
     event <- liftIO . Vty.next_event $ vty
     case event of
       Vty.EvKey key mods -> do
@@ -38,4 +39,5 @@ main = do
               [first, second]]
     makeTextView x = adaptModel (x . second) $ textView (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
     item w = (Grid.centered, w)
-    initModel = (Grid.Model (0, 0), ("abc\ndefsdkjflkdlfjasd\n asfdahjsd", "Eliwwwww"))
+    initModel = (Grid.Model (Grid.Cursor (Vector2 0 0)),
+                 ("abc\ndefsdkjflkdlfjasd\n asfdahjsd", "Eliwwwww"))

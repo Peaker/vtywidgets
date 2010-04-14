@@ -1,12 +1,13 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Widget(adaptModel, adaptKeymap, WidgetFields(..), Widget) where
+module Widget(WidgetFields(..), Widget, ImageSize,
+              adaptModel, adaptKeymap, imageSize, size) where
 
-import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Word(Word)
 import Keymap(Keymap)
 import Vector2(Vector2)
+import TermImage(TermImage, boundingRect)
 
 adaptKeymap :: Accessor w p -> w -> Keymap p -> Keymap w
 adaptKeymap acc wmodel keymap = flip (setVal acc) wmodel `fmap` keymap
@@ -18,8 +19,18 @@ adaptModel acc widget wmodel = widgetFields {widgetFieldKeymap = adaptKeymap acc
     keymap = widgetFieldKeymap widgetFields
 
 data WidgetFields model = WidgetFields {
-  widgetFieldImage :: Vty.Image,
+  -- The boundingRect topleft is ignored, and the bottom-right is
+  -- considered the size
+  widgetFieldImage :: TermImage,
   widgetFieldCursor :: Maybe (Vector2 Word),
   widgetFieldKeymap :: Keymap model
   }
 type Widget model = model -> WidgetFields model
+
+type ImageSize = Vector2 Word
+
+imageSize :: TermImage -> ImageSize
+imageSize = snd . boundingRect
+
+size :: WidgetFields model -> ImageSize
+size = imageSize . widgetFieldImage
