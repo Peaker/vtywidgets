@@ -3,7 +3,7 @@
 module Keymap
     (Keymap(keymapGroups),
      Doc, KeyGroupName, ModKey, showModKey,
-     lookup, make, fromGroups, singleton, simpleton)
+     lookup, make, fromGroups, singleton, singletonKeys, simpleton)
 where
 
 import qualified Graphics.Vty as Vty
@@ -43,9 +43,13 @@ make handlers = Keymap handlers mkCache
 fromGroups :: [(KeyGroupName, (Doc, Map ModKey a))] -> Keymap a
 fromGroups = make . Map.fromList
 
+singletonKeys :: KeyGroupName -> Doc -> [(ModKey, a)] -> Keymap a
+singletonKeys keyGroupName doc keys =
+  make . Map.singleton keyGroupName $ (doc, Map.fromList keys)
+
 singleton :: KeyGroupName -> Doc -> ModKey -> a -> Keymap a
 singleton keyGroupName doc key a =
-  make . Map.singleton keyGroupName $ (doc, Map.singleton key a)
+  singletonKeys keyGroupName doc [(key, a)]
 
 simpleton :: ModKey -> Doc -> a -> Keymap a
 simpleton key doc = singleton (showModKey key) doc key

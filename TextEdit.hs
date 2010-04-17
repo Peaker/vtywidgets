@@ -54,6 +54,13 @@ textEdit attr (Model cursor text) =
     moveRelative d = moveAbsolute (cursor + d)
     homeKeys = [([], Vty.KHome), ([Vty.MCtrl], Vty.KASCII 'a')]
     endKeys = [([], Vty.KEnd), ([Vty.MCtrl], Vty.KASCII 'e')]
+    homeKeymap doc p model' =
+      [ Keymap.singletonKeys "Home" doc [(mk, model') | mk <- homeKeys]
+      | p ]
+    endKeymap doc p model' =
+      [ Keymap.singletonKeys "End" doc [(mk, model') | mk <- endKeys]
+      | p ]
+
     keymap =
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
         [ Keymap.singleton "Left" "Move left" ([], Vty.KLeft) $ moveRelative (-1)
@@ -61,23 +68,11 @@ textEdit attr (Model cursor text) =
         [ Keymap.singleton "Right" "Move right" ([], Vty.KRight) $ moveRelative 1
         | cursor < width ],
 
-        [ Keymap.fromGroups [ ("Home", ("Move to beginning of line",
-                                        Map.fromList [ (mk, moveRelative (-cursorX))
-                                                     | mk <- homeKeys ])) ]
-        | cursorX > 0 ],
-        [ Keymap.fromGroups [ ("End", ("Move to end of line",
-                                        Map.fromList [ (mk, moveRelative (length curLineAfter))
-                                                     | mk <- endKeys ])) ]
-        | length curLineAfter > 0 ],
+        homeKeymap "Move to beginning of line" (cursorX > 0) $ moveRelative (-cursorX),
+        endKeymap "Move to end of line" (length curLineAfter > 0) $ moveRelative (length curLineAfter),
 
-        [ Keymap.fromGroups [ ("Home", ("Move to beginning of text",
-                                        Map.fromList [ (mk, moveAbsolute 0)
-                                                     | mk <- homeKeys ])) ]
-        | cursorX == 0 && cursor > 0 ],
-        [ Keymap.fromGroups [ ("End", ("Move to end of text",
-                                        Map.fromList [ (mk, moveAbsolute width)
-                                                     | mk <- endKeys ])) ]
-        | null curLineAfter && cursor < width ],
+        homeKeymap "Move to beginning of text" (cursorX == 0 && cursor > 0) $ moveAbsolute 0,
+        endKeymap "Move to end of text" (null curLineAfter && cursor < width) $ moveAbsolute width,
 
         [ Keymap.singleton "Backspace" "Delete backwards" ([], Vty.KBS)
           (cursor-1, take (cursor-1) text ++ drop cursor text)
