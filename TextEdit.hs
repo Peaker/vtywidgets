@@ -40,19 +40,19 @@ textEdit attr (Model cursor text) =
 
     width = length text
 
-    -- ls = splitLines text
-    -- height = length ls
+    height = length (splitLines text)
 
-    linesBefore = splitLines before
+    linesBefore = reverse (splitLines before)
     linesAfter = splitLines after
-    curLineBefore = last linesBefore
+    prevLine = linesBefore !! 1
+    curLineBefore = head linesBefore
     curLineAfter = head linesAfter
     cursorX = length curLineBefore
     cursorY = length linesBefore - 1
 
     ifList p x = [ x | p ]
 
-    moveAbsolute a = (a, text)
+    moveAbsolute a = (max 0 . min (length text) $ a, text)
     moveRelative d = moveAbsolute (cursor + d)
     backspace = (cursor-1, take (cursor-1) text ++ drop cursor text)
     delete = (cursor, before ++ drop 1 after)
@@ -71,6 +71,14 @@ textEdit attr (Model cursor text) =
         ifList (cursor < width) .
         Keymap.singleton "Right" "Move right" ([], Vty.KRight) $
         moveRelative 1,
+
+        ifList (cursorY > 0) .
+        Keymap.singleton "Up" "Move up" ([], Vty.KUp) $
+        moveRelative (- cursorX - 1 - length (drop cursorX prevLine)),
+
+        ifList (cursorY < height-1) .
+        Keymap.singleton "Down" "Move down" ([], Vty.KDown) $
+        moveRelative (length curLineAfter + 1 + cursorX),
 
         ifList (cursorX > 0) .
         homeKeymap "Move to beginning of line" $
