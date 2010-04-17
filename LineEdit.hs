@@ -2,7 +2,9 @@
 
 module LineEdit(lineEdit, Model(..)) where
 
+import Data.Char(chr)
 import Data.Monoid(mconcat)
+import qualified Data.Map as Map
 import qualified Graphics.Vty as Vty
 import qualified TermImage
 import Vector2(Vector2(..))
@@ -35,10 +37,12 @@ lineEdit attr (Model cursorXw text) =
           (cursorX-1, take (cursorX-1) text ++ drop cursorX text)
         | cursorX > 0 ],
         [ Keymap.singleton "Delete" "Delete forward" ([], Vty.KDel)
-          (cursorX, take cursorX text ++ drop (cursorX+1) text)
-        | cursorX < width ]
-        -- [ Keymap.fromGroups [ ("Alphabet", ("Insert", Map.fromList insertKeys)) ] ]
+          (cursorX, before ++ drop 1 after)
+        | cursorX < width ],
+        [ Keymap.fromGroups [ ("Alphabet", ("Insert", Map.fromList insertKeys)) ] ]
         ]
-    -- insertKeys =
-    --   [
-    --   ]
+    insertKeys =
+      [ (([], Vty.KASCII l), (cursorX+1, before ++ l:after))
+      | x <- [0..127]
+      , let l = chr x ]
+    (before, after) = splitAt cursorX text
