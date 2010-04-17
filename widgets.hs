@@ -14,8 +14,8 @@ import Widget(WidgetFields(WidgetFields), adaptModel)
 import Grid(grid)
 import qualified Grid
 -- import TextView(textView)
-import LineEdit(lineEdit)
-import qualified LineEdit
+import TextEdit(textEdit)
+import qualified TextEdit
 import Vector2(Vector2(..))
 import qualified TermImage
 
@@ -35,11 +35,11 @@ main = do
   where
     mkCursor Nothing = Vty.NoCursor
     mkCursor (Just (Vector2 x y)) = Vty.Cursor (fromIntegral x) (fromIntegral y)
-    widget = grid first . (map . map) (item . makeLineEdit) $
+    widget = grid first . (map . map) (item . makeTextEdit) $
              [[second, first],
               [first, second]]
-    makeLineEdit x = adaptModel (x . second) $ lineEdit (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
+    makeTextEdit x = adaptModel (x . second) $ textEdit (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
     item w = (Grid.centered, w)
     initModel = (Grid.Model (Grid.Cursor (Vector2 0 0)),
-                 (LineEdit.Model 3 "abc",
-                  LineEdit.Model 5 "Eliwwwww"))
+                 (TextEdit.Model 0 "abc\ndefgh",
+                  TextEdit.Model 0 "i\njklmn"))
