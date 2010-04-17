@@ -4,7 +4,6 @@ module Widget(WidgetFields(..), Widget, ImageSize,
               adaptModel, adaptKeymap, imageSize, size) where
 
 import Data.Accessor(Accessor, (^.), setVal)
-import Data.Word(Word)
 import Keymap(Keymap)
 import Vector2(Vector2)
 import TermImage(TermImage, boundingRect)
@@ -22,12 +21,12 @@ data WidgetFields model = WidgetFields {
   -- The boundingRect topleft is ignored, and the bottom-right is
   -- considered the size
   widgetFieldImage :: TermImage,
-  widgetFieldCursor :: Maybe (Vector2 Word),
+  widgetFieldCursor :: Maybe (Vector2 Int),
   widgetFieldKeymap :: Keymap model
   }
 type Widget model = model -> WidgetFields model
 
-type ImageSize = Vector2 Word
+type ImageSize = Vector2 Int
 
 imageSize :: TermImage -> ImageSize
 imageSize = snd . boundingRect

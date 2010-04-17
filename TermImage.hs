@@ -5,14 +5,14 @@ module TermImage(TermChar, TermImage, render, string, stringSize,
                  translate, boundingRect) where
 
 import qualified Graphics.Vty as Vty
-import Data.Maybe(fromMaybe, listToMaybe)
+import Data.Maybe(fromMaybe)
+import Data.List(foldl')
 import Data.Monoid(First(First, getFirst))
-import Data.Word(Word)
 import Control.Applicative(pure)
 import Image(Image, mkImage, translate, boundingRect)
 import qualified Image
+import ListUtils(safeIndex)
 import Vector2(Vector2(..))
-import qualified Vector2
 
 type TermChar = (Vty.Attr, Char)
 type TermImage = Image (First TermChar)
@@ -29,14 +29,11 @@ render image =
     (_, Vector2 r b) = Image.boundingRect image
     f = Image.pick image
 
-safeIndex :: Integral ix => ix -> [a] -> Maybe a
-safeIndex n = listToMaybe . drop (fromIntegral n)
-
-stringParse :: String -> (Vector2 Word, [String])
+stringParse :: String -> (Vector2 Int, [String])
 stringParse chars = (Vector2 w h, ls)
   where
     ls = lines chars
-    w = fromIntegral (maximum . map length $ ls)
+    w = fromIntegral (foldl' max 0 . map length $ ls)
     h = fromIntegral (length ls)
 
 string :: Vty.Attr -> String -> TermImage
@@ -46,9 +43,7 @@ string attr chars = mkImage (pure 0, Vector2 w h) func
                             0 <= y && y < h
                          then First . fmap ((,) attr) $ safeIndex y ls >>= safeIndex x
                          else First $ Nothing
-    ls = lines chars
-    w = fromIntegral (maximum . map length $ ls)
-    h = fromIntegral (length ls)
+    (Vector2 w h, ls) = stringParse chars
 
-stringSize :: String -> Vector2 Word
+stringSize :: String -> Vector2 Int
 stringSize = fst . stringParse

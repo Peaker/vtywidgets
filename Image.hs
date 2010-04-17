@@ -5,14 +5,13 @@ module Image(Image, Coordinate, mkImage,
              pick, boundingRect, translate) where
 
 import Data.Monoid(Monoid(..))
-import Data.Word(Word)
 import Vector2(Vector2(..))
 import Control.Applicative(Applicative(..), liftA2)
 import Control.Compose((:.)(O, unO))
 import Control.Arrow((***))
 import Control.Monad(join)
 
-type Coordinate = Vector2 Word
+type Coordinate = Vector2 Int
 
 data ClipRect = ClipRect { topLeft :: Coordinate,
                            bottomRight :: Coordinate }
