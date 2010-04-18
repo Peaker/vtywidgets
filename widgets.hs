@@ -73,4 +73,4 @@ main = do
                         , let i = y*2 + x ]
                       | x <- [0, 1] ]
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    item w = (Grid.centered, w)
+    item w = Grid.Item Grid.centered w

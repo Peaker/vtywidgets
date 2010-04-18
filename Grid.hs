@@ -1,6 +1,8 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Grid(Cursor(..), grid, gridAcc, Model(..), initModel, centered) where
+module Grid(grid, gridAcc,
+            Cursor(..), Model(..), Item(..),
+            initModel, centered) where
 
 import qualified Graphics.Vty as Vty
 import qualified Keymap
@@ -20,6 +22,10 @@ type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)
 type Size = Cursor
+data Item model = Item {
+  _itemAlignment :: Alignment,
+  itemWidget :: Widget model
+  }
 
 data Model = Model {
   gridModelCursor :: Cursor
@@ -60,10 +66,10 @@ length2D l@(x:_) = Vector2 (genericLength x) (genericLength l)
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
 
-grid :: (Model -> model) -> [[(Alignment, Widget model)]] -> Model -> Widget model
+grid :: (Model -> model) -> [[Item model]] -> Model -> Widget model
 grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
   where
-    unpaddedChildImages = (map . map) (widgetImage . snd) rows
+    unpaddedChildImages = (map . map) (widgetImage . itemWidget) rows
     rowHeights = map maximum . (map . map) (Vector2.snd . Widget.imageSize) $ unpaddedChildImages
     columnWidths = map maximum . transpose . (map . map) (Vector2.fst . Widget.imageSize) $ unpaddedChildImages
     ranges xs = zip (scanl (+) 0 xs) xs
@@ -81,7 +87,7 @@ grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
     gridRowElements (y, height) (yIndex, row) =
       zipWith (gridElement y height yIndex) (ranges columnWidths) (enumerate row)
 
-    gridElement y height yIndex (x, width) (xIndex, (alignment, child)) =
+    gridElement y height yIndex (x, width) (xIndex, Item alignment child) =
       (childImage, curChild)
 
       where
@@ -96,5 +102,5 @@ grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
                   child
         childImage = TermImage.translate pos . widgetImage $ child
 
-gridAcc :: Accessor model Model -> [[(Alignment, Widget model)]] -> model -> Widget model
+gridAcc :: Accessor model Model -> [[Item model]] -> model -> Widget model
 gridAcc acc rows model = grid (setter model acc) rows (model ^. acc)
