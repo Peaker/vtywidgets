@@ -1,7 +1,3 @@
-* Take (model ->) out of Widget model. "Widget a" has a "Keymap a" and
-  is not aware of the meaning of the "a"
-  * Grid doesn't pass model to args
-
 * Grid:
 
   * (Bool->) arg for image is something only a Grid can pass to inner

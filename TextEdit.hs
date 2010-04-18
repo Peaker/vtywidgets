@@ -1,6 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module TextEdit(textEdit, Model(..)) where
+module TextEdit(textEdit, Model(..), initModel) where
 
 import Data.Char(chr)
 import Data.List(intercalate)
@@ -20,6 +20,9 @@ data Model = Model {
   textEditCursor :: Cursor,
   textEditText :: String
   }
+
+initModel :: String -> Model
+initModel s = Model (length s) s
 
 splitLines :: String -> [String]
 splitLines = splitOn "\n"
