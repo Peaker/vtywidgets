@@ -5,9 +5,7 @@ module Grid(Cursor(..), grid, Model(..), centered) where
 import qualified Graphics.Vty as Vty
 import qualified Keymap
 import Keymap(Keymap)
-import Widget(Widget, WidgetFields(WidgetFields),
-              widgetFieldImage, widgetFieldKeymap, widgetFieldCursor,
-              adaptKeymap)
+import Widget(Widget(..))
 import qualified Widget
 import Data.List(transpose, genericLength)
 import Data.Maybe(fromMaybe)
@@ -56,20 +54,20 @@ length2D :: Integral i => [[a]] -> Vector2 i
 length2D [] = Vector2 0 0
 length2D l@(x:_) = Vector2 (genericLength x) (genericLength l)
 
-grid :: Accessor model Model -> [[(Alignment, Widget model)]] -> Widget model
-grid acc rows model = WidgetFields gridImage gridCursor gridKeymap
+grid :: Accessor model Model -> [[(Alignment, (model -> Widget model))]] -> model -> Widget model
+grid acc rows model = Widget gridImage gridCursor gridKeymap
   where
     Model gcursor = model ^. acc
-    unpaddedChildImages = (map . map) (widgetFieldImage . ($model) . snd) rows
+    unpaddedChildImages = (map . map) (widgetImage . ($model) . snd) rows
     rowHeights = map maximum . (map . map) (Vector2.snd . Widget.imageSize) $ unpaddedChildImages
     columnWidths = map maximum . transpose . (map . map) (Vector2.fst . Widget.imageSize) $ unpaddedChildImages
     ranges xs = zip (scanl (+) 0 xs) xs
     size = Cursor (length2D rows)
-    myKeymap = adaptKeymap acc model . fmap Model . keymap size $ gcursor
+    myKeymap = Widget.adaptKeymap acc model . fmap Model . keymap size $ gcursor
     gridKeymap = childKeymap `mappend` myKeymap
-    childKeymap = fromMaybe mempty . fmap (widgetFieldKeymap . snd) $ curGridElement
+    childKeymap = fromMaybe mempty . fmap (widgetKeymap . snd) $ curGridElement
     gridCursor = uncurry moveCursor =<< curGridElement
-    pos `moveCursor` childFields = liftA2 (+) pos `fmap` widgetFieldCursor childFields
+    pos `moveCursor` childFields = liftA2 (+) pos `fmap` widgetCursor childFields
 
     (gridImage, First curGridElement) =
       mconcat . concat $
@@ -92,4 +90,4 @@ grid acc rows model = WidgetFields gridImage gridCursor gridKeymap
         padSize = relativeImagePos (Vector2 width height) alignment .
                   Widget.size $
                   childFields
-        childImage = TermImage.translate pos . widgetFieldImage $ childFields
+        childImage = TermImage.translate pos . widgetImage $ childFields

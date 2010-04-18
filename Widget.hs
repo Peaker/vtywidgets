@@ -1,6 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Widget(WidgetFields(..), Widget, ImageSize,
+module Widget(Widget(..), ImageSize,
               adaptModel, adaptKeymap, imageSize, size) where
 
 import Data.Accessor(Accessor, (^.), setVal)
@@ -11,25 +11,24 @@ import TermImage(TermImage, boundingRect)
 adaptKeymap :: Accessor w p -> w -> Keymap p -> Keymap w
 adaptKeymap acc wmodel keymap = flip (setVal acc) wmodel `fmap` keymap
 
-adaptModel :: Accessor w p -> Widget p -> Widget w
-adaptModel acc widget wmodel = widgetFields {widgetFieldKeymap = adaptKeymap acc wmodel keymap}
+adaptModel :: Accessor w p -> (p -> Widget p) -> (w -> Widget w)
+adaptModel acc pwidget wmodel = widget {widgetKeymap = adaptKeymap acc wmodel keymap}
   where
-    widgetFields = widget (wmodel ^. acc)
-    keymap = widgetFieldKeymap widgetFields
+    widget = pwidget (wmodel ^. acc)
+    keymap = widgetKeymap widget
 
-data WidgetFields model = WidgetFields {
+data Widget model = Widget {
   -- The boundingRect topleft is ignored, and the bottom-right is
   -- considered the size
-  widgetFieldImage :: TermImage,
-  widgetFieldCursor :: Maybe (Vector2 Int),
-  widgetFieldKeymap :: Keymap model
+  widgetImage :: TermImage,
+  widgetCursor :: Maybe (Vector2 Int),
+  widgetKeymap :: Keymap model
   }
-type Widget model = model -> WidgetFields model
 
 type ImageSize = Vector2 Int
 
 imageSize :: TermImage -> ImageSize
 imageSize = snd . boundingRect
 
-size :: WidgetFields model -> ImageSize
-size = imageSize . widgetFieldImage
+size :: Widget model -> ImageSize
+size = imageSize . widgetImage

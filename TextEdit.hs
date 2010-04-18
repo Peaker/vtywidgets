@@ -10,7 +10,7 @@ import qualified Graphics.Vty as Vty
 import qualified TermImage
 import Vector2(Vector2(..))
 import qualified Keymap
-import Widget(Widget, WidgetFields(WidgetFields))
+import Widget(Widget(..))
 import Control.Arrow(first)
 import Data.List.Split(splitOn)
 
@@ -30,11 +30,11 @@ unsplitLines = intercalate "\n"
 inSplitLines :: ([String] -> [String]) -> String -> String
 inSplitLines f = unsplitLines . f . splitLines
 
-textEdit :: Vty.Attr -> Widget Model
+textEdit :: Vty.Attr -> Model -> Widget Model
 textEdit attr (Model cursor text) =
-  WidgetFields (TermImage.string attr (inSplitLines (map (++ " ")) $ text))
-               (Just (Vector2 cursorX cursorY))
-               keymap
+  Widget (TermImage.string attr (inSplitLines (map (++ " ")) $ text))
+         (Just $ Vector2 cursorX cursorY)
+         keymap
   where
     (before, after) = splitAt cursor text
 

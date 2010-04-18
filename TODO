@@ -1,0 +1,21 @@
+* Take (model ->) out of Widget model. "Widget a" has a "Keymap a" and
+  is not aware of the meaning of the "a"
+  * Grid doesn't pass model to args
+
+* Grid:
+
+  * (Bool->) arg for image is something only a Grid can pass to inner
+    widgets, so it should be a Grid thing
+
+  * Weight, (MaxSize -> RequestedSizeRange) -- range meaning Min,Maybe Max
+    Allowing the grid to set the size more smartly, allowing fixed
+    sizes, dynamic sizes, etc.
+
+* Scroller:
+
+  * Can take a (widget, focusArea) and make sure the focusArea is in
+    range of the scroll
+
+* TextEdit:
+
+  * Arg for max num of lines

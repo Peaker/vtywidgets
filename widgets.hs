@@ -10,7 +10,8 @@ import Control.Category((.))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
-import Widget(WidgetFields(WidgetFields), adaptModel)
+import Widget(Widget(..))
+import qualified Widget
 import Grid(grid)
 import qualified Grid
 -- import TextView(textView)
@@ -23,7 +24,7 @@ main :: IO ()
 main = do
   withVty $ \vty -> (`evalStateT` initModel) . forever $ do
     curModel <- get
-    let WidgetFields image cursor keymap = widget curModel
+    let Widget image cursor keymap = widget curModel
     liftIO . Vty.update vty $ Vty.Picture (mkCursor cursor) (TermImage.render image) emptyBG
     event <- liftIO . Vty.next_event $ vty
     case event of
@@ -38,7 +39,7 @@ main = do
     widget = grid first . (map . map) (item . makeTextEdit) $
              [[second, first],
               [first, second]]
-    makeTextEdit x = adaptModel (x . second) $ textEdit (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
+    makeTextEdit x = Widget.adaptModel (x . second) $ textEdit (Vty.def_attr `Vty.with_fore_color` Vty.yellow)
     item w = (Grid.centered, w)
     initModel = (Grid.Model (Grid.Cursor (Vector2 0 0)),
                  (TextEdit.Model 0 "abc\ndefgh",
