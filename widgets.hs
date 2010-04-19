@@ -6,7 +6,6 @@ import qualified Keymap as Keymap
 import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor)
 import qualified Data.Accessor.Template as AT
--- import qualified Control.Arrow as Arr
 import Data.Maybe(fromMaybe)
 import Prelude hiding ((.))
 import Control.Category((.))
