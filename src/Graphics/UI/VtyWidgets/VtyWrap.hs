@@ -2,7 +2,9 @@
 
 -- TODO: Add these to Vty itself..
 
-module VtyWrap(withVty, safeMkVty, emptyImage, emptyBG, pictureOfImage, vtyString) where
+module Graphics.UI.VtyWidgets.VtyWrap
+    (withVty, safeMkVty, emptyImage, emptyBG, pictureOfImage, vtyString)
+where
 
 import qualified Graphics.Vty as Vty
 import Graphics.Vty(Vty)

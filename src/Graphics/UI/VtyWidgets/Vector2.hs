@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall -O2 #-}
 
-module Vector2
-    (Vector2(Vector2)
+module Graphics.UI.VtyWidgets.Vector2
+    (Vector2(..)
     ,vector2
     ,first,second,(***),both
     ,fst,snd)

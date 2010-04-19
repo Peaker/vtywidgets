@@ -1,16 +1,18 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module TextEdit(textEdit, Model(..), initModel) where
+module Graphics.UI.VtyWidgets.TextEdit
+    (textEdit, Model(..), initModel)
+where
 
 import Data.Char(chr)
 import Data.List(intercalate)
 import Data.Monoid(mconcat)
 import qualified Data.Map as Map
 import qualified Graphics.Vty as Vty
-import qualified TermImage
-import Vector2(Vector2(..))
-import qualified Keymap
-import Widget(Widget(..))
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
+import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
+import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import Control.Arrow(first)
 import Data.List.Split(splitOn)
 

@@ -1,11 +1,13 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module TextView(textView) where
+module Graphics.UI.VtyWidgets.TextView
+    (textView)
+where
 
 import qualified Graphics.Vty as Vty
 import Data.Monoid(mempty)
-import qualified TermImage
-import Widget(Widget(Widget))
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import Graphics.UI.VtyWidgets.Widget(Widget(..))
 
 textView :: Vty.Attr -> String -> Widget ()
 textView attr text = Widget image (Just ((`div` 2) `fmap` size)) mempty

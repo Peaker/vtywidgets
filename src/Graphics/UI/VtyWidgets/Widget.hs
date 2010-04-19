@@ -1,12 +1,14 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Widget(Widget(..), ImageSize,
-              adaptModel, imageSize, size) where
+module Graphics.UI.VtyWidgets.Widget
+    (Widget(..), ImageSize,
+     adaptModel, imageSize, size)
+where
 
 import Data.Accessor(Accessor, (^.), setVal)
-import Keymap(Keymap)
-import Vector2(Vector2)
-import TermImage(TermImage, boundingRect)
+import Graphics.UI.VtyWidgets.Keymap(Keymap)
+import Graphics.UI.VtyWidgets.Vector2(Vector2)
+import Graphics.UI.VtyWidgets.TermImage(TermImage, boundingRect)
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> (w -> Widget w)
 adaptModel acc pwidget wmodel = widget {widgetKeymap = flip (setVal acc) wmodel `fmap` keymap}

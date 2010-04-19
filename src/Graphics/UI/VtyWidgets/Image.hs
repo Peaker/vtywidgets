@@ -1,15 +1,17 @@
 {-# OPTIONS -Wall -O2 #-}
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
-module Image(Image, Coordinate, mkImage,
-             pick, boundingRect, translate) where
+module Graphics.UI.VtyWidgets.Image
+    (Image, Coordinate, mkImage,
+     pick, boundingRect, translate)
+where
 
 import Data.Monoid(Monoid(..))
-import Vector2(Vector2(..))
 import Control.Applicative(Applicative(..), liftA2)
 import Control.Compose((:.)(O, unO))
 import Control.Arrow((***))
 import Control.Monad(join)
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 type Coordinate = Vector2 Int
 

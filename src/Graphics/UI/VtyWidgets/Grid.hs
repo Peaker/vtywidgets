@@ -1,23 +1,26 @@
 {-# OPTIONS -O2 -Wall #-}
 
-module Grid(grid, gridAcc,
-            Cursor(..), Model(..), Item(..),
-            initModel, centered) where
+module Graphics.UI.VtyWidgets.Grid
+    (grid, gridAcc,
+     Cursor(..), Model(..), Item(..),
+     initModel, centered)
+where
 
 import qualified Graphics.Vty as Vty
-import qualified Keymap
-import Keymap(Keymap)
-import Widget(Widget(..))
-import qualified Widget
 import Data.List(transpose, genericLength)
 import Data.Maybe(fromMaybe)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat, First(First))
 import Control.Applicative(liftA2)
-import Vector2(Vector2(..))
-import qualified Vector2
-import qualified TermImage
-  
+
+import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
+import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Keymap(Keymap)
+import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
+import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+
 type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)

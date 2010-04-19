@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall -O2 #-}
 
-module Keymap
+module Graphics.UI.VtyWidgets.Keymap
     (Keymap(keymapGroups),
      Doc, KeyGroupName, ModKey, showModKey,
      lookup, make, fromGroups, singleton, singletonKeys, simpleton)

@@ -1,18 +1,20 @@
 {-# OPTIONS -Wall -O2 #-}
 
-module TermImage(TermChar, TermImage, render, string, stringSize,
-                 -- re-exports:
-                 translate, boundingRect) where
+module Graphics.UI.VtyWidgets.TermImage
+    (TermChar, TermImage, render, string, stringSize,
+     -- re-exports:
+     translate, boundingRect)
+where
 
 import qualified Graphics.Vty as Vty
 import Data.Maybe(fromMaybe)
 import Data.List(foldl')
 import Data.Monoid(First(First, getFirst))
 import Control.Applicative(pure)
-import Image(Image, mkImage, translate, boundingRect)
-import qualified Image
-import ListUtils(safeIndex)
-import Vector2(Vector2(..))
+import Data.List.Utils(safeIndex)
+import Graphics.UI.VtyWidgets.Image(Image, mkImage, translate, boundingRect)
+import qualified Graphics.UI.VtyWidgets.Image as Image
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 type TermChar = (Vty.Attr, Char)
 type TermImage = Image (First TermChar)

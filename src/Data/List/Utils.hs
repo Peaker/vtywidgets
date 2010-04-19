@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall -O2 #-}
 
-module ListUtils(safeIndex) where
+module Data.List.Utils(safeIndex) where
 
 import Data.Maybe(listToMaybe)
 

@@ -1,0 +1,45 @@
+Name:                vtywidgets
+Version:             0.0.6
+Cabal-Version:       >= 1.2
+Synopsis:            Purely FunctionaL User Interface
+Category:            graphics
+Description:
+  This package contains a set of composable purely functional widgets.
+  .
+  Project wiki page: <http://haskell.org/haskellwiki/VtyWidgets>
+  .
+  &#169; 2009 by Eyal Lotem; BSD3 license.
+
+Author:              Eyal Lotem
+Maintainer:          eyal.lotem@gmail.com
+--Homepage:            http://haskell.org/haskellwiki/VtyWidgets
+--Package-Url:         http://code.haskell.org/VtyWidgets
+Copyright:           (c) 2008 by Eyal Lotem
+License:             BSD3
+Stability:           experimental
+build-type:          Simple
+
+Library
+  hs-Source-Dirs:      src
+  Extensions:
+  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, TypeCompose, containers
+  Exposed-Modules:     Graphics.UI.VtyWidgets.Grid,
+                       Graphics.UI.VtyWidgets.Image,
+                       Graphics.UI.VtyWidgets.Keymap,
+                       Graphics.UI.VtyWidgets.TermImage,
+                       Graphics.UI.VtyWidgets.TextEdit,
+                       Graphics.UI.VtyWidgets.TextView,
+                       Graphics.UI.VtyWidgets.Vector2,
+                       Graphics.UI.VtyWidgets.VtyWrap,
+                       Graphics.UI.VtyWidgets.Widget
+  Other-Modules:       Data.List.Utils
+
+  ghc-options:         -Wall
+
+executable vtywidgets-example
+  hs-Source-Dirs:      src
+  Extensions:
+  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, TypeCompose, containers, mtl
+  ghc-options : -O2 -Wall
+  main-is: Example.hs
+  ghc-prof-options:    -prof -auto-all 

@@ -1,8 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-import VtyWrap(withVty, emptyBG)
-import qualified Keymap as Keymap
 import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor)
 import qualified Data.Accessor.Template as AT
@@ -13,15 +11,17 @@ import Control.Category((.))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
-import Widget(Widget(..))
-import qualified Widget
-import Grid(gridAcc)
-import qualified Grid
-import TextView(textView)
-import TextEdit(textEdit)
-import qualified TextEdit
-import Vector2(Vector2(..))
-import qualified TermImage
+import Graphics.UI.VtyWidgets.VtyWrap(withVty, emptyBG)
+import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
+import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Grid(gridAcc)
+import qualified Graphics.UI.VtyWidgets.Grid as Grid
+import Graphics.UI.VtyWidgets.TextView(textView)
+import Graphics.UI.VtyWidgets.TextEdit(textEdit)
+import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
