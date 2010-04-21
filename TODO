@@ -1,8 +1,10 @@
 * Grid:
 
-  * Weight, (MaxSize -> RequestedSizeRange) -- range meaning Min,Maybe Max
+  * Attach (Weight, (MinSize, Maybe MaxSize)) and put Widget behind (Size ->).
     Allowing the grid to set the size more smartly, allowing fixed
     sizes, dynamic sizes, etc.
+    * Have Grid take Size and live in that..
+    * Clip the resulting image (Can be Image.clip :: Monoid a => Clip Image a
 
 * Scroller:
 
@@ -10,7 +12,5 @@
     range of the scroll
 
 * TextEdit:
-
-  * Bug when moving up/down from long to short line...
 
   * Arg for max num of lines

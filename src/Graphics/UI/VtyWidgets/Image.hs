@@ -2,8 +2,9 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Image
-    (Image, Coordinate, mkImage,
-     pick, boundingRect, inBoundingRect, translate)
+    (Image, mkImage, pick, translate,
+     Coordinate, ClipRect(..), unClipRect, inClipRect, inClipRect2, inTopLeft, inBottomRight,
+     boundingRect, inBoundingRect)
 where
 
 import Data.Monoid(Monoid(..))
@@ -15,8 +16,15 @@ import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 type Coordinate = Vector2 Int
 
+type Endo a = a -> a
+
 data ClipRect = ClipRect { topLeft :: Coordinate,
                            bottomRight :: Coordinate }
+inTopLeft :: Endo Coordinate -> Endo ClipRect
+inTopLeft f (ClipRect tl br) = ClipRect (f tl) br
+inBottomRight :: Endo Coordinate -> Endo ClipRect
+inBottomRight f (ClipRect tl br) = ClipRect tl (f br)
+
 unClipRect :: ClipRect -> (Coordinate, Coordinate)
 unClipRect = liftA2 (,) topLeft bottomRight
 inClipRect :: ((Coordinate, Coordinate) -> (Coordinate, Coordinate)) ->
@@ -46,18 +54,17 @@ inImage2 :: ((ClipRect, Coordinate -> a) ->
             Image a -> Image b -> Image c
 inImage2 f = inImage . f . unImage
 
-mkImage :: (Coordinate, Coordinate) -> (Coordinate -> a) -> Image a
-mkImage (tl, br) f = Image . O . (,) (ClipRect tl br) $ f
+mkImage :: ClipRect -> (Coordinate -> a) -> Image a
+mkImage cr f = Image . O . (,) cr $ f
 
 instance Monoid a => Monoid (Image a) where
   mempty = Image . O $ mempty
   mappend = inImage2 $ mappend
 
-boundingRect :: Image a -> (Coordinate, Coordinate)
-boundingRect = unClipRect . fst . unImage
+boundingRect :: Image a -> ClipRect
+boundingRect = fst . unImage
 
-inBoundingRect :: ((Coordinate, Coordinate) -> (Coordinate, Coordinate)) ->
-                  Image a -> Image a
+inBoundingRect :: Endo ClipRect -> Endo (Image a)
 inBoundingRect f img = mkImage boundingRect' . pick $ img
   where
     boundingRect' = f . boundingRect $ img

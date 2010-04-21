@@ -3,7 +3,9 @@
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage, render, string, stringSize,
      -- re-exports:
-     Coordinate, translate, boundingRect, inBoundingRect)
+     translate,
+     Coordinate, ClipRect(..), unClipRect, inClipRect, inClipRect2, inTopLeft, inBottomRight,
+     boundingRect, inBoundingRect)
 where
 
 import Data.Maybe(fromMaybe)
@@ -15,8 +17,11 @@ import Control.Applicative(pure)
 import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Image(Image, mkImage,
-                                    translate, boundingRect, inBoundingRect,
-                                    Coordinate)
+                                    translate,
+                                    Coordinate, ClipRect(..),
+                                    unClipRect, inClipRect, inClipRect2,
+                                    inTopLeft, inBottomRight,
+                                    boundingRect, inBoundingRect)
 import qualified Graphics.UI.VtyWidgets.Image as Image
 
 type TermChar = (Vty.Attr, Char)
@@ -31,7 +36,7 @@ render image =
   | y <- [0..b-1]
   ]
   where
-    (_, Vector2 r b) = Image.boundingRect image
+    ClipRect _ (Vector2 r b) = Image.boundingRect image
     f = Image.pick image
 
 stringParse :: String -> (Vector2 Int, [String])
@@ -42,7 +47,7 @@ stringParse chars = (Vector2 w h, ls)
     h = fromIntegral (length ls)
 
 string :: Vty.Attr -> String -> TermImage
-string attr chars = mkImage (pure 0, Vector2 w h) func
+string attr chars = mkImage (ClipRect (pure 0) (Vector2 w h)) func
   where
     func (Vector2 x y) = if 0 <= x && x < w &&
                             0 <= y && y < h
