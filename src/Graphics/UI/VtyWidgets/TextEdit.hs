@@ -56,6 +56,7 @@ make attr (Model cursor text) =
     linesBefore = reverse (splitLines before)
     linesAfter = splitLines after
     prevLine = linesBefore !! 1
+    nextLine = linesAfter !! 1
     curLineBefore = head linesBefore
     curLineAfter = head linesAfter
     cursorX = length curLineBefore
@@ -89,7 +90,7 @@ make attr (Model cursor text) =
 
         ifList (cursorY < height-1) .
         Keymap.singleton "Down" "Move down" ([], Vty.KDown) $
-        moveRelative (length curLineAfter + 1 + cursorX),
+        moveRelative (length curLineAfter + 1 + min cursorX (length nextLine)),
 
         ifList (cursorX > 0) .
         homeKeymap "Move to beginning of line" $

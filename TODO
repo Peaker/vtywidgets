@@ -1,8 +1,5 @@
 * Grid:
 
-  * (Bool->) arg for image is something only a Grid can pass to inner
-    widgets, so it should be a Grid thing
-
   * Weight, (MaxSize -> RequestedSizeRange) -- range meaning Min,Maybe Max
     Allowing the grid to set the size more smartly, allowing fixed
     sizes, dynamic sizes, etc.
