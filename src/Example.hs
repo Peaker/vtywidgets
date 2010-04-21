@@ -16,10 +16,8 @@ import Graphics.UI.VtyWidgets.VtyWrap(withVty, emptyBG)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import Graphics.UI.VtyWidgets.Grid(gridAcc)
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
-import Graphics.UI.VtyWidgets.TextView(textView)
-import Graphics.UI.VtyWidgets.TextEdit(textEdit)
+import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
@@ -50,7 +48,7 @@ main :: IO ()
 main = do
   withVty $ \vty -> (`evalStateT` initModel) . forever $ do
     curModel <- get
-    let Widget image cursor keymap = widget curModel
+    let Widget image cursor keymap = widget curModel True
     liftIO . Vty.update vty $ Vty.Picture (mkCursor cursor) (TermImage.render image) emptyBG
     event <- liftIO . Vty.next_event $ vty
     case event of
@@ -62,17 +60,18 @@ main = do
   where
     mkCursor Nothing = Vty.NoCursor
     mkCursor (Just (Vector2 x y)) = Vty.Cursor (fromIntegral x) (fromIntegral y)
-    makeGrid acc = gridAcc acc . (map . map) item
-    widget :: Model -> Widget Model
+    makeGrid acc = Grid.makeAcc acc . (map . map) item
     widget model = makeGrid modelOuterGrid [
-                     [ const ((model <$) . textView attr $ "Title\n-----") ],
-                     [ const (makeGrid modelInnerGrid (textEdits model) model) ]
+                     [ const . (model <$) . TextView.make attr $ "Title\n-----" ],
+                     [ makeGrid modelInnerGrid (textEdits model) model ]
                      ] model
-    textEdits model = [ [ const $
-                          Widget.adaptModel (nth i . modelTextEdits)
-                          (textEdit attr) model
+    textEdits model = [ [ \hf ->
+                           Widget.adaptModel (nth i . modelTextEdits)
+                           (flip (TextEdit.makeColored attr editingAttr) hf)
+                           model
                         | y <- [0, 1]
                         , let i = y*2 + x ]
                       | x <- [0, 1] ]
+    editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
     item w = Grid.Item Grid.centered w

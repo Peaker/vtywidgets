@@ -1,8 +1,8 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (grid, gridAcc,
-     Cursor(..), Model(..), Item(..), HasFocus(..),
+    (make, makeAcc,
+     Cursor(..), Model(..), Item(..),
      initModel, centered)
 where
 
@@ -24,11 +24,9 @@ type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)
 type Size = Cursor
-newtype HasFocus = HasFocus { hasFocus :: Bool }
-  deriving (Show, Read, Eq)
 data Item model = Item {
   _itemAlignment :: Alignment,
-  itemWidget :: HasFocus -> Widget model
+  itemWidget :: Bool -> Widget model
   }
 
 data Model = Model {
@@ -77,10 +75,10 @@ neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
              (Widget.atCursor . const) Nothing
 
-grid :: (Model -> model) -> [[Item model]] -> Model -> Widget model
-grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
+make :: (Model -> model) -> [[Item model]] -> Model -> Bool -> Widget model
+make conv rows (Model gcursor) hf = Widget gridImage gridCursor gridKeymap
   where
-    -- Feed all of our rows the HasFocus, and replace the
+    -- Feed all of our rows the has_focus boolean, and replace the
     -- cursor/keymap of non-current children with mempty
     childWidgets =
       map childRowWidgets (enumerate rows)
@@ -89,8 +87,8 @@ grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
     childWidget yIndex (xIndex, Item alignment child) =
       (alignment,
        if Cursor (Vector2 xIndex yIndex) == gcursor
-       then child (HasFocus True)
-       else neutralize $ child (HasFocus False))
+       then child hf
+       else neutralize $ child False)
 
     -- Compute all the row/column sizes:
     computeSizes f = map maximum . (map . map) (f . Widget.size . snd)
@@ -122,5 +120,5 @@ grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
                gcursor
     gridKeymap = curChildKeymap `mappend` myKeymap
 
-gridAcc :: Accessor model Model -> [[Item model]] -> model -> Widget model
-gridAcc acc rows model = grid (setter model acc) rows (model ^. acc)
+makeAcc :: Accessor model Model -> [[Item model]] -> model -> Bool -> Widget model
+makeAcc acc rows model hf = make (setter model acc) rows (model ^. acc) hf

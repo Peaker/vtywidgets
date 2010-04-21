@@ -11,7 +11,7 @@ import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2)
 import Graphics.UI.VtyWidgets.TermImage(TermImage, boundingRect)
 
-adaptModel :: Accessor w p -> (p -> Widget p) -> (w -> Widget w)
+adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget wmodel = widget {widgetKeymap = flip (setVal acc) wmodel `fmap` keymap}
   where
     widget = pwidget (wmodel ^. acc)
