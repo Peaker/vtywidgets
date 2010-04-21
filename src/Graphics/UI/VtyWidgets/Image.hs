@@ -10,36 +10,36 @@ import Data.Monoid(Monoid(..))
 import Control.Applicative(Applicative(..), liftA2)
 import Control.Compose((:.)(O, unO))
 import Control.Arrow((***))
-import Graphics.UI.VtyWidgets.Rect(ClipRect(..), Coordinate)
+import Graphics.UI.VtyWidgets.Rect(ExpandingRect(..), Coordinate)
 import qualified Graphics.UI.VtyWidgets.Rect as Rect
 
 type Endo a = a -> a
 
-newtype Image a = Image { runImage :: ((,) ClipRect :. (->) Coordinate) a }
+newtype Image a = Image { runImage :: ((,) ExpandingRect :. (->) Coordinate) a }
   deriving (Functor, Applicative)
-unImage :: Image a -> (ClipRect, Coordinate -> a)
+unImage :: Image a -> (ExpandingRect, Coordinate -> a)
 unImage = unO . runImage
-inImage :: ((ClipRect, Coordinate -> a) ->
-            (ClipRect, Coordinate -> b)) ->
+inImage :: ((ExpandingRect, Coordinate -> a) ->
+            (ExpandingRect, Coordinate -> b)) ->
            Image a -> Image b
 inImage f = Image . O . f . unImage
-inImage2 :: ((ClipRect, Coordinate -> a) ->
-             (ClipRect, Coordinate -> b) ->
-             (ClipRect, Coordinate -> c)) ->
+inImage2 :: ((ExpandingRect, Coordinate -> a) ->
+             (ExpandingRect, Coordinate -> b) ->
+             (ExpandingRect, Coordinate -> c)) ->
             Image a -> Image b -> Image c
 inImage2 f = inImage . f . unImage
 
-mkImage :: ClipRect -> (Coordinate -> a) -> Image a
+mkImage :: ExpandingRect -> (Coordinate -> a) -> Image a
 mkImage cr f = Image . O . (,) cr $ f
 
 instance Monoid a => Monoid (Image a) where
   mempty = Image . O $ mempty
   mappend = inImage2 $ mappend
 
-boundingRect :: Image a -> ClipRect
+boundingRect :: Image a -> ExpandingRect
 boundingRect = fst . unImage
 
-inBoundingRect :: Endo ClipRect -> Endo (Image a)
+inBoundingRect :: Endo ExpandingRect -> Endo (Image a)
 inBoundingRect f img = mkImage boundingRect' . pick $ img
   where
     boundingRect' = f . boundingRect $ img
@@ -51,4 +51,4 @@ argument :: (a -> b) -> (b -> c) -> a -> c
 argument = flip (.)
            
 translate :: Coordinate -> Image a -> Image a
-translate c = inImage $ (Rect.inClipRect . Rect.atBoth . liftA2 (+)) c *** (argument . subtract) c
+translate c = inImage $ (Rect.inExpandingRect . Rect.atBoth . liftA2 (+)) c *** (argument . subtract) c
