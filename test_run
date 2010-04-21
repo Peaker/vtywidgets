@@ -1,0 +1,1 @@
+rxvt -fg white -bg black -e dist/build/vtywidgets-example/vtywidgets-example
