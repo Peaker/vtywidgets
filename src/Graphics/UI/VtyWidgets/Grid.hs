@@ -2,13 +2,12 @@
 
 module Graphics.UI.VtyWidgets.Grid
     (grid, gridAcc,
-     Cursor(..), Model(..), Item(..),
+     Cursor(..), Model(..), Item(..), HasFocus(..),
      initModel, centered)
 where
 
 import qualified Graphics.Vty as Vty
 import Data.List(transpose, genericLength)
-import Data.Maybe(fromMaybe)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat, First(First))
 import Control.Applicative(liftA2)
@@ -25,9 +24,11 @@ type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)
 type Size = Cursor
+newtype HasFocus = HasFocus { hasFocus :: Bool }
+  deriving (Show, Read, Eq)
 data Item model = Item {
   _itemAlignment :: Alignment,
-  itemWidget :: Widget model
+  itemWidget :: HasFocus -> Widget model
   }
 
 data Model = Model {
@@ -69,41 +70,57 @@ length2D l@(x:_) = Vector2 (genericLength x) (genericLength l)
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
 
+ranges :: Num a => [a] -> [(a, a)]
+ranges xs = zip (scanl (+) 0 xs) xs
+
+neutralize :: Widget a -> Widget a
+neutralize = (Widget.atKeymap . const) mempty .
+             (Widget.atCursor . const) Nothing
+
 grid :: (Model -> model) -> [[Item model]] -> Model -> Widget model
 grid conv rows (Model gcursor) = Widget gridImage gridCursor gridKeymap
   where
-    unpaddedChildImages = (map . map) (widgetImage . itemWidget) rows
-    rowHeights = map maximum . (map . map) (Vector2.snd . Widget.imageSize) $ unpaddedChildImages
-    columnWidths = map maximum . transpose . (map . map) (Vector2.fst . Widget.imageSize) $ unpaddedChildImages
-    ranges xs = zip (scanl (+) 0 xs) xs
-    size = Cursor (length2D rows)
-    myKeymap = fmap (conv . Model) . keymap size $ gcursor
-    gridKeymap = childKeymap `mappend` myKeymap
-    childKeymap = fromMaybe mempty . fmap (widgetKeymap . snd) $ curGridElement
-    gridCursor = uncurry moveCursor =<< curGridElement
-    pos `moveCursor` childFields = liftA2 (+) pos `fmap` widgetCursor childFields
+    -- Feed all of our rows the HasFocus, and replace the
+    -- cursor/keymap of non-current children with mempty
+    childWidgets =
+      map childRowWidgets (enumerate rows)
+    childRowWidgets (yIndex, row) =
+      map (childWidget yIndex) (enumerate row)
+    childWidget yIndex (xIndex, Item alignment child) =
+      (alignment,
+       if Cursor (Vector2 xIndex yIndex) == gcursor
+       then child (HasFocus True)
+       else neutralize $ child (HasFocus False))
 
-    (gridImage, First curGridElement) =
-      mconcat . concat $
-      zipWith gridRowElements (ranges rowHeights) (enumerate rows)
+    -- Compute all the row/column sizes:
+    computeSizes f = map maximum . (map . map) (f . Widget.size . snd)
+    rowHeights = computeSizes Vector2.snd $ childWidgets
+    columnWidths = computeSizes Vector2.fst . transpose $ childWidgets
 
-    gridRowElements (y, height) (yIndex, row) =
-      zipWith (gridElement y height yIndex) (ranges columnWidths) (enumerate row)
-
-    gridElement y height yIndex (x, width) (xIndex, Item alignment child) =
-      (childImage, curChild)
-
+    -- Translate the widget images and cursors to their right
+    -- locations:
+    translatedWidgets =
+      zipWith translatedRowWidgets (ranges rowHeights) childWidgets
+    translatedRowWidgets (y, height) row =
+      zipWith (translatedWidget y height) (ranges columnWidths) row
+    translatedWidget y height (x, width) (alignment, widget) =
+      (Widget.atCursor . fmap) (liftA2 (+) pos) .
+      Widget.atImage (TermImage.translate pos) $
+      widget
       where
-        gpos = Cursor (Vector2 xIndex yIndex)
-        basePos = Vector2 x y
-        pos = liftA2 (+) padSize basePos
-        curChild = if gpos == gcursor
-                   then First . Just $ (pos, child)
-                   else First $ Nothing
-        padSize = relativeImagePos (Vector2 width height) alignment .
-                  Widget.size $
-                  child
-        childImage = TermImage.translate pos . widgetImage $ child
+        pos = liftA2 (+) (Vector2 x y) .
+              relativeImagePos (Vector2 width height) alignment .
+              Widget.size $
+              widget
+
+    -- Combine all neutralized, translated children:
+    tuplify (Widget image cursor childKeymap) = (image, First cursor, childKeymap)
+    (gridImage, First gridCursor, curChildKeymap) = mconcat . map tuplify . concat $ translatedWidgets
+
+    myKeymap = fmap (conv . Model) .
+               keymap (Cursor (length2D rows)) $
+               gcursor
+    gridKeymap = curChildKeymap `mappend` myKeymap
 
 gridAcc :: Accessor model Model -> [[Item model]] -> model -> Widget model
 gridAcc acc rows model = grid (setter model acc) rows (model ^. acc)

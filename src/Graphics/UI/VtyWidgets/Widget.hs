@@ -1,8 +1,9 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Widget
-    (Widget(..), ImageSize,
-     adaptModel, imageSize, size)
+    (Widget(..), atCursor, atKeymap, atImage,
+     ImageSize, imageSize, size,
+     adaptModel)
 where
 
 import Data.Accessor(Accessor, (^.), setVal)
@@ -24,11 +25,15 @@ data Widget model = Widget {
   widgetKeymap :: Keymap model
   }
 
-atWidgetKeymap :: (Keymap a -> Keymap b) -> Widget a -> Widget b
-atWidgetKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
+atCursor :: (Maybe (Vector2 Int) -> Maybe (Vector2 Int)) -> Widget a -> Widget a
+atCursor f w = w{widgetCursor = f (widgetCursor w)}
+atKeymap :: (Keymap a -> Keymap b) -> Widget a -> Widget b
+atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
+atImage :: (TermImage -> TermImage) -> Widget a -> Widget a
+atImage f w = w{widgetImage = f (widgetImage w)}
 
 instance Functor Widget where
-  fmap = atWidgetKeymap . fmap
+  fmap = atKeymap . fmap
 
 type ImageSize = Vector2 Int
 

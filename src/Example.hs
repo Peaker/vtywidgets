@@ -8,6 +8,7 @@ import qualified Data.Accessor.Template as AT
 import Data.Maybe(fromMaybe)
 import Prelude hiding ((.))
 import Control.Category((.))
+import Control.Applicative((<$))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
@@ -64,11 +65,12 @@ main = do
     makeGrid acc = gridAcc acc . (map . map) item
     widget :: Model -> Widget Model
     widget model = makeGrid modelOuterGrid [
-                     [ fmap (const model) . textView attr $ "Title\n-----" ],
-                     [ makeGrid modelInnerGrid (textEdits model) $ model ]
+                     [ const ((model <$) . textView attr $ "Title\n-----") ],
+                     [ const (makeGrid modelInnerGrid (textEdits model) model) ]
                      ] model
-    textEdits model = [ [ Widget.adaptModel (nth i . modelTextEdits)
-                          (textEdit attr) $ model
+    textEdits model = [ [ const $
+                          Widget.adaptModel (nth i . modelTextEdits)
+                          (textEdit attr) model
                         | y <- [0, 1]
                         , let i = y*2 + x ]
                       | x <- [0, 1] ]
