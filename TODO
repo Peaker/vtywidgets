@@ -4,7 +4,9 @@
     Allowing the grid to set the size more smartly, allowing fixed
     sizes, dynamic sizes, etc.
     * Have Grid take Size and live in that..
-    * Clip the resulting image (Can be Image.clip :: Monoid a => Clip Image a
+    * Should all Images guarantee that there's nothing outside their ClipRect?
+    * Clip the subwidget images (Can be Image.clip :: Monoid a => IntersectRect -> Endo (Image a),
+      returns mempty for any out-of-intersection position)
 
 * Scroller:
 

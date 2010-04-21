@@ -24,6 +24,7 @@ Library
   Extensions:
   Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, TypeCompose, containers
   Exposed-Modules:     Graphics.UI.VtyWidgets.Grid,
+                       Graphics.UI.VtyWidgets.Rect,
                        Graphics.UI.VtyWidgets.Image,
                        Graphics.UI.VtyWidgets.Keymap,
                        Graphics.UI.VtyWidgets.TermImage,
