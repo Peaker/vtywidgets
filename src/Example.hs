@@ -66,8 +66,9 @@ main = do
                      [ makeGrid modelInnerGrid (textEdits model) model ]
                      ] model
     textEdits model = [ [ \hf ->
+                           Widget.atBoundingRect (Widget.rightSpacer 1) .
                            Widget.adaptModel (nth i . modelTextEdits)
-                           (flip (TextEdit.makeColored attr editingAttr) hf)
+                           (TextEdit.makeColored attr editingAttr hf) $
                            model
                         | y <- [0, 1]
                         , let i = y*2 + x ]

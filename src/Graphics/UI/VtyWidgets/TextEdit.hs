@@ -5,7 +5,6 @@ module Graphics.UI.VtyWidgets.TextEdit
 where
 
 import Data.Char(chr)
-import Data.List(intercalate)
 import Data.Monoid(mconcat)
 import qualified Data.Map as Map
 import qualified Graphics.Vty as Vty
@@ -29,24 +28,17 @@ initModel s = Model (length s) s
 splitLines :: String -> [String]
 splitLines = splitOn "\n"
 
-unsplitLines :: [String] -> String
-unsplitLines = intercalate "\n"
-
-inSplitLines :: ([String] -> [String]) -> String -> String
-inSplitLines f = unsplitLines . f . splitLines
-
 -- Make a textEdit and adjust color based on whether we're currently
 -- editing:
-makeColored :: Vty.Attr -> Vty.Attr -> Model -> Bool -> Widget Model
-makeColored _         trueAttr model True = make trueAttr model
-makeColored falseAttr _        model False = make falseAttr model
+makeColored :: Vty.Attr -> Vty.Attr -> Bool -> Model -> Widget Model
+makeColored _         trueAttr True = make trueAttr
+makeColored falseAttr _        False = make falseAttr
 
 make :: Vty.Attr -> Model -> Widget Model
 make attr (Model cursor text) =
-  Widget (TermImage.string attr (inSplitLines (map (++ " ")) $ text))
-         (Just $ Vector2 cursorX cursorY)
-         keymap
+  Widget image (Just $ Vector2 cursorX cursorY) keymap
   where
+    image = TermImage.string attr text
     (before, after) = splitAt cursor text
 
     width = length text

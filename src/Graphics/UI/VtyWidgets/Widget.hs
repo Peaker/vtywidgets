@@ -2,6 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (Widget(..), atCursor, atKeymap, atImage,
+     atBoundingRect, rightSpacer,
      ImageSize, imageSize, size,
      adaptModel)
 where
@@ -9,7 +10,10 @@ where
 import Data.Accessor(Accessor, (^.), setVal)
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2)
-import Graphics.UI.VtyWidgets.TermImage(TermImage, boundingRect)
+import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
+import Graphics.UI.VtyWidgets.TermImage(TermImage)
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import Control.Arrow(second)
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget wmodel = widget {widgetKeymap = flip (setVal acc) wmodel `fmap` keymap}
@@ -32,13 +36,22 @@ atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
 atImage :: (TermImage -> TermImage) -> Widget a -> Widget a
 atImage f w = w{widgetImage = f (widgetImage w)}
 
+type BoundingRect = (TermImage.Coordinate, TermImage.Coordinate)
+type Endo a = a -> a
+
+atBoundingRect :: Endo BoundingRect -> Endo (Widget a)
+atBoundingRect = atImage . TermImage.inBoundingRect
+
+rightSpacer :: Int -> Endo BoundingRect
+rightSpacer n = second . Vector2.first $ (+n)
+
 instance Functor Widget where
   fmap = atKeymap . fmap
 
 type ImageSize = Vector2 Int
 
 imageSize :: TermImage -> ImageSize
-imageSize = snd . boundingRect
+imageSize = snd . TermImage.boundingRect
 
 size :: Widget model -> ImageSize
 size = imageSize . widgetImage

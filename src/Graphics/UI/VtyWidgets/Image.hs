@@ -3,7 +3,7 @@
 
 module Graphics.UI.VtyWidgets.Image
     (Image, Coordinate, mkImage,
-     pick, boundingRect, translate)
+     pick, boundingRect, inBoundingRect, translate)
 where
 
 import Data.Monoid(Monoid(..))
@@ -55,6 +55,12 @@ instance Monoid a => Monoid (Image a) where
 
 boundingRect :: Image a -> (Coordinate, Coordinate)
 boundingRect = unClipRect . fst . unImage
+
+inBoundingRect :: ((Coordinate, Coordinate) -> (Coordinate, Coordinate)) ->
+                  Image a -> Image a
+inBoundingRect f img = mkImage boundingRect' . pick $ img
+  where
+    boundingRect' = f . boundingRect $ img
 
 pick :: Image a -> Coordinate -> a
 pick = snd . unImage

@@ -3,18 +3,21 @@
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage, render, string, stringSize,
      -- re-exports:
-     translate, boundingRect)
+     Coordinate, translate, boundingRect, inBoundingRect)
 where
 
-import qualified Graphics.Vty as Vty
 import Data.Maybe(fromMaybe)
 import Data.List(foldl')
+import Data.List.Split(splitOn)
+import Data.List.Utils(safeIndex)
 import Data.Monoid(First(First, getFirst))
 import Control.Applicative(pure)
-import Data.List.Utils(safeIndex)
-import Graphics.UI.VtyWidgets.Image(Image, mkImage, translate, boundingRect)
-import qualified Graphics.UI.VtyWidgets.Image as Image
+import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
+import Graphics.UI.VtyWidgets.Image(Image, mkImage,
+                                    translate, boundingRect, inBoundingRect,
+                                    Coordinate)
+import qualified Graphics.UI.VtyWidgets.Image as Image
 
 type TermChar = (Vty.Attr, Char)
 type TermImage = Image (First TermChar)
@@ -34,7 +37,7 @@ render image =
 stringParse :: String -> (Vector2 Int, [String])
 stringParse chars = (Vector2 w h, ls)
   where
-    ls = lines chars
+    ls = splitOn "\n" chars
     w = fromIntegral (foldl' max 0 . map length $ ls)
     h = fromIntegral (length ls)
 
