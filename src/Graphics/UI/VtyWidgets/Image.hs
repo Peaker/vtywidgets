@@ -3,7 +3,7 @@
 
 module Graphics.UI.VtyWidgets.Image
     (Image, make, pick, translate,
-     boundingRect, inBoundingRect)
+     boundingRect, atBoundingRect)
 where
 
 import Data.Monoid(Monoid(..))
@@ -39,8 +39,8 @@ instance Monoid a => Monoid (Image a) where
 boundingRect :: Image a -> ExpandingRect
 boundingRect = fst . unImage
 
-inBoundingRect :: Endo ExpandingRect -> Endo (Image a)
-inBoundingRect f img = make boundingRect' . pick $ img
+atBoundingRect :: Endo ExpandingRect -> Endo (Image a)
+atBoundingRect f img = make boundingRect' . pick $ img
   where
     boundingRect' = f . boundingRect $ img
 

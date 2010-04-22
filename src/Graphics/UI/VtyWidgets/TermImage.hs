@@ -4,7 +4,7 @@ module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage(..),
      atImage, atCursor, setCursor,
      render, string, stringSize,
-     translate, boundingRect, inBoundingRect)
+     translate, boundingRect, atBoundingRect)
 where
 
 import Data.Maybe(fromMaybe)
@@ -52,8 +52,8 @@ translate c = (atCursor . fmapFirst) (liftA2 (+) c) . atImage (Image.translate c
 boundingRect :: TermImage -> ExpandingRect
 boundingRect = Image.boundingRect . tiImage
 
-inBoundingRect :: Endo ExpandingRect -> Endo TermImage
-inBoundingRect = atImage . Image.inBoundingRect
+atBoundingRect :: Endo ExpandingRect -> Endo TermImage
+atBoundingRect = atImage . Image.atBoundingRect
 
 render :: TermImage -> Vty.Picture
 render (TermImage image (First mCursor)) =

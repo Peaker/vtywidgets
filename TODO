@@ -1,31 +1,12 @@
-* Put the Widget.widgetCursor into the TermImage itself
+* Grid
 
-* Make "Widget" a GCD of Grid.Item, FocusDelegator.Item, ...:
+  * Instead of Grid neutralizing non-current children -- they should
+    do so themselves, based on HasFocus
 
-  * Display imgarg = Display { requestedSizeRange :: SizeRange, 
-                               image :: imgarg -> Image }
-  * Widget imgarg km = Widget { display :: Display (imgarg, HasFocus),
-                                keymap :: Keymap km }
+    * This way, all widgets can implement "global" bindings that do
+      whatever they want
 
-  * We have to "pollute" Widget with this because EACH Widget in the
-    world WILL have to be the one to say:
-
-    * What the size range is, and not its user who would have no clue
-      (except in very special cases, where the user's size range would
-      still have to be processed by the widget...)
-
-    * What the image is. If the user wants to apply some function to
-      this, it needs to apply it to the whole display, so that the
-      requestedSizeRange is fixed as well
-
-    * What the keymap is when it is in focus, and better display some
-      indication of the fact it has the focus
-
-
-* Grid:
-
-  * Item adds to Widget: 
-    * Alignment, Weight, imgarg=Size
+    * No ugly clearing of the keymap and image cursor of grid children
 
   * Clip the subwidget images:
     Image.clip :: Monoid a => IntersectRect -> Endo (Image a)

@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TextEdit
-    (make, makeColored, Model(..), initModel)
+    (make, Model(..), initModel)
 where
 
 import Data.Char(chr)
@@ -12,6 +12,7 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Control.Arrow(first)
 import Data.List.Split(splitOn)
 
@@ -30,22 +31,23 @@ splitLines = splitOn "\n"
 
 -- Make a textEdit and adjust color based on whether we're currently
 -- editing:
-makeColored :: Vty.Attr -> Vty.Attr -> Bool -> Model -> Widget Model
-makeColored _         trueAttr True = make trueAttr
-makeColored falseAttr _        False = make falseAttr
-
-make :: Vty.Attr -> Model -> Widget Model
-make attr (Model cursor text) =
-  Widget image keymap
+make :: Vty.Attr -> Vty.Attr -> Model -> Widget Model
+make unfocusedAttr focusedAttr (Model cursor text) =
+  Widget.make requestedSize mkImage keymap
   where
-    image = (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
-            TermImage.string attr $
-            text
+    attr True = focusedAttr
+    attr False = unfocusedAttr
+    requestedSize = Widget.fixedSize (Vector2 width height)
+    mkImage (Widget.HasFocus hf) _givenSize =
+      (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
+      TermImage.string (attr hf) $
+      text
+
     (before, after) = splitAt cursor text
-
-    width = length text
-
-    height = length (splitLines text)
+    textLength = length text
+    textLines = splitLines text
+    width = maximum . map length $ textLines
+    height = length textLines
 
     linesBefore = reverse (splitLines before)
     linesAfter = splitLines after
@@ -65,8 +67,8 @@ make attr (Model cursor text) =
 
     homeKeys = [([], Vty.KHome), ([Vty.MCtrl], Vty.KASCII 'a')]
     endKeys = [([], Vty.KEnd), ([Vty.MCtrl], Vty.KASCII 'e')]
-    homeKeymap doc model' = Keymap.singletonKeys "Home" doc [(mk, model') | mk <- homeKeys]
-    endKeymap doc model' = Keymap.singletonKeys "End" doc [(mk, model') | mk <- endKeys]
+    homeKeymap doc k' = Keymap.singletonKeys "Home" doc [(mk, k') | mk <- homeKeys]
+    endKeymap doc k' = Keymap.singletonKeys "End" doc [(mk, k') | mk <- endKeys]
 
     keymap =
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
@@ -74,7 +76,7 @@ make attr (Model cursor text) =
         Keymap.singleton "Left" "Move left" ([], Vty.KLeft) $
         moveRelative (-1),
 
-        ifList (cursor < width) .
+        ifList (cursor < textLength) .
         Keymap.singleton "Right" "Move right" ([], Vty.KRight) $
         moveRelative 1,
 
@@ -98,15 +100,15 @@ make attr (Model cursor text) =
         homeKeymap "Move to beginning of text" $
         moveAbsolute 0,
 
-        ifList (null curLineAfter && cursor < width) .
+        ifList (null curLineAfter && cursor < textLength) .
         endKeymap "Move to end of text" $
-        moveAbsolute width,
+        moveAbsolute textLength,
 
         ifList (cursor > 0) .
         Keymap.singleton "Backspace" "Delete backwards" ([], Vty.KBS) $
         backspace,
 
-        ifList (cursor < width) .
+        ifList (cursor < textLength) .
         Keymap.singleton "Delete" "Delete forward" ([], Vty.KDel) $
         delete,
         

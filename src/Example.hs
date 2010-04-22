@@ -8,12 +8,12 @@ import qualified Data.Accessor.Template as AT
 import Data.Maybe(fromMaybe)
 import Prelude hiding ((.))
 import Control.Category((.))
-import Control.Applicative((<$))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
@@ -47,8 +47,9 @@ main :: IO ()
 main = do
   withVty $ \vty -> (`evalStateT` initModel) . forever $ do
     curModel <- get
-    let Widget image keymap = widget curModel True
-    liftIO . Vty.update vty . TermImage.render $ image
+    let Widget display keymap = widget curModel
+        size = Vector2 80 25 -- TODO: Follow Resize events
+    liftIO . Vty.update vty . TermImage.render $ Widget.displayImage display (Widget.HasFocus True) size
     event <- liftIO . Vty.next_event $ vty
     case event of
       Vty.EvKey key mods -> do
@@ -59,14 +60,13 @@ main = do
   where
     makeGrid acc = Grid.makeAcc acc . (map . map) item
     widget model = makeGrid modelOuterGrid [
-                     [ const . (model <$) . TextView.make attr $ "Title\n-----" ],
+                     [ Widget.simpleDisplay . TextView.make attr $ "Title\n-----" ],
                      [ makeGrid modelInnerGrid (textEdits model) model ]
                      ] model
-    textEdits model = [ [ \hf ->
-                           Widget.atBoundingRect (Widget.rightSpacer 1) .
-                           Widget.adaptModel (nth i . modelTextEdits)
-                           (TextEdit.makeColored attr editingAttr hf) $
-                           model
+    textEdits model = [ [ --Widget.atDisplay (Widget.expand (Vector2 1 0)) .
+                          Widget.adaptModel (nth i . modelTextEdits)
+                          (TextEdit.make attr editingAttr) $
+                          model
                         | y <- [0, 1]
                         , let i = y*2 + x ]
                       | x <- [0, 1] ]

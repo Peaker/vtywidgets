@@ -1,56 +1,82 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Widget
-    (Widget(..), atKeymap, atImage,
-     atBoundingRect, rightSpacer,
-     ImageSize, imageSize, size,
-     adaptModel)
+    (SizeRange(..), Size, fixedSize, makeSizeRange,
+     Display(..), atRequestedSize, atImage, atImageArg, expand,
+     Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
+     HasFocus(..), adaptModel)
 where
 
 import Data.Accessor(Accessor, (^.), setVal)
+import Data.Monoid(mempty)
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2)
-import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.Rect(ExpandingRect, inExpandingRect)
-import qualified Graphics.UI.VtyWidgets.Rect as Rect
+import Control.Applicative(liftA2)
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget wmodel = widget {widgetKeymap = flip (setVal acc) wmodel `fmap` keymap}
+adaptModel acc pwidget w = widget {widgetKeymap = flip (setVal acc) w `fmap` keymap}
   where
-    widget = pwidget (wmodel ^. acc)
+    widget = pwidget (w ^. acc)
     keymap = widgetKeymap widget
 
-data Widget model = Widget {
+type Size = Vector2 Int
+data SizeRange = SizeRange {
+  srMinSize :: Size,
+  srMaxSize :: Size
+  }
+atBothSizes :: Endo Size -> Endo SizeRange
+atBothSizes f (SizeRange minSize maxSize) = SizeRange (f minSize) (f maxSize)
+fixedSize :: Size -> SizeRange
+fixedSize size = SizeRange size size
+
+makeSizeRange :: Size -> Size -> SizeRange
+makeSizeRange minSize maxSize = SizeRange minSize (max minSize maxSize)
+
+result :: (b -> c) -> (a -> b) -> a -> c
+result = (.)
+
+data Display imgarg = Display {
+  displayRequestedSize :: SizeRange,
+  displayImage :: imgarg -> Size -> TermImage
+  }
+atRequestedSize :: Endo SizeRange -> Endo (Display imgarg)
+atRequestedSize f d = d{displayRequestedSize = f $ displayRequestedSize d}
+atImage :: Endo TermImage -> Endo (Display imgarg)
+atImage f d = d{displayImage = (result . result) f $ displayImage d}
+atImageArg :: (b -> a) -> Display a -> Display b
+atImageArg f d = d{displayImage = displayImage d . f}
+
+expand :: Size -> Endo (Display imgarg)
+expand extra = (atRequestedSize . atBothSizes . liftA2 (+)) extra .
+               (atImage . TermImage.translate . fmap (`div` 2)) extra
+
+newtype HasFocus = HasFocus { hasFocus :: Bool }
+  deriving (Show, Read, Eq, Ord)
+
+data Widget k = Widget {
   -- The boundingRect topleft is ignored, and the bottom-right is
   -- considered the size
-  widgetImage :: TermImage,
-  widgetKeymap :: Keymap model
+  widgetDisplay :: Display HasFocus,
+  widgetKeymap :: Keymap k
   }
-
-atKeymap :: (Keymap a -> Keymap b) -> Widget a -> Widget b
+atDisplay :: Endo (Display HasFocus) -> Endo (Widget k)
+atDisplay f w = w{widgetDisplay = f (widgetDisplay w)}
+atKeymap :: (Keymap a -> Keymap b) ->
+            Widget a -> Widget b
 atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
-atImage :: (TermImage -> TermImage) -> Widget a -> Widget a
-atImage f w = w{widgetImage = f (widgetImage w)}
+
+simpleDisplay :: Display HasFocus -> Widget k
+simpleDisplay display = Widget display mempty
+
+make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Keymap k -> Widget k
+make sr f = Widget (Display sr f)
 
 type Endo a = a -> a
-
-atBoundingRect :: Endo ExpandingRect -> Endo (Widget a)
-atBoundingRect = atImage . TermImage.inBoundingRect
-
-rightSpacer :: Int -> Endo ExpandingRect
-rightSpacer n = inExpandingRect . Rect.atBottomRight . Vector2.first $ (+n)
 
 instance Functor Widget where
   fmap = atKeymap . fmap
 
-type ImageSize = Vector2 Int
-
--- Widget images always start at (0, 0), so the boundingRect topLeft
--- can be ignored...
-imageSize :: TermImage -> ImageSize
-imageSize = Rect.bottomRight . Rect.unExpandingRect . TermImage.boundingRect
-
-size :: Widget model -> ImageSize
-size = imageSize . widgetImage
+requestedSize :: Widget k -> SizeRange
+requestedSize = displayRequestedSize . widgetDisplay
