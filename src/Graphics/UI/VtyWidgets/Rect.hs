@@ -32,7 +32,7 @@ newtype ExpandingRect = ExpandingRect { unExpandingRect :: Rect }
 inExpandingRect :: Endo Rect -> Endo ExpandingRect
 inExpandingRect f = ExpandingRect . f . unExpandingRect
 inExpandingRect2 :: (Rect -> Rect -> Rect) ->
-               ExpandingRect -> ExpandingRect -> ExpandingRect
+                    ExpandingRect -> ExpandingRect -> ExpandingRect
 inExpandingRect2 f = inExpandingRect . f . unExpandingRect
 instance Monoid ExpandingRect where
   mempty = ExpandingRect $ Rect (pure maxBound) (pure minBound)
@@ -42,7 +42,7 @@ newtype ShrinkingRect = ShrinkingRect { unShrinkingRect :: Rect }
 inShrinkingRect :: Endo Rect -> Endo ShrinkingRect
 inShrinkingRect f = ShrinkingRect . f . unShrinkingRect
 inShrinkingRect2 :: (Rect -> Rect -> Rect) ->
-               ShrinkingRect -> ShrinkingRect -> ShrinkingRect
+                    ShrinkingRect -> ShrinkingRect -> ShrinkingRect
 inShrinkingRect2 f = inShrinkingRect . f . unShrinkingRect
 instance Monoid ShrinkingRect where
   mempty = ShrinkingRect $ Rect (pure minBound) (pure maxBound)
