@@ -12,14 +12,13 @@ import Control.Applicative((<$))
 import Control.Monad(forever)
 import Control.Monad.State(evalStateT, put, get)
 import Control.Monad.Trans(liftIO)
-import Graphics.UI.VtyWidgets.VtyWrap(withVty, emptyBG)
+import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 nthSet :: Int -> a -> [a] -> [a]
@@ -48,8 +47,8 @@ main :: IO ()
 main = do
   withVty $ \vty -> (`evalStateT` initModel) . forever $ do
     curModel <- get
-    let Widget image cursor keymap = widget curModel True
-    liftIO . Vty.update vty $ Vty.Picture (mkCursor cursor) (TermImage.render image) emptyBG
+    let Widget image keymap = widget curModel True
+    liftIO . Vty.update vty . TermImage.render $ image
     event <- liftIO . Vty.next_event $ vty
     case event of
       Vty.EvKey key mods -> do
@@ -58,8 +57,6 @@ main = do
         put . fromMaybe curModel . fmap (snd . snd) . Keymap.lookup k $ keymap
       _ -> return ()
   where
-    mkCursor Nothing = Vty.NoCursor
-    mkCursor (Just (Vector2 x y)) = Vty.Cursor (fromIntegral x) (fromIntegral y)
     makeGrid acc = Grid.makeAcc acc . (map . map) item
     widget model = makeGrid modelOuterGrid [
                      [ const . (model <$) . TextView.make attr $ "Title\n-----" ],

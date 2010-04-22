@@ -1,17 +1,47 @@
+* Put the Widget.widgetCursor into the TermImage itself
+
+* Make "Widget" a GCD of Grid.Item, FocusDelegator.Item, ...:
+
+  * Display imgarg = Display { requestedSizeRange :: SizeRange, 
+                               image :: imgarg -> Image }
+  * Widget imgarg km = Widget { display :: Display (imgarg, HasFocus),
+                                keymap :: Keymap km }
+
+  * We have to "pollute" Widget with this because EACH Widget in the
+    world WILL have to be the one to say:
+
+    * What the size range is, and not its user who would have no clue
+      (except in very special cases, where the user's size range would
+      still have to be processed by the widget...)
+
+    * What the image is. If the user wants to apply some function to
+      this, it needs to apply it to the whole display, so that the
+      requestedSizeRange is fixed as well
+
+    * What the keymap is when it is in focus, and better display some
+      indication of the fact it has the focus
+
+
 * Grid:
 
-  * Attach (Weight, (MinSize, Maybe MaxSize)) and put Widget behind (Size ->).
-    Allowing the grid to set the size more smartly, allowing fixed
-    sizes, dynamic sizes, etc.
-    * Have Grid take Size and live in that..
-    * Should all Images guarantee that there's nothing outside their ClipRect?
-    * Clip the subwidget images (Can be Image.clip :: Monoid a => IntersectRect -> Endo (Image a),
-      returns mempty for any out-of-intersection position)
+  * Item adds to Widget: 
+    * Alignment, Weight, imgarg=Size
+
+  * Clip the subwidget images:
+    Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
+
+    mempty for any out-of-intersection position, to not break the
+    guarantee that nothing is outside the clip rect of the image
 
 * Scroller:
 
   * Can take a (widget, focusArea) and make sure the focusArea is in
     range of the scroll
+
+* PotentialScroller:
+
+  * Choose a Scroller or the widget, based on whether or not it fits
+    in the given space...
 
 * TextEdit:
 

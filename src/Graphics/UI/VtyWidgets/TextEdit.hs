@@ -36,9 +36,11 @@ makeColored falseAttr _        False = make falseAttr
 
 make :: Vty.Attr -> Model -> Widget Model
 make attr (Model cursor text) =
-  Widget image (Just $ Vector2 cursorX cursorY) keymap
+  Widget image keymap
   where
-    image = TermImage.string attr text
+    image = (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
+            TermImage.string attr $
+            text
     (before, after) = splitAt cursor text
 
     width = length text

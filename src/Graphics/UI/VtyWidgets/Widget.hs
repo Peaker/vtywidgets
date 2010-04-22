@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Widget
-    (Widget(..), atCursor, atKeymap, atImage,
+    (Widget(..), atKeymap, atImage,
      atBoundingRect, rightSpacer,
      ImageSize, imageSize, size,
      adaptModel)
@@ -26,12 +26,9 @@ data Widget model = Widget {
   -- The boundingRect topleft is ignored, and the bottom-right is
   -- considered the size
   widgetImage :: TermImage,
-  widgetCursor :: Maybe (Vector2 Int),
   widgetKeymap :: Keymap model
   }
 
-atCursor :: (Maybe (Vector2 Int) -> Maybe (Vector2 Int)) -> Widget a -> Widget a
-atCursor f w = w{widgetCursor = f (widgetCursor w)}
 atKeymap :: (Keymap a -> Keymap b) -> Widget a -> Widget b
 atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
 atImage :: (TermImage -> TermImage) -> Widget a -> Widget a

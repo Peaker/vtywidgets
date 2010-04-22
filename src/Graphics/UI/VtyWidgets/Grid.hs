@@ -9,7 +9,7 @@ where
 import qualified Graphics.Vty as Vty
 import Data.List(transpose, genericLength)
 import Data.Accessor(Accessor, (^.), setVal)
-import Data.Monoid(mempty, mappend, mconcat, First(First))
+import Data.Monoid(mempty, mappend, mconcat)
 import Control.Applicative(liftA2)
 
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -73,10 +73,10 @@ ranges xs = zip (scanl (+) 0 xs) xs
 
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atCursor . const) Nothing
+             (Widget.atImage . TermImage.setCursor) Nothing
 
 make :: (Model -> model) -> [[Item model]] -> Model -> Bool -> Widget model
-make conv rows (Model gcursor) hf = Widget gridImage gridCursor gridKeymap
+make conv rows (Model gcursor) hf = Widget gridImage gridKeymap
   where
     -- Feed all of our rows the has_focus boolean, and replace the
     -- cursor/keymap of non-current children with mempty
@@ -102,7 +102,6 @@ make conv rows (Model gcursor) hf = Widget gridImage gridCursor gridKeymap
     translatedRowWidgets (y, height) row =
       zipWith (translatedWidget y height) (ranges columnWidths) row
     translatedWidget y height (x, width) (alignment, widget) =
-      (Widget.atCursor . fmap) (liftA2 (+) pos) .
       Widget.atImage (TermImage.translate pos) $
       widget
       where
@@ -112,8 +111,8 @@ make conv rows (Model gcursor) hf = Widget gridImage gridCursor gridKeymap
               widget
 
     -- Combine all neutralized, translated children:
-    tuplify (Widget image cursor childKeymap) = (image, First cursor, childKeymap)
-    (gridImage, First gridCursor, curChildKeymap) = mconcat . map tuplify . concat $ translatedWidgets
+    tuplify (Widget image childKeymap) = (image, childKeymap)
+    (gridImage, curChildKeymap) = mconcat . map tuplify . concat $ translatedWidgets
 
     myKeymap = fmap (conv . Model) .
                keymap (Cursor (length2D rows)) $

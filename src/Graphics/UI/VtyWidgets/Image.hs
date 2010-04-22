@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Image
-    (Image, mkImage, pick, translate,
+    (Image, make, pick, translate,
      boundingRect, inBoundingRect)
 where
 
@@ -29,8 +29,8 @@ inImage2 :: ((ExpandingRect, Coordinate -> a) ->
             Image a -> Image b -> Image c
 inImage2 f = inImage . f . unImage
 
-mkImage :: ExpandingRect -> (Coordinate -> a) -> Image a
-mkImage cr f = Image . O . (,) cr $ f
+make :: ExpandingRect -> (Coordinate -> a) -> Image a
+make cr f = Image . O . (,) cr $ f
 
 instance Monoid a => Monoid (Image a) where
   mempty = Image . O $ mempty
@@ -40,7 +40,7 @@ boundingRect :: Image a -> ExpandingRect
 boundingRect = fst . unImage
 
 inBoundingRect :: Endo ExpandingRect -> Endo (Image a)
-inBoundingRect f img = mkImage boundingRect' . pick $ img
+inBoundingRect f img = make boundingRect' . pick $ img
   where
     boundingRect' = f . boundingRect $ img
 
@@ -49,6 +49,6 @@ pick = snd . unImage
 
 argument :: (a -> b) -> (b -> c) -> a -> c
 argument = flip (.)
-           
+
 translate :: Coordinate -> Image a -> Image a
 translate c = inImage $ (Rect.inExpandingRect . Rect.atBoth . liftA2 (+)) c *** (argument . subtract) c

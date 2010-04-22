@@ -4,10 +4,11 @@ module Graphics.UI.VtyWidgets.Vector2
     (Vector2(..)
     ,vector2
     ,first,second,(***),both
-    ,fst,snd)
+    ,fst,snd
+    ,curry,uncurry)
 where
 
-import Prelude hiding (fst, snd)
+import Prelude hiding (fst, snd, curry, uncurry)
 import Control.Applicative(Applicative(..), liftA2)
 import Control.Monad(join)
 
@@ -40,6 +41,12 @@ vector2 f (Vector2 x y) = f x y
 
 both :: Endo a -> Endo (Vector2 a)
 both = join (***)
+
+curry :: (Vector2 a -> b) -> a -> a -> b
+curry f x y = f (Vector2 x y)
+
+uncurry :: (a -> a -> b) -> Vector2 a -> b
+uncurry f (Vector2 x y) = f x y
 
 instance Functor Vector2 where
   fmap f (Vector2 x y) = Vector2 (f x) (f y)
