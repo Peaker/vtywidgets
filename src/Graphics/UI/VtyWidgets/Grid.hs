@@ -121,7 +121,7 @@ make conv rows (Model gcursor) =
     myKeymap = fmap (conv . Model) .
                keymap (Cursor (length2D rows)) $
                gcursor
-    gridKeymap = childrenKeymap `mappend` myKeymap
+    gridKeymap = childrenKeymap `mappend` Just myKeymap
 
     mkImage hf givenSize = gridImage
       where

@@ -39,7 +39,7 @@ tillEndOfWord xs = spaces ++ nonSpaces
 -- text...
 make :: Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
 make maxLines unfocusedAttr focusedAttr (Model cursor text) =
-  Widget.make requestedSize mkImage keymap
+  Widget.make requestedSize mkImage (Just keymap)
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
@@ -135,10 +135,9 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
             swapLetters = (min textLength (cursor + 1),
                            beforeSwap ++ y : x : afterSwap)
         in
-
-        ifList (cursor > 0 && textLength >= 2) .
-        multiKey "Swap letters" (ctrlCharK 't') $
-        swapLetters,
+         ifList (cursor > 0 && textLength >= 2) .
+         multiKey "Swap letters" (ctrlCharK 't') $
+         swapLetters,
 
         ifList (cursor < textLength) .
         multiKey "Delete forward" (simpleK Vty.KDel ++ ctrlCharK 'd') $

@@ -16,10 +16,9 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Control.Applicative(liftA2)
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget w = widget {widgetKeymap = flip (setVal acc) w `fmap` keymap}
+adaptModel acc pwidget w = (atKeymap . fmap . fmap) (flip (setVal acc) w) widget
   where
     widget = pwidget (w ^. acc)
-    keymap = widgetKeymap widget
 
 type Size = Vector2 Int
 data SizeRange = SizeRange {
@@ -59,24 +58,24 @@ data Widget k = Widget {
   -- The boundingRect topleft is ignored, and the bottom-right is
   -- considered the size
   widgetDisplay :: Display HasFocus,
-  widgetKeymap :: Keymap k
+  widgetKeymap :: Maybe (Keymap k)
   }
 atDisplay :: Endo (Display HasFocus) -> Endo (Widget k)
 atDisplay f w = w{widgetDisplay = f (widgetDisplay w)}
-atKeymap :: (Keymap a -> Keymap b) ->
+atKeymap :: (Maybe (Keymap a) -> Maybe (Keymap b)) ->
             Widget a -> Widget b
 atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
 
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay display = Widget display mempty
 
-make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Keymap k -> Widget k
+make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Maybe (Keymap k) -> Widget k
 make sr f = Widget (Display sr f)
 
 type Endo a = a -> a
 
 instance Functor Widget where
-  fmap = atKeymap . fmap
+  fmap = atKeymap . fmap . fmap
 
 requestedSize :: Widget k -> SizeRange
 requestedSize = displayRequestedSize . widgetDisplay
