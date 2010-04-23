@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 import qualified Graphics.Vty as Vty
-import Data.Accessor(Accessor, accessor)
+import Data.Accessor(Accessor, accessor, (^.), setVal)
 import qualified Data.Accessor.Template as AT
 import Data.Maybe(fromMaybe)
 import Prelude hiding ((.))
@@ -14,7 +14,6 @@ import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
-import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
@@ -33,7 +32,8 @@ nth n = accessor (!! n) (nthSet n)
 data Model = Model {
   modelOuterGrid_ :: Grid.Model,
   modelInnerGrid_ :: Grid.Model,
-  modelTextEdits_ :: [TextEdit.Model]
+  modelTextEdits_ :: [TextEdit.Model],
+  modelLastEvent_ :: String
   }
 $(AT.deriveAccessors ''Model)
 
@@ -41,36 +41,43 @@ initModel :: Model
 initModel = Model {
   modelOuterGrid_ = Grid.initModel,
   modelInnerGrid_ = Grid.initModel,
-  modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"]
+  modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  modelLastEvent_ = ""
   }
 
 main :: IO ()
 main = do
   hSetBuffering stderr NoBuffering
-  withVty $ \vty -> (`evalStateT` (initModel, (Vector2 80 25))) . forever $ do
-    (curModel, size) <- get
-    let Widget display keymap = widget curModel
-    liftIO . Vty.update vty . TermImage.render $ Widget.displayImage display (Widget.HasFocus True) size
+  withVty $ \vty -> (`evalStateT` (initModel, Vector2 80 25)) . forever $ do
+    render vty
     event <- liftIO . Vty.next_event $ vty
+    modify . first . setVal modelLastEvent . show $ event
     case event of
       Vty.EvResize w h -> do
         let size' = Vector2 w h
         modify . second . const $ size'
         liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
       Vty.EvKey key mods -> do
-        let k = (mods, key)
-        -- liftIO . putStrLn $ "Key pressed: " ++ Keymap.showModKey k
-        modify . first . const . fromMaybe curModel . fmap (snd . snd) . Keymap.lookup k $ keymap
+        modify . first $
+          \curModel ->
+          fromMaybe curModel . fmap (snd . snd) .
+          Keymap.lookup (mods, key) . Widget.widgetKeymap . widget $ curModel
       _ -> return ()
   where
+    render vty = do
+      (curModel, size) <- get
+      let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
+      liftIO . Vty.update vty . TermImage.render $ image
     makeGrid acc = Grid.makeAcc acc . (map . map) item
-    widget model = makeGrid modelOuterGrid [
-                     [ Widget.simpleDisplay . TextView.make attr $ "Title\n-----" ],
-                     [ makeGrid modelInnerGrid (textEdits model) model ]
-                     ] model
+    widget model =
+      makeGrid modelOuterGrid [
+        [ Widget.simpleDisplay . TextView.make attr $ "Title\n-----" ],
+        [ makeGrid modelInnerGrid (textEdits model) model ],
+        [ Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent ]
+        ] model
     textEdits model = [ [ --Widget.atDisplay (Widget.expand (Vector2 1 0)) .
                           Widget.adaptModel (nth i . modelTextEdits)
-                          (TextEdit.make attr editingAttr) $
+                          (TextEdit.make 5 attr editingAttr) $
                           model
                         | y <- [0, 1]
                         , let i = y*2 + x ]

@@ -29,10 +29,10 @@ initModel s = Model (length s) s
 splitLines :: String -> [String]
 splitLines = splitOn "\n"
 
--- Make a textEdit and adjust color based on whether we're currently
--- editing:
-make :: Vty.Attr -> Vty.Attr -> Model -> Widget Model
-make unfocusedAttr focusedAttr (Model cursor text) =
+-- Note: maxLines prevents the *user* from exceeding it, not the given
+-- text...
+make :: Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
+make maxLines unfocusedAttr focusedAttr (Model cursor text) =
   Widget.make requestedSize mkImage keymap
   where
     attr True = focusedAttr
@@ -115,7 +115,12 @@ make unfocusedAttr focusedAttr (Model cursor text) =
         [ Keymap.fromGroups [ ("Alphabet", ("Insert", Map.fromList insertKeys)) ] ]
 
         ]
-    insert l = (cursor + length l, concat [before, l, after])
+    insert l = if (length . splitLines) text' <= max height maxLines
+               then (cursor', text')
+               else (cursor, text)
+      where
+        cursor' = cursor + length l
+        text' = concat [before, l, after]
     insertKeys =
       [ (([], Vty.KASCII l), insert [l])
       | x <- [0x20..0x7F]

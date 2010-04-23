@@ -1,3 +1,7 @@
+* TextEdit:
+
+  * Arg for max num of lines
+
 * Grid
 
   * Instead of Grid neutralizing non-current children -- they should
@@ -8,11 +12,12 @@
 
     * No ugly clearing of the keymap and image cursor of grid children
 
-  * Clip the subwidget images:
-    Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
+* makeWidget should Clip the subwidget images:
 
-    mempty for any out-of-intersection position, to not break the
-    guarantee that nothing is outside the clip rect of the image
+  Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
+
+  mempty for any out-of-intersection position, to not break the
+  guarantee that nothing is outside the clip rect of the image
 
 * Scroller:
 
@@ -23,7 +28,3 @@
 
   * Choose a Scroller or the widget, based on whether or not it fits
     in the given space...
-
-* TextEdit:
-
-  * Arg for max num of lines
