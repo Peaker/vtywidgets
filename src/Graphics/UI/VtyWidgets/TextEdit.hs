@@ -130,6 +130,16 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
         multiKey "Delete word backwards" (ctrlCharK 'w') $
         backDeleteWord,
 
+        let swapPoint = min (textLength - 2) (cursor - 1)
+            (beforeSwap, x:y:afterSwap) = splitAt swapPoint text
+            swapLetters = (min textLength (cursor + 1),
+                           beforeSwap ++ y : x : afterSwap)
+        in
+
+        ifList (cursor > 0 && textLength >= 2) .
+        multiKey "Swap letters" (ctrlCharK 't') $
+        swapLetters,
+
         ifList (cursor < textLength) .
         multiKey "Delete forward" (simpleK Vty.KDel ++ ctrlCharK 'd') $
         delete 1,
