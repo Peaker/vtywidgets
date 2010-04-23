@@ -63,7 +63,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
     moveAbsolute a = (max 0 . min (length text) $ a, text)
     moveRelative d = moveAbsolute (cursor + d)
     backspace = (cursor-1, take (cursor-1) text ++ drop cursor text)
-    delete = (cursor, before ++ drop 1 after)
+    delete n = (cursor, before ++ drop n after)
 
     homeKeys = [([], Vty.KHome), ([Vty.MCtrl], Vty.KASCII 'a')]
     endKeys = [([], Vty.KEnd), ([Vty.MCtrl], Vty.KASCII 'e')]
@@ -92,7 +92,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
         homeKeymap "Move to beginning of line" $
         moveRelative (-cursorX),
 
-        ifList (length curLineAfter > 0) .
+        ifList (not . null $ curLineAfter) .
         endKeymap "Move to end of line" $
         moveRelative (length curLineAfter),
 
@@ -110,8 +110,12 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
 
         ifList (cursor < textLength) .
         Keymap.singleton "Delete" "Delete forward" ([], Vty.KDel) $
-        delete,
-        
+        delete 1,
+
+        ifList (not . null $ curLineAfter) .
+        Keymap.singleton "Ctrl+K" "Delete rest of line" ([Vty.MCtrl], Vty.KASCII 'k') $
+        delete (length curLineAfter),
+
         [ Keymap.fromGroups [ ("Alphabet", ("Insert", Map.fromList insertKeys)) ] ]
 
         ]

@@ -1,6 +1,26 @@
-* TextEdit:
+* Widget can also have an "entry" function that returns the same "k"
+  that lets it move to where it was entered from?
+  * Maybe replace Keymap with Eventmap and replace ModKey with
+    EventKey, and have other possible events?
+  * Then "direction-entry/direction-exit" could be another event the
+    widget is allowed to handle
+  * Then mouse events could be sent too...
 
-  * Arg for max num of lines
+* Currently, I'd need to heuristic diff on TextEdit changes to know
+  what it changed... Maybe create a composable Diff that can describe
+  changes accurately?
+
+* Scroller:
+
+  * Can take a (widget, focusArea) and make sure the focusArea is in
+    range of the scroll
+
+* makeWidget should Clip the subwidget images:
+
+  Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
+
+  mempty for any out-of-intersection position, to not break the
+  guarantee that nothing is outside the clip rect of the image
 
 * Grid
 
@@ -11,18 +31,6 @@
       whatever they want
 
     * No ugly clearing of the keymap and image cursor of grid children
-
-* makeWidget should Clip the subwidget images:
-
-  Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
-
-  mempty for any out-of-intersection position, to not break the
-  guarantee that nothing is outside the clip rect of the image
-
-* Scroller:
-
-  * Can take a (widget, focusArea) and make sure the focusArea is in
-    range of the scroll
 
 * PotentialScroller:
 
