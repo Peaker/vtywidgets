@@ -4,12 +4,12 @@
 import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor)
 import qualified Data.Accessor.Template as AT
--- import qualified Control.Arrow as Arr
 import Data.Maybe(fromMaybe)
 import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Monad(forever)
-import Control.Monad.State(evalStateT, put, get)
+import Control.Arrow(first, second)
+import Control.Monad.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -20,6 +20,7 @@ import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
@@ -45,17 +46,21 @@ initModel = Model {
 
 main :: IO ()
 main = do
-  withVty $ \vty -> (`evalStateT` initModel) . forever $ do
-    curModel <- get
+  hSetBuffering stderr NoBuffering
+  withVty $ \vty -> (`evalStateT` (initModel, (Vector2 80 25))) . forever $ do
+    (curModel, size) <- get
     let Widget display keymap = widget curModel
-        size = Vector2 80 25 -- TODO: Follow Resize events
     liftIO . Vty.update vty . TermImage.render $ Widget.displayImage display (Widget.HasFocus True) size
     event <- liftIO . Vty.next_event $ vty
     case event of
+      Vty.EvResize w h -> do
+        let size' = Vector2 w h
+        modify . second . const $ size'
+        liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
       Vty.EvKey key mods -> do
         let k = (mods, key)
         -- liftIO . putStrLn $ "Key pressed: " ++ Keymap.showModKey k
-        put . fromMaybe curModel . fmap (snd . snd) . Keymap.lookup k $ keymap
+        modify . first . const . fromMaybe curModel . fmap (snd . snd) . Keymap.lookup k $ keymap
       _ -> return ()
   where
     makeGrid acc = Grid.makeAcc acc . (map . map) item
