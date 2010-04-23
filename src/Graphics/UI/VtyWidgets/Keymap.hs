@@ -3,11 +3,13 @@
 module Graphics.UI.VtyWidgets.Keymap
     (Keymap(keymapGroups),
      Doc, KeyGroupName, ModKey, showModKey,
-     lookup, make, fromGroups, singleton, singletonKeys, simpleton)
+     lookup, make, fromGroups, fromGroupLists,
+     singleton, singletonKeys, simpleton)
 where
 
 import qualified Graphics.Vty as Vty
 import Prelude hiding (lookup)
+import Control.Arrow(second)
 import Data.Monoid(Monoid(..))
 import qualified Data.Map as Map
 import Data.Map(Map)
@@ -40,6 +42,9 @@ make handlers = Keymap handlers mkCache
     putIntoMap kgn (doc, modKeyToA) =
       Map.map (\x -> (kgn, (doc, x))) modKeyToA
 
+fromGroupLists :: [(KeyGroupName, (Doc, [(ModKey, a)]))] -> Keymap a
+fromGroupLists = fromGroups . (map . second . second) Map.fromList
+
 fromGroups :: [(KeyGroupName, (Doc, Map ModKey a))] -> Keymap a
 fromGroups = make . Map.fromList
 
@@ -51,8 +56,8 @@ singleton :: KeyGroupName -> Doc -> ModKey -> a -> Keymap a
 singleton keyGroupName doc key a =
   singletonKeys keyGroupName doc [(key, a)]
 
-simpleton :: ModKey -> Doc -> a -> Keymap a
-simpleton key doc = singleton (showModKey key) doc key
+simpleton :: Doc -> ModKey -> a -> Keymap a
+simpleton doc key = singleton (showModKey key) doc key
 
 showKey :: Vty.Key -> String
 showKey key = case key of

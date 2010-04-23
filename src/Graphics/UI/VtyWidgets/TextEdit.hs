@@ -6,7 +6,6 @@ where
 
 import Data.Char(chr)
 import Data.Monoid(mconcat)
-import qualified Data.Map as Map
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
@@ -15,6 +14,7 @@ import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Control.Arrow(first)
 import Data.List.Split(splitOn)
+import Data.Char(isSpace)
 
 type Cursor = Int
 
@@ -28,6 +28,12 @@ initModel s = Model (length s) s
 
 splitLines :: String -> [String]
 splitLines = splitOn "\n"
+
+tillEndOfWord :: String -> String
+tillEndOfWord xs = spaces ++ nonSpaces
+  where
+    spaces = takeWhile isSpace xs
+    nonSpaces = takeWhile (not . isSpace) . dropWhile isSpace $ xs
 
 -- Note: maxLines prevents the *user* from exceeding it, not the given
 -- text...
@@ -62,30 +68,42 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
 
     moveAbsolute a = (max 0 . min (length text) $ a, text)
     moveRelative d = moveAbsolute (cursor + d)
-    backspace = (cursor-1, take (cursor-1) text ++ drop cursor text)
+    backDelete n = (cursor-n, take (cursor-n) text ++ drop cursor text)
     delete n = (cursor, before ++ drop n after)
 
-    homeKeys = [([], Vty.KHome), ([Vty.MCtrl], Vty.KASCII 'a')]
-    endKeys = [([], Vty.KEnd), ([Vty.MCtrl], Vty.KASCII 'e')]
-    homeKeymap doc k' = Keymap.singletonKeys "Home" doc [(mk, k') | mk <- homeKeys]
-    endKeymap doc k' = Keymap.singletonKeys "End" doc [(mk, k') | mk <- endKeys]
+    backDeleteWord = backDelete . length . tillEndOfWord . reverse $ before
+    deleteWord = delete . length . tillEndOfWord $ after
+
+    ctrlCharK k = [([Vty.MCtrl], Vty.KASCII k)]
+    altCharK k = [ ([m], Vty.KASCII k) | m <- [Vty.MAlt, Vty.MMeta] ]
+    simpleK k = [([], k)]
+    charK k = simpleK (Vty.KASCII k)
+
+    homeKeys = simpleK Vty.KHome ++ ctrlCharK 'a'
+    endKeys = simpleK Vty.KEnd ++ ctrlCharK 'e'
+
+    multiKey doc keys value =
+      mconcat . map (flip (Keymap.simpleton doc) value) $ keys
+
+    homeKeymap doc = multiKey doc homeKeys
+    endKeymap doc = multiKey doc endKeys
 
     keymap =
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
         ifList (cursor > 0) .
-        Keymap.singleton "Left" "Move left" ([], Vty.KLeft) $
+        multiKey "Move left" (simpleK Vty.KLeft) $
         moveRelative (-1),
 
         ifList (cursor < textLength) .
-        Keymap.singleton "Right" "Move right" ([], Vty.KRight) $
+        multiKey "Move right" (simpleK Vty.KRight) $
         moveRelative 1,
 
         ifList (cursorY > 0) .
-        Keymap.singleton "Up" "Move up" ([], Vty.KUp) $
+        multiKey "Move up" (simpleK Vty.KUp) $
         moveRelative (- cursorX - 1 - length (drop cursorX prevLine)),
 
         ifList (cursorY < height-1) .
-        Keymap.singleton "Down" "Move down" ([], Vty.KDown) $
+        multiKey "Move down" (simpleK Vty.KDown) $
         moveRelative (length curLineAfter + 1 + min cursorX (length nextLine)),
 
         ifList (cursorX > 0) .
@@ -105,18 +123,26 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
         moveAbsolute textLength,
 
         ifList (cursor > 0) .
-        Keymap.singleton "Backspace" "Delete backwards" ([], Vty.KBS) $
-        backspace,
+        multiKey "Delete backwards" (simpleK Vty.KBS ++ ctrlCharK 'h') $
+        backDelete 1,
+
+        ifList (cursor > 0) .
+        multiKey "Delete word backwards" (ctrlCharK 'w') $
+        backDeleteWord,
 
         ifList (cursor < textLength) .
-        Keymap.singleton "Delete" "Delete forward" ([], Vty.KDel) $
+        multiKey "Delete forward" (simpleK Vty.KDel ++ ctrlCharK 'd') $
         delete 1,
 
+        ifList (cursor < textLength) .
+        multiKey "Delete word forward" (altCharK 'd') $
+        deleteWord,
+
         ifList (not . null $ curLineAfter) .
-        Keymap.singleton "Ctrl+K" "Delete rest of line" ([Vty.MCtrl], Vty.KASCII 'k') $
+        multiKey "Delete rest of line" (ctrlCharK 'k') $
         delete (length curLineAfter),
 
-        [ Keymap.fromGroups [ ("Alphabet", ("Insert", Map.fromList insertKeys)) ] ]
+        [ Keymap.fromGroupLists [ ("Alphabet", ("Insert", insertKeys)) ] ]
 
         ]
     insert l = if (length . splitLines) text' <= max height maxLines
@@ -126,7 +152,10 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
         cursor' = cursor + length l
         text' = concat [before, l, after]
     insertKeys =
-      [ (([], Vty.KASCII l), insert [l])
+      [ (k, insert [l])
       | x <- [0x20..0x7F]
-      , let l = chr x ] ++
-      [ (([], Vty.KEnter), insert "\n") ]
+      , let l = chr x
+      , k <- charK l ]
+      ++
+      [ (k, insert "\n")
+      | k <- simpleK Vty.KEnter ]
