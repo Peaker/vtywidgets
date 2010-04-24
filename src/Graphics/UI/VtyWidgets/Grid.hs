@@ -7,7 +7,7 @@ module Graphics.UI.VtyWidgets.Grid
 where
 
 import qualified Graphics.Vty as Vty
-import Data.List(transpose, genericLength)
+import Data.List(transpose)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Control.Applicative(liftA2)
@@ -20,14 +20,22 @@ import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
+type Endo a = a -> a
+
 type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)
-type Size = Cursor
+inCursor :: Endo (Vector2 Int) -> Endo Cursor
+inCursor f (Cursor x) = Cursor (f x)
+
 data Item k = Item {
   _itemAlignment :: Alignment,
+  itemWantFocus :: Bool,
   itemWidget :: Widget k
   }
+
+atItemWidget :: (Widget k -> Widget k') -> Item k -> Item k'
+atItemWidget f item = item{itemWidget = f (itemWidget item)}
 
 data Model = Model {
   gridModelCursor :: Cursor
@@ -48,22 +56,21 @@ relativeImagePos totalSize align imageSize = alignLeftTop
 enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
 enumerate = zip [0..]
 
-keymap :: Size -> Cursor -> Keymap Cursor
-keymap (Cursor (Vector2 width height))
-       (Cursor (Vector2 cursorX cursorY)) =
-  fmap Cursor . mconcat . concat $ [
-    [ Keymap.singleton "Left" "Move left" ([], Vty.KLeft) (Vector2 (cursorX-1) cursorY)
-    | cursorX > 0 ],
-    [ Keymap.singleton "Right" "Move right" ([], Vty.KRight) (Vector2 (cursorX+1) cursorY)
-    | cursorX < width - 1 ],
-    [ Keymap.singleton "Up" "Move up" ([], Vty.KUp) (Vector2 cursorX (cursorY-1))
-    | cursorY > 0 ],
-    [ Keymap.singleton "Down" "Move down" ([], Vty.KDown) (Vector2 cursorX (cursorY+1))
-    | cursorY < height - 1 ]
+keymap :: [[Bool]] -> Cursor -> Keymap Cursor
+keymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
+  mconcat . concat $ [
+    mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
+    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)     $ curRow),
+    mover "up"    ([], Vty.KUp)    Vector2.second (-) (reverse . take cursorY $ curColumn),
+    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)     $ curColumn)
     ]
-length2D :: Integral i => [[a]] -> Vector2 i
-length2D [] = Vector2 0 0
-length2D l@(x:_) = Vector2 (genericLength x) (genericLength l)
+  where
+    mover dirName key set f xs =
+       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . set . f . (+1) . countUnwanters $ xs) cursor)
+       | True `elem` xs ]
+    curColumn = transpose wantFocusRows !! cursorX
+    curRow = wantFocusRows !! cursorY
+    countUnwanters = length . takeWhile not
 
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
@@ -98,16 +105,17 @@ make conv rows (Model gcursor) =
       map childRowWidgets (enumerate rows)
     childRowWidgets (yIndex, row) =
       map (childWidget yIndex) (enumerate row)
-    childWidget yIndex (xIndex, Item alignment child) =
-      (alignment,
-       if Cursor (Vector2 xIndex yIndex) == gcursor
-       then child
-       else neutralize child)
+    childWidget yIndex (xIndex, item) =
+      atItemWidget
+      (if Cursor (Vector2 xIndex yIndex) == gcursor
+       then id
+       else neutralize)
+      item
 
     -- Compute all the row/column sizes:
-    computeSizes aggregate f = map aggregate . (map . map) (f . Widget.requestedSize . snd)
+    computeSizes aggregate f = map aggregate . (map . map) (f . Widget.requestedSize . itemWidget)
     computeSizeRanges f xs = (computeSizes maximum (f . Widget.srMinSize) xs,
-                              computeSizes minimum (f . Widget.srMaxSize) xs)
+                              computeSizes maximum (f . Widget.srMaxSize) xs)
     (rowMinHeights, rowMaxHeights) =
       computeSizeRanges Vector2.snd childWidgetRows
     (columnMinWidths, columnMaxWidths) =
@@ -117,9 +125,9 @@ make conv rows (Model gcursor) =
 
     transposedChildWidgetRows = transpose childWidgetRows
 
-    childrenKeymap = mconcat . map (Widget.widgetKeymap . snd) . concat $ childWidgetRows
+    childrenKeymap = mconcat . map (Widget.widgetKeymap . itemWidget) . concat $ childWidgetRows
     myKeymap = fmap (conv . Model) .
-               keymap (Cursor (length2D rows)) $
+               keymap ((map . map) itemWantFocus childWidgetRows) $
                gcursor
     gridKeymap = childrenKeymap `mappend` myKeymap
 
@@ -133,7 +141,7 @@ make conv rows (Model gcursor) =
           zipWith childRowImages (ranges rowHeights) childWidgetRows
         childRowImages (y, height) row =
           zipWith (childImage y height) (ranges columnWidths) row
-        childImage y height (x, width) (alignment, widget) =
+        childImage y height (x, width) (Item alignment _wantFocus widget) =
           TermImage.translate pos image
           where
             size = Vector2 width height

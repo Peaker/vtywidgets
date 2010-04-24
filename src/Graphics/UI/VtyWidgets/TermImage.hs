@@ -61,12 +61,15 @@ render (TermImage image (First mCursor)) =
   where
     cursor = maybe Vty.NoCursor (Vector2.uncurry Vty.Cursor . fmap fromIntegral) mCursor
     img = Vty.vert_cat $
-          replicate t (Vty.char Vty.def_attr ' ') ++
+          replicate (min t b) (Vty.char Vty.def_attr ' ') ++
           [ Vty.horiz_cat $
-            Vty.string Vty.def_attr (replicate l ' ') :
+            Vty.string Vty.def_attr (replicate (min l r) ' ') :
             [ uncurry Vty.char . fromMaybe (Vty.def_attr, ' ') . getFirst . f $ Vector2 x y
-            | x <- [l..r-1] ]
-          | y <- [t..b-1] ]
+            | x <- [l..r] ] -- we don't need (r, b), it's an
+                            -- inclusive/exclusive range, but we want
+                            -- to avoid arithmetic on these, as they
+                            -- may be minBound/maxBound
+          | y <- [t..b] ]
     ExpandingRect (Rect (Vector2 l t) (Vector2 r b)) = Image.boundingRect image
     f = Image.pick image
     bg = Vty.Background ' ' Vty.def_attr

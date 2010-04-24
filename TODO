@@ -1,4 +1,4 @@
-* Grid: Ignore display-only widgets...
+* TextEdit: Get rid of ifList..
 
 * Widget can also have an "entry" function that returns the same "k"
   that lets it move to where it was entered from?
@@ -40,3 +40,7 @@
 
   * Choose a Scroller or the widget, based on whether or not it fits
     in the given space...
+
+* Grid: Maybe split into visual-grid DISPLAY, and a Grid selector that
+  keeps the cursor on the grid display, and combines the keymaps
+  however it likes?

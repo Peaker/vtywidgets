@@ -5,6 +5,7 @@ import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor, (^.), setVal)
 import qualified Data.Accessor.Template as AT
 import Data.Maybe(fromMaybe)
+import Data.Monoid(mempty)
 import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Monad(forever)
@@ -39,7 +40,7 @@ $(AT.deriveAccessors ''Model)
 
 initModel :: Model
 initModel = Model {
-  modelOuterGrid_ = Grid.initModel,
+  modelOuterGrid_ = Grid.Model (Grid.Cursor (Vector2 0 1)),
   modelInnerGrid_ = Grid.initModel,
   modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
@@ -68,20 +69,22 @@ main = do
       (curModel, size) <- get
       let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
       liftIO . Vty.update vty . TermImage.render $ image
-    makeGrid acc = Grid.makeAcc acc . (map . map) item
     widget model =
       makeGrid modelOuterGrid [
-        [ Widget.simpleDisplay . TextView.make attr $ "Title\n-----" ],
-        [ makeGrid modelInnerGrid (textEdits model) model ],
-        [ Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent ]
+        [ (False, Widget.simpleDisplay . TextView.make attr $ "Title\n-----"),
+          (False, mempty) ],
+        [ (True,  makeGrid modelInnerGrid (textEdits model) model),
+          (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
         ] model
-    textEdits model = [ [ --Widget.atDisplay (Widget.expand (Vector2 1 0)) .
-                          Widget.adaptModel (nth i . modelTextEdits)
-                          (TextEdit.make 5 attr editingAttr) $
-                          model
-                        | y <- [0, 1]
-                        , let i = y*2 + x ]
-                      | x <- [0, 1] ]
+    textEdits model =
+      [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
+                 Widget.adaptModel (nth i . modelTextEdits)
+                 (TextEdit.make 5 attr editingAttr) $
+                 model)
+        | y <- [0, 1]
+        , let i = y*2 + x ]
+      | x <- [0, 1] ]
     editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    item w = Grid.Item Grid.centered w
+    makeGrid acc = Grid.makeAcc acc . (map . map . uncurry) item
+    item = Grid.Item Grid.centered

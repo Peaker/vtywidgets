@@ -8,12 +8,12 @@ module Graphics.UI.VtyWidgets.Widget
 where
 
 import Data.Accessor(Accessor, (^.), setVal)
-import Data.Monoid(mempty)
+import Data.Monoid(Monoid(..))
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2)
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Control.Applicative(liftA2)
+import Control.Applicative(pure, liftA2)
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget w = widget {widgetKeymap = flip (setVal acc) w `fmap` keymap}
@@ -31,6 +31,11 @@ atBothSizes f (SizeRange minSize maxSize) = SizeRange (f minSize) (f maxSize)
 fixedSize :: Size -> SizeRange
 fixedSize size = SizeRange size size
 
+instance Monoid SizeRange where
+  mempty = SizeRange (pure 0) (pure 0)
+  SizeRange minSize1 maxSize1 `mappend` SizeRange minSize2 maxSize2 =
+    SizeRange (max minSize1 minSize2) (max maxSize1 maxSize2)
+
 makeSizeRange :: Size -> Size -> SizeRange
 makeSizeRange minSize maxSize = SizeRange minSize (max minSize maxSize)
 
@@ -47,6 +52,10 @@ atImage :: Endo TermImage -> Endo (Display imgarg)
 atImage f d = d{displayImage = (result . result) f $ displayImage d}
 atImageArg :: (b -> a) -> Display a -> Display b
 atImageArg f d = d{displayImage = displayImage d . f}
+
+instance Monoid (Display imgarg) where
+  mempty = Display mempty mempty
+  Display x1 y1 `mappend` Display x2 y2 = Display (x1 `mappend` x2) (y1 `mappend` y2)
 
 expand :: Size -> Endo (Display imgarg)
 expand extra = (atRequestedSize . atBothSizes . liftA2 (+)) extra .
@@ -66,6 +75,10 @@ atDisplay f w = w{widgetDisplay = f (widgetDisplay w)}
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
 atKeymap f w = w{widgetKeymap = f (widgetKeymap w)}
+
+instance Monoid (Widget k) where
+  mempty = Widget mempty mempty
+  Widget x1 y1 `mappend` Widget x2 y2 = Widget (x1 `mappend` x2) (y1 `mappend` y2)
 
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay display = Widget display mempty
