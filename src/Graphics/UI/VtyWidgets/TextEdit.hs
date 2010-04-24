@@ -64,8 +64,6 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
     cursorX = length curLineBefore
     cursorY = length linesBefore - 1
 
-    ifList p x = [ x | p ]
-
     moveAbsolute a = (max 0 . min (length text) $ a, text)
     moveRelative d = moveAbsolute (cursor + d)
     backDelete n = (cursor-n, take (cursor-n) text ++ drop cursor text)
@@ -90,45 +88,45 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
 
     keymap =
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
-        ifList (cursor > 0) .
-        multiKey "Move left" (simpleK Vty.KLeft) $
-        moveRelative (-1),
+        [ multiKey "Move left" (simpleK Vty.KLeft) $
+          moveRelative (-1)
+        | cursor > 0 ],
 
-        ifList (cursor < textLength) .
-        multiKey "Move right" (simpleK Vty.KRight) $
-        moveRelative 1,
+        [ multiKey "Move right" (simpleK Vty.KRight) $
+          moveRelative 1
+        | cursor < textLength ],
 
-        ifList (cursorY > 0) .
-        multiKey "Move up" (simpleK Vty.KUp) $
-        moveRelative (- cursorX - 1 - length (drop cursorX prevLine)),
+        [ multiKey "Move up" (simpleK Vty.KUp) $
+          moveRelative (- cursorX - 1 - length (drop cursorX prevLine))
+        | cursorY > 0 ],
 
-        ifList (cursorY < height-1) .
-        multiKey "Move down" (simpleK Vty.KDown) $
-        moveRelative (length curLineAfter + 1 + min cursorX (length nextLine)),
+        [ multiKey "Move down" (simpleK Vty.KDown) $
+          moveRelative (length curLineAfter + 1 + min cursorX (length nextLine))
+        | cursorY < height-1 ],
 
-        ifList (cursorX > 0) .
-        homeKeymap "Move to beginning of line" $
-        moveRelative (-cursorX),
+        [ homeKeymap "Move to beginning of line" $
+          moveRelative (-cursorX)
+        | cursorX > 0 ],
 
-        ifList (not . null $ curLineAfter) .
-        endKeymap "Move to end of line" $
-        moveRelative (length curLineAfter),
+        [ endKeymap "Move to end of line" $
+          moveRelative (length curLineAfter)
+        | not . null $ curLineAfter ],
 
-        ifList (cursorX == 0 && cursor > 0) .
-        homeKeymap "Move to beginning of text" $
-        moveAbsolute 0,
+        [ homeKeymap "Move to beginning of text" $
+          moveAbsolute 0
+        | cursorX == 0 && cursor > 0 ],
 
-        ifList (null curLineAfter && cursor < textLength) .
-        endKeymap "Move to end of text" $
-        moveAbsolute textLength,
+        [ endKeymap "Move to end of text" $
+          moveAbsolute textLength
+        | null curLineAfter && cursor < textLength ],
 
-        ifList (cursor > 0) .
-        multiKey "Delete backwards" (simpleK Vty.KBS ++ ctrlCharK 'h') $
-        backDelete 1,
+        [ multiKey "Delete backwards" (simpleK Vty.KBS ++ ctrlCharK 'h') $
+          backDelete 1
+        | cursor > 0 ],
 
-        ifList (cursor > 0) .
-        multiKey "Delete word backwards" (ctrlCharK 'w') $
-        backDeleteWord,
+        [ multiKey "Delete word backwards" (ctrlCharK 'w') $
+          backDeleteWord
+        | cursor > 0 ],
 
         let swapPoint = min (textLength - 2) (cursor - 1)
             (beforeSwap, x:y:afterSwap) = splitAt swapPoint text
@@ -136,21 +134,25 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
                            beforeSwap ++ y : x : afterSwap)
         in
 
-        ifList (cursor > 0 && textLength >= 2) .
-        multiKey "Swap letters" (ctrlCharK 't') $
-        swapLetters,
+        [ multiKey "Swap letters" (ctrlCharK 't') $
+          swapLetters
+        | cursor > 0 && textLength >= 2 ],
 
-        ifList (cursor < textLength) .
-        multiKey "Delete forward" (simpleK Vty.KDel ++ ctrlCharK 'd') $
-        delete 1,
+        [ multiKey "Delete forward" (simpleK Vty.KDel ++ ctrlCharK 'd') $
+          delete 1
+        | cursor < textLength ],
 
-        ifList (cursor < textLength) .
-        multiKey "Delete word forward" (altCharK 'd') $
-        deleteWord,
+        [ multiKey "Delete word forward" (altCharK 'd') $
+          deleteWord
+        | cursor < textLength ],
 
-        ifList (not . null $ curLineAfter) .
-        multiKey "Delete rest of line" (ctrlCharK 'k') $
-        delete (length curLineAfter),
+        [ multiKey "Delete rest of line" (ctrlCharK 'k') $
+          delete (length curLineAfter)
+        | not . null $ curLineAfter ],
+
+        [ multiKey "Delete till beginning of line" (ctrlCharK 'u') $
+          backDelete (length curLineBefore)
+        | not . null $ curLineBefore ],
 
         [ Keymap.fromGroupLists [ ("Alphabet", ("Insert", insertKeys)) ] ]
 

@@ -1,5 +1,3 @@
-* TextEdit: Get rid of ifList..
-
 * Widget can also have an "entry" function that returns the same "k"
   that lets it move to where it was entered from?
   * Maybe replace Keymap with Eventmap and replace ModKey with
