@@ -36,7 +36,7 @@ make cr f = Image . O . (,) cr $ f
 
 instance Monoid a => Monoid (Image a) where
   mempty = Image . O $ mempty
-  mappend = inImage2 $ mappend
+  mappend = inImage2 mappend
 
 boundingRect :: Image a -> ExpandingRect
 boundingRect = fst . unImage

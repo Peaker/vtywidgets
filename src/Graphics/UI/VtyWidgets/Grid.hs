@@ -60,9 +60,9 @@ keymap :: [[Bool]] -> Cursor -> Keymap Cursor
 keymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
   mconcat . concat $ [
     mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
-    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)     $ curRow),
+    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)       curRow),
     mover "up"    ([], Vty.KUp)    Vector2.second (-) (reverse . take cursorY $ curColumn),
-    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)     $ curColumn)
+    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
     ]
   where
     mover dirName key set f xs =
@@ -120,8 +120,8 @@ makeView rows = Widget.Display requestedSize mkImage
         -- Translate the widget images to their right locations:
         childImages =
           zipWith childRowImages (ranges rowHeights) rows
-        childRowImages (y, height) row =
-          zipWith (childImage y height) (ranges columnWidths) row
+        childRowImages (y, height) =
+          zipWith (childImage y height) (ranges columnWidths)
         childImage y height (x, width) (Item alignment display) =
           TermImage.translate pos image
           where

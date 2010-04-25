@@ -101,7 +101,7 @@ stringParse chars = (Vector2 w h, ls)
     h = fromIntegral (length ls)
 
 string :: Vty.Attr -> String -> TermImage
-string attr chars = make (Rect (pure 0) (Vector2 w h)) $ m
+string attr chars = make (Rect (pure 0) (Vector2 w h)) m
   where
     m = foldr (.) id addItems mempty
     addItems = [ TMap.override (Vector2 x y) . First . fmap ((,) attr) $ safeIndex y ls >>= safeIndex x

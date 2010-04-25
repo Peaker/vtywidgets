@@ -62,7 +62,7 @@ simpleton doc key = singleton (showModKey key) doc key
 showKey :: Vty.Key -> String
 showKey key = case key of
   Vty.KEsc        -> "Escape"
-  Vty.KFun n      -> "F" ++ show n
+  Vty.KFun n      -> 'f' : show n
   Vty.KBackTab    -> "BackTab"
   Vty.KPrtScr     -> "PrintScreen"
   Vty.KPause      -> "Pause"
@@ -87,4 +87,4 @@ showKey key = case key of
 showModKey :: ModKey -> String
 showModKey (mods, key) = unwords (modsStr ++ [showKey key])
   where
-    modsStr = map (drop 1 . show) $ mods
+    modsStr = map (drop 1 . show) mods

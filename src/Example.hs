@@ -61,7 +61,7 @@ main = do
         let size' = Vector2 w h
         modify . second . const $ size'
         liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
-      Vty.EvKey key mods -> do
+      Vty.EvKey key mods ->
         modify . first $
           \curModel ->
           fromMaybe curModel . fmap (snd . snd) .
@@ -76,9 +76,9 @@ main = do
       makeGrid (pure 0) modelOuterGrid [
         [ (False, Widget.simpleDisplay . TextView.make attr $ "Title\n-----") ],
         [ (True, innerGrid),
-          (False, Widget.simpleDisplay $ Spacer.makeHorizontal),
+          (False, Widget.simpleDisplay Spacer.makeHorizontal),
           (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid) ],
-        [ (False, Widget.simpleDisplay $ Spacer.makeVertical) ],
+        [ (False, Widget.simpleDisplay Spacer.makeVertical) ],
         [ (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
         ] model
       where

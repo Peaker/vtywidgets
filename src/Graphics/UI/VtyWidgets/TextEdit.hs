@@ -4,17 +4,16 @@ module Graphics.UI.VtyWidgets.TextEdit
     (make, Model(..), initModel)
 where
 
-import Data.Char(chr)
+import Data.Char(chr, isSpace)
 import Data.Monoid(mconcat)
+import Data.List.Split(splitOn)
+import Control.Arrow(first)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import Control.Arrow(first)
-import Data.List.Split(splitOn)
-import Data.Char(isSpace)
 
 type Cursor = Int
 
@@ -124,7 +123,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
           backDelete 1
         | cursor > 0 ],
 
-        [ multiKey "Delete word backwards" (ctrlCharK 'w') $
+        [ multiKey "Delete word backwards" (ctrlCharK 'w')
           backDeleteWord
         | cursor > 0 ],
 
@@ -134,7 +133,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
                            beforeSwap ++ y : x : afterSwap)
         in
 
-        [ multiKey "Swap letters" (ctrlCharK 't') $
+        [ multiKey "Swap letters" (ctrlCharK 't')
           swapLetters
         | cursor > 0 && textLength >= 2 ],
 
@@ -142,7 +141,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
           delete 1
         | cursor < textLength ],
 
-        [ multiKey "Delete word forward" (altCharK 'd') $
+        [ multiKey "Delete word forward" (altCharK 'd')
           deleteWord
         | cursor < textLength ],
 

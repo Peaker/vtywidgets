@@ -47,4 +47,4 @@ lookup :: Ord k => k -> TMap k v -> v
 lookup k (TMap dv m) = fromMaybe dv . Map.lookup k $ m
 
 mapKeys :: (Ord k, Ord k') => (k -> k') -> TMap k v -> TMap k' v
-mapKeys f = (atMap . Map.mapKeys) f
+mapKeys = atMap . Map.mapKeys
