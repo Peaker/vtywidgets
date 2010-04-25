@@ -10,6 +10,7 @@ import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Monad(forever)
 import Control.Arrow(first, second)
+import Control.Applicative(pure)
 import Control.Monad.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
@@ -19,6 +20,7 @@ import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
+import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
@@ -71,13 +73,17 @@ main = do
       let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
       liftIO . Vty.update vty . TermImage.render $ image
     widget model =
-      makeGrid modelOuterGrid [
+      makeGrid (pure 0) modelOuterGrid [
         [ (False, Widget.simpleDisplay . TextView.make attr $ "Title\n-----") ],
-        [ (True,  makeGrid modelInnerGrid (textEdits model) model),
-          (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent),
+        [ (True, innerGrid),
           (False, Widget.simpleDisplay $ Spacer.makeHorizontal),
-          (False, Widget.simpleDisplay . TextView.make attr $ "Right-side...") ]
+          (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid) ],
+        [ (False, Widget.simpleDisplay $ Spacer.makeVertical) ],
+        [ (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
         ] model
+      where
+        innerGrid = makeGrid Grid.centered modelInnerGrid (textEdits model) model
+    keymapGrid = TableGrid.makeKeymapView keyAttr valueAttr 
     textEdits model =
       [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
                  Widget.adaptModel (nth i . modelTextEdits)
@@ -88,5 +94,11 @@ main = do
       | x <- [0, 1] ]
     editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    makeGrid acc = Grid.makeAcc acc . (map . map . uncurry) item
-    item = Grid.Item Grid.centered
+    keyAttr   = Vty.def_attr
+                `Vty.with_fore_color` Vty.green
+                `Vty.with_back_color` Vty.blue
+    valueAttr = Vty.def_attr
+                `Vty.with_fore_color` Vty.red
+                `Vty.with_back_color` Vty.blue
+                `Vty.with_style` Vty.bold
+    makeGrid alignment acc = Grid.makeAcc acc . (map . map) (Grid.Item alignment)

@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (make, makeAcc,
+    (makeView, make, makeAcc,
      Cursor(..), Model(..), Item(..),
      initModel, centered)
 where
@@ -11,6 +11,7 @@ import Data.List(transpose)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Control.Applicative(liftA2)
+import Control.Arrow(second)
 
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
@@ -28,14 +29,13 @@ newtype Cursor = Cursor (Vector2 Int)
 inCursor :: Endo (Vector2 Int) -> Endo Cursor
 inCursor f (Cursor x) = Cursor (f x)
 
-data Item k = Item {
+data Item w = Item {
   _itemAlignment :: Alignment,
-  itemWantFocus :: Bool,
-  itemWidget :: Widget k
+  itemChild :: w
   }
 
-atItemWidget :: (Widget k -> Widget k') -> Item k -> Item k'
-atItemWidget f item = item{itemWidget = f (itemWidget item)}
+atItemChild :: (k -> k') -> Item k -> Item k'
+atItemChild f item = item{itemChild = f . itemChild $ item}
 
 data Model = Model {
   gridModelCursor :: Cursor
@@ -92,38 +92,71 @@ disperse extra ((low, high):xs) = result : disperse remaining xs
     result = max low . min high $ low + extra
     remaining = extra - (result - low)
 
-make :: (Model -> k) -> [[Item k]] -> Model -> Widget k
-make conv rows (Model gcursor) =
-  Widget.make requestedSize mkImage gridKeymap
+makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
+makeView rows = Widget.Display requestedSize mkImage
   where
     requestedSize = Widget.makeSizeRange minSize maxSize
     minSize = Vector2 (sum columnMinWidths) (sum rowMinHeights)
     maxSize = Vector2 (sum columnMaxWidths) (sum rowMaxHeights)
 
+    -- Compute all the row/column sizes:
+    computeSizes aggregate f = map aggregate . (map . map) (f . Widget.displayRequestedSize . itemChild)
+    computeSizeRanges f xs = (computeSizes maximum (f . Widget.srMinSize) xs,
+                              computeSizes maximum (f . Widget.srMaxSize) xs)
+    (rowMinHeights, rowMaxHeights) =
+      computeSizeRanges Vector2.snd rows
+    (columnMinWidths, columnMaxWidths) =
+      computeSizeRanges Vector2.fst transposedChildWidgetRows
+    rowHeightRanges = zip rowMinHeights rowMaxHeights
+    columnWidthRanges = zip columnMinWidths columnMaxWidths
+
+    transposedChildWidgetRows = transpose rows
+
+    mkImage imgarg givenSize = gridImage
+      where
+        (Vector2 extraWidth extraHeight) = liftA2 (-) givenSize minSize
+        columnWidths = disperse extraWidth columnWidthRanges
+        rowHeights = disperse extraHeight rowHeightRanges
+        -- Translate the widget images to their right locations:
+        childImages =
+          zipWith childRowImages (ranges rowHeights) rows
+        childRowImages (y, height) row =
+          zipWith (childImage y height) (ranges columnWidths) row
+        childImage y height (x, width) (Item alignment display) =
+          TermImage.translate pos image
+          where
+            size = Vector2 width height
+            image = Widget.displayImage display imgarg size
+            pos = liftA2 (+) (Vector2 x y) .
+                  relativeImagePos size alignment .
+                  Widget.srMaxSize .
+                  Widget.displayRequestedSize $
+                  display
+
+        -- Combine all translated children:
+        gridImage = mconcat . concat $ childImages
+
+itemWidget :: Item (Bool, Widget k) -> Widget k
+itemWidget = snd . itemChild
+
+itemWantFocus :: Item (Bool, Widget k) -> Bool
+itemWantFocus = fst . itemChild
+
+make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
+make conv rows (Model gcursor) =
+  Widget (makeView ((map . map . atItemChild) (Widget.widgetDisplay . snd) childWidgetRows)) gridKeymap
+  where
     -- Neutralize non-current children
     childWidgetRows =
       map childRowWidgets (enumerate rows)
     childRowWidgets (yIndex, row) =
       map (childWidget yIndex) (enumerate row)
     childWidget yIndex (xIndex, item) =
-      atItemWidget
+      (atItemChild . second)
       (if Cursor (Vector2 xIndex yIndex) == gcursor
        then id
        else neutralize)
       item
-
-    -- Compute all the row/column sizes:
-    computeSizes aggregate f = map aggregate . (map . map) (f . Widget.requestedSize . itemWidget)
-    computeSizeRanges f xs = (computeSizes maximum (f . Widget.srMinSize) xs,
-                              computeSizes maximum (f . Widget.srMaxSize) xs)
-    (rowMinHeights, rowMaxHeights) =
-      computeSizeRanges Vector2.snd childWidgetRows
-    (columnMinWidths, columnMaxWidths) =
-      computeSizeRanges Vector2.fst transposedChildWidgetRows
-    rowHeightRanges = zip rowMinHeights rowMaxHeights
-    columnWidthRanges = zip columnMinWidths columnMaxWidths
-
-    transposedChildWidgetRows = transpose childWidgetRows
 
     childrenKeymap = mconcat . map (Widget.widgetKeymap . itemWidget) . concat $ childWidgetRows
     myKeymap = fmap (conv . Model) .
@@ -131,29 +164,6 @@ make conv rows (Model gcursor) =
                gcursor
     gridKeymap = childrenKeymap `mappend` myKeymap
 
-    mkImage hf givenSize = gridImage
-      where
-        (Vector2 extraWidth extraHeight) = liftA2 (-) givenSize minSize
-        columnWidths = disperse extraWidth columnWidthRanges
-        rowHeights = disperse extraHeight rowHeightRanges
-        -- Translate the widget images to their right locations:
-        childImages =
-          zipWith childRowImages (ranges rowHeights) childWidgetRows
-        childRowImages (y, height) row =
-          zipWith (childImage y height) (ranges columnWidths) row
-        childImage y height (x, width) (Item alignment _wantFocus widget) =
-          TermImage.translate pos image
-          where
-            size = Vector2 width height
-            image = (Widget.displayImage . Widget.widgetDisplay) widget hf size
-            pos = liftA2 (+) (Vector2 x y) .
-                  relativeImagePos size alignment .
-                  Widget.srMaxSize .
-                  Widget.requestedSize $
-                  widget
 
-        -- Combine all neutralized, translated children:
-        gridImage = mconcat . concat $ childImages
-
-makeAcc :: Accessor k Model -> [[Item k]] -> k -> Widget k
+makeAcc :: Accessor k Model -> [[Item (Bool, Widget k)]] -> k -> Widget k
 makeAcc acc rows k = make (setter k acc) rows (k ^. acc)
