@@ -149,6 +149,10 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
           delete (length curLineAfter)
         | not . null $ curLineAfter ],
 
+        [ multiKey "Delete newline" (ctrlCharK 'k') $
+          delete 1
+        | null curLineAfter && cursor < textLength ],
+
         [ multiKey "Delete till beginning of line" (ctrlCharK 'u') $
           backDelete (length curLineBefore)
         | not . null $ curLineBefore ],
