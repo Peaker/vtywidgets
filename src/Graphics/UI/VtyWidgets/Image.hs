@@ -7,29 +7,31 @@ module Graphics.UI.VtyWidgets.Image
 where
 
 import Data.Monoid(Monoid(..))
-import Control.Applicative(Applicative(..), liftA2)
+import Control.Applicative(liftA2)
 import Control.Compose((:.)(O, unO))
-import Control.Arrow((***))
+import Control.Arrow(first, (***))
 import Graphics.UI.VtyWidgets.Rect(ExpandingRect(..), Coordinate)
 import qualified Graphics.UI.VtyWidgets.Rect as Rect
+import Graphics.UI.VtyWidgets.TMap(TMap)
+import qualified Graphics.UI.VtyWidgets.TMap as TMap
 
 type Endo a = a -> a
 
-newtype Image a = Image { runImage :: ((,) ExpandingRect :. (->) Coordinate) a }
-  deriving (Functor, Applicative)
-unImage :: Image a -> (ExpandingRect, Coordinate -> a)
+newtype Image a = Image { runImage :: ((,) ExpandingRect :. TMap Coordinate) a }
+  deriving (Functor)
+unImage :: Image a -> (ExpandingRect, TMap Coordinate a)
 unImage = unO . runImage
-inImage :: ((ExpandingRect, Coordinate -> a) ->
-            (ExpandingRect, Coordinate -> b)) ->
+inImage :: ((ExpandingRect, TMap Coordinate a) ->
+            (ExpandingRect, TMap Coordinate b)) ->
            Image a -> Image b
 inImage f = Image . O . f . unImage
-inImage2 :: ((ExpandingRect, Coordinate -> a) ->
-             (ExpandingRect, Coordinate -> b) ->
-             (ExpandingRect, Coordinate -> c)) ->
+inImage2 :: ((ExpandingRect, TMap Coordinate a) ->
+             (ExpandingRect, TMap Coordinate b) ->
+             (ExpandingRect, TMap Coordinate c)) ->
             Image a -> Image b -> Image c
 inImage2 f = inImage . f . unImage
 
-make :: ExpandingRect -> (Coordinate -> a) -> Image a
+make :: ExpandingRect -> TMap Coordinate a -> Image a
 make cr f = Image . O . (,) cr $ f
 
 instance Monoid a => Monoid (Image a) where
@@ -40,15 +42,16 @@ boundingRect :: Image a -> ExpandingRect
 boundingRect = fst . unImage
 
 atBoundingRect :: Endo ExpandingRect -> Endo (Image a)
-atBoundingRect f img = make boundingRect' . pick $ img
-  where
-    boundingRect' = f . boundingRect $ img
+atBoundingRect = inImage . first
 
 pick :: Image a -> Coordinate -> a
-pick = snd . unImage
-
-argument :: (a -> b) -> (b -> c) -> a -> c
-argument = flip (.)
+pick = flip TMap.lookup . snd . unImage
 
 translate :: Coordinate -> Image a -> Image a
-translate c = inImage $ (Rect.inExpandingRect . Rect.atBoth . liftA2 (+)) c *** (argument . subtract) c
+translate c =
+  inImage $
+  (Rect.inExpandingRect . Rect.atBoth .
+   liftA2 (+)) c
+  ***
+  (TMap.mapKeys .
+   liftA2 (+)) c

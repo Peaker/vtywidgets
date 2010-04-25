@@ -20,15 +20,17 @@ import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
 import Graphics.UI.VtyWidgets.Rect(ExpandingRect(..), Rect(..), Coordinate)
 import Graphics.UI.VtyWidgets.Image(Image)
 import qualified Graphics.UI.VtyWidgets.Image as Image
+import Graphics.UI.VtyWidgets.TMap(TMap)
+import qualified Graphics.UI.VtyWidgets.TMap as TMap
 
 type Endo a = a -> a
 
-type TermChar = (Vty.Attr, Char)
+type TermChar = First (Vty.Attr, Char)
 data TermImage = TermImage {
-  tiImage :: Image (First TermChar),
+  tiImage :: Image TermChar,
   tiCursor :: First (Vector2 Int)
   }
-atImage :: Endo (Image (First TermChar)) -> Endo TermImage
+atImage :: Endo (Image TermChar) -> Endo TermImage
 atImage f ti = ti{tiImage = f (tiImage ti)}
 atCursor :: Endo (First (Vector2 Int)) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
@@ -48,7 +50,9 @@ fmapFirst :: (a -> b) -> First a -> First b
 fmapFirst = inFirst . fmap
 
 translate :: Coordinate -> TermImage -> TermImage
-translate c = (atCursor . fmapFirst) (liftA2 (+) c) . atImage (Image.translate c)
+translate c =
+  (atCursor . fmapFirst . liftA2 (+) $ c) .
+  (atImage . Image.translate $ c)
 
 boundingRect :: TermImage -> ExpandingRect
 boundingRect = Image.boundingRect . tiImage
@@ -83,7 +87,7 @@ render (TermImage image (First mCursor)) =
     f = Image.pick image
     bg = Vty.Background ' ' Vty.def_attr
 
-make :: Rect -> (Coordinate -> First TermChar) -> TermImage
+make :: Rect -> TMap Coordinate TermChar -> TermImage
 make r f = TermImage {
   tiImage = Image.make (ExpandingRect r) f,
   tiCursor = First Nothing
@@ -97,12 +101,12 @@ stringParse chars = (Vector2 w h, ls)
     h = fromIntegral (length ls)
 
 string :: Vty.Attr -> String -> TermImage
-string attr chars = make (Rect (pure 0) (Vector2 w h)) func
+string attr chars = make (Rect (pure 0) (Vector2 w h)) $ m
   where
-    func (Vector2 x y) = if 0 <= x && x < w &&
-                            0 <= y && y < h
-                         then First . fmap ((,) attr) $ safeIndex y ls >>= safeIndex x
-                         else First $ Nothing
+    m = foldr (.) id addItems mempty
+    addItems = [ TMap.override (Vector2 x y) . First . fmap ((,) attr) $ safeIndex y ls >>= safeIndex x
+               | x <- [0..w-1]
+               , y <- [0..h-1] ]
     (Vector2 w h, ls) = stringParse chars
 
 stringSize :: String -> Vector2 Int
