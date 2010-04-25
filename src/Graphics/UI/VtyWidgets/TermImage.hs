@@ -8,9 +8,10 @@ module Graphics.UI.VtyWidgets.TermImage
 where
 
 import Data.Maybe(fromMaybe)
-import Data.List(foldl')
+import Data.List(foldl', groupBy)
 import Data.List.Split(splitOn)
 import Data.List.Utils(safeIndex)
+import Data.Function(on)
 import Data.Monoid(Monoid(..), First(First, getFirst))
 import Control.Applicative(pure, liftA2)
 import qualified Graphics.Vty as Vty
@@ -55,6 +56,12 @@ boundingRect = Image.boundingRect . tiImage
 atBoundingRect :: Endo ExpandingRect -> Endo TermImage
 atBoundingRect = atImage . Image.atBoundingRect
 
+groupFst :: Eq a => [(a, b)] -> [(a, [b])]
+groupFst = map extractFst . groupBy ((==) `on` fst)
+  where
+    extractFst [] = error "groupBy returned an empty group"
+    extractFst grp = (fst . head $ grp, map snd grp)
+
 render :: TermImage -> Vty.Picture
 render (TermImage image (First mCursor)) =
   Vty.Picture cursor img bg
@@ -64,12 +71,14 @@ render (TermImage image (First mCursor)) =
           replicate (min t b) (Vty.char Vty.def_attr ' ') ++
           [ Vty.horiz_cat $
             Vty.string Vty.def_attr (replicate (min l r) ' ') :
-            [ uncurry Vty.char . fromMaybe (Vty.def_attr, ' ') . getFirst . f $ Vector2 x y
-            | x <- [l..r] ] -- we don't need (r, b), it's an
-                            -- inclusive/exclusive range, but we want
-                            -- to avoid arithmetic on these, as they
-                            -- may be minBound/maxBound
+            (map (uncurry Vty.string) . groupFst)
+            [ fromMaybe (Vty.def_attr, ' ') . getFirst . f $ Vector2 x y
+            | x <- [l..r] ]
           | y <- [t..b] ]
+          -- we don't need (r, b), but we still iterate them, it's an
+          -- inclusive/exclusive range, but we want to avoid
+          -- arithmetic on these, as they may be minBound/maxBound
+
     ExpandingRect (Rect (Vector2 l t) (Vector2 r b)) = Image.boundingRect image
     f = Image.pick image
     bg = Vty.Background ' ' Vty.def_attr
