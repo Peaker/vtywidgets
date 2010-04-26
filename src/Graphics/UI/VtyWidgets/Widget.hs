@@ -2,6 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (SizeRange(..), Size, fixedSize, makeSizeRange,
+     horizontallyExpanding, verticallyExpanding,
      Display(..), atRequestedSize, atImage, atImageArg, expand,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
      HasFocus(..), adaptModel)
@@ -10,7 +11,7 @@ where
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
-import Graphics.UI.VtyWidgets.Vector2(Vector2)
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Control.Applicative(pure, liftA2)
@@ -38,6 +39,13 @@ instance Monoid SizeRange where
 
 makeSizeRange :: Size -> Size -> SizeRange
 makeSizeRange minSize maxSize = SizeRange minSize (max minSize maxSize)
+
+horizontallyExpanding :: Int -> Int -> SizeRange
+horizontallyExpanding fixedHeight minWidth = SizeRange (Vector2 minWidth fixedHeight)
+                                                       (Vector2 (maxBound `div` 2) fixedHeight)
+verticallyExpanding :: Int -> Int -> SizeRange
+verticallyExpanding fixedWidth minHeight = SizeRange (Vector2 fixedWidth minHeight)
+                                                     (Vector2 fixedWidth (maxBound `div` 2))
 
 result :: (b -> c) -> (a -> b) -> a -> c
 result = (.)

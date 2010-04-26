@@ -5,7 +5,7 @@ import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor, (^.), setVal)
 import qualified Data.Accessor.Template as AT
 import Data.Maybe(fromMaybe)
---import Data.Monoid(mempty)
+import Data.Monoid(mempty)
 import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Monad(forever)
@@ -19,6 +19,7 @@ import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
+import qualified Graphics.UI.VtyWidgets.Bar as Bar
 import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
@@ -43,7 +44,7 @@ $(AT.deriveAccessors ''Model)
 
 initModel :: Model
 initModel = Model {
-  modelOuterGrid_ = Grid.Model (Grid.Cursor (Vector2 0 1)),
+  modelOuterGrid_ = Grid.Model (Grid.Cursor (Vector2 1 1)),
   modelInnerGrid_ = Grid.initModel,
   modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
@@ -74,12 +75,14 @@ main = do
       liftIO . Vty.update vty . TermImage.render $ image
     widget model =
       makeGrid (pure 0) modelOuterGrid [
-        [ (False, Widget.simpleDisplay . TextView.make attr $ "Title\n-----") ],
-        [ (True, innerGrid),
+        [ (False, Widget.simpleDisplay $ TextView.make attr "Title\n-----"),
+          (False, Widget.simpleDisplay $ Bar.makeHorizontal attr 15 0.2 0.5) ],
+        [ (False, Widget.simpleDisplay $ Bar.makeVertical attr 3 0.5 0.8),
+          (True, innerGrid),
           (False, Widget.simpleDisplay Spacer.makeHorizontal),
           (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid) ],
-        [ (False, Widget.simpleDisplay Spacer.makeVertical) ],
-        [ (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
+        [ (False, mempty),
+          (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
         ] model
       where
         innerGrid = makeGrid Grid.centered modelInnerGrid (textEdits model) model

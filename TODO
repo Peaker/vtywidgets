@@ -1,3 +1,7 @@
+* Scroller:
+
+  * Use the cursor in child widget images as the focal point
+
 * Widget can also have an "entry" function that returns the same "k"
   that lets it move to where it was entered from?
   * Maybe replace Keymap with Eventmap and replace ModKey with
@@ -6,16 +10,9 @@
     widget is allowed to handle
   * Then mouse events could be sent too...
 
-* Widget to show key mappings..
-
 * Currently, I'd need to heuristic diff on TextEdit changes to know
   what it changed... Maybe create a composable Diff that can describe
   changes accurately?
-
-* Scroller:
-
-  * Can take a (widget, focusArea) and make sure the focusArea is in
-    range of the scroll
 
 * makeWidget should Clip the subwidget images:
 
@@ -38,7 +35,3 @@
 
   * Choose a Scroller or the widget, based on whether or not it fits
     in the given space...
-
-* Grid: Maybe split into visual-grid DISPLAY, and a Grid selector that
-  keeps the cursor on the grid display, and combines the keymaps
-  however it likes?
