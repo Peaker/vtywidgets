@@ -86,7 +86,7 @@ main = do
         ] model
       where
         innerGrid = makeGrid Grid.centered modelInnerGrid (textEdits model) model
-    keymapGrid = TableGrid.makeKeymapView keyAttr valueAttr 
+    keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits model =
       [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
                  Widget.adaptModel (nth i . modelTextEdits)
