@@ -10,6 +10,9 @@ import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 
+validateRatio :: Double -> Double
+validateRatio = max 0 . min 1
+
 makeHorizontal :: Vty.Attr -> Int -> Double -> Double -> Widget.Display a
 makeHorizontal attr minWidth start end =
   Widget.Display (Widget.horizontallyExpanding height minWidth) mkImage
@@ -17,8 +20,8 @@ makeHorizontal attr minWidth start end =
     height = 1
     mkImage _ (Vector2 size _) = TermImage.string attr text
       where
-        before = truncate $ fromIntegral size * start
-        after = truncate $ fromIntegral size * (1-end)
+        before = truncate . (* fromIntegral size) . validateRatio $ start
+        after = truncate . (* fromIntegral size) . (1 -) . validateRatio $ end
         inside = size - (before + after)
         text = concat [
           replicate before '=',

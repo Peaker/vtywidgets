@@ -73,18 +73,21 @@ main = do
       (curModel, size) <- get
       let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
       liftIO . Vty.update vty . TermImage.render $ image
-    widget model =
-      makeGrid (pure 0) modelOuterGrid [
-        [ (False, Widget.simpleDisplay $ TextView.make attr "Title\n-----"),
-          (False, Widget.simpleDisplay $ Bar.makeHorizontal attr 15 0.2 0.5) ],
-        [ (False, Widget.simpleDisplay $ Bar.makeVertical attr 3 0.5 0.8),
-          (True, innerGrid),
-          (False, Widget.simpleDisplay Spacer.makeHorizontal),
-          (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid) ],
-        [ (False, mempty),
-          (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
-        ] model
+    widget model = outerGrid
       where
+        Vector2 w h = Widget.srMinSize . Widget.displayRequestedSize . Widget.widgetDisplay $ innerGrid
+        startRatio = fromIntegral w / 50
+        endRatio = fromIntegral h / 6
+        outerGrid = makeGrid (pure 0) modelOuterGrid [
+          [ (False, Widget.simpleDisplay $ TextView.make attr "Title\n-----"),
+            (False, Widget.simpleDisplay $ Bar.makeHorizontal attr 15 startRatio endRatio) ],
+          [ (False, Widget.simpleDisplay $ Bar.makeVertical attr 3 0.5 0.8),
+            (True, innerGrid),
+            (False, Widget.simpleDisplay Spacer.makeHorizontal),
+            (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid) ],
+          [ (False, mempty),
+            (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent) ]
+          ] model
         innerGrid = makeGrid Grid.centered modelInnerGrid (textEdits model) model
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits model =
