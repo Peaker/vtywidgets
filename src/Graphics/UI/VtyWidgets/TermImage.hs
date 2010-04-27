@@ -3,7 +3,7 @@
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage(..),
      atImage, atCursor, setCursor,
-     render, string, stringSize,
+     render, string, stringSize, clip,
      translate, boundingRect, atBoundingRect)
 where
 
@@ -86,6 +86,9 @@ render (TermImage image (First mCursor)) =
     ExpandingRect (Rect (Vector2 l t) (Vector2 r b)) = Image.boundingRect image
     f = Image.pick image
     bg = Vty.Background ' ' Vty.def_attr
+
+clip :: Rect -> TermImage -> TermImage
+clip = atImage . Image.clip
 
 make :: Rect -> TMap Coordinate TermChar -> TermImage
 make r f = TermImage {

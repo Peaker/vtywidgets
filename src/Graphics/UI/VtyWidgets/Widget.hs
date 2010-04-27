@@ -12,6 +12,7 @@ import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
+import Graphics.UI.VtyWidgets.Rect(Rect(..))
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Control.Applicative(pure, liftA2)
@@ -61,6 +62,11 @@ atImage f d = d{displayImage = (result . result) f $ displayImage d}
 atImageArg :: (b -> a) -> Display a -> Display b
 atImageArg f d = d{displayImage = displayImage d . f}
 
+makeDisplay :: SizeRange -> (imgarg -> Size -> TermImage) -> Display imgarg
+makeDisplay sizeRange mkImage = Display sizeRange mkImage'
+  where
+    mkImage' imgarg size = TermImage.clip (Rect (pure 0) size) (mkImage imgarg size)
+
 instance Monoid (Display imgarg) where
   mempty = Display mempty mempty
   Display x1 y1 `mappend` Display x2 y2 = Display (x1 `mappend` x2) (y1 `mappend` y2)
@@ -92,7 +98,7 @@ simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay display = Widget display mempty
 
 make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Keymap k -> Widget k
-make sr f = Widget (Display sr f)
+make sr f = Widget (makeDisplay sr f)
 
 type Endo a = a -> a
 

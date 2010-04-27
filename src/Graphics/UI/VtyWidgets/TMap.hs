@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.TMap
-    (TMap, override, lookup, mapKeys)
+    (TMap, override, lookup, mapKeys, filterKeys)
 where
 
 import Prelude hiding (lookup)
@@ -48,3 +48,6 @@ lookup k (TMap dv m) = fromMaybe dv . Map.lookup k $ m
 
 mapKeys :: (Ord k, Ord k') => (k -> k') -> TMap k v -> TMap k' v
 mapKeys = atMap . Map.mapKeys
+
+filterKeys :: (Ord k) => (k -> Bool) -> TMap k v -> TMap k v
+filterKeys = atMap . Map.filterWithKey . (const .)

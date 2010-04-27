@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall -O2 #-}
 module Graphics.UI.VtyWidgets.Rect
-    (Coordinate, Rect(..),
+    (Coordinate, Rect(..), inside,
      atTopLeft, atBottomRight, atBoth,
      ExpandingRect(..), inExpandingRect, inExpandingRect2,
      ShrinkingRect(..), inShrinkingRect, inShrinkingRect2
@@ -9,7 +9,7 @@ where
 
 import Data.Monoid(Monoid(..))
 import Control.Applicative(pure, liftA2)
-import Graphics.UI.VtyWidgets.Vector2(Vector2)
+import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 type Endo a = a -> a
 
@@ -34,6 +34,11 @@ minBoundHack = minBound `div` 2
 
 maxBoundHack :: (Bounded a, Integral a) => a
 maxBoundHack = maxBound `div` 2
+
+inside :: Coordinate -> Rect -> Bool
+inside (Vector2 x y) (Rect (Vector2 l t) (Vector2 r b)) =
+  l <= x && x < r &&
+  t <= y && y < b
 
 newtype ExpandingRect = ExpandingRect { unExpandingRect :: Rect }
 inExpandingRect :: Endo Rect -> Endo ExpandingRect
