@@ -7,8 +7,8 @@ where
 import Control.Applicative(pure, liftA2)
 import Data.Maybe(fromMaybe)
 import Data.Monoid(First(..))
+import Data.Vector.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Rect(Rect(..), unExpandingRect)
-import Graphics.UI.VtyWidgets.Vector2(Vector2)
 import Graphics.UI.VtyWidgets.Widget(Display)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage

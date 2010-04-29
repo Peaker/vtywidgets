@@ -7,10 +7,10 @@ where
 import Data.Char(chr, isSpace)
 import Data.Monoid(mconcat)
 import Data.List.Split(splitOn)
+import Data.Vector.Vector2(Vector2(..))
 import Control.Arrow(first)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget

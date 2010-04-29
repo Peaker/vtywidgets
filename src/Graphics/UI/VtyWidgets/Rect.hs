@@ -8,8 +8,8 @@ module Graphics.UI.VtyWidgets.Rect
 where
 
 import Data.Monoid(Monoid(..))
+import Data.Vector.Vector2(Vector2(..))
 import Control.Applicative(pure, liftA2)
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 type Endo a = a -> a
 type Endo2 a = a -> a -> a

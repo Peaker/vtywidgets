@@ -5,8 +5,8 @@ module Graphics.UI.VtyWidgets.Bar
 where
 
 import Data.List(intersperse)
+import Data.Vector.Vector2(Vector2(..))
 import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 

@@ -6,20 +6,19 @@ module Graphics.UI.VtyWidgets.Grid
      initModel, centered)
 where
 
-import qualified Graphics.Vty as Vty
 import Data.List(transpose)
 import Data.Function.Utils(argument, result)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
+import Data.Vector.Vector2(Vector2(..))
+import qualified Data.Vector.Vector2 as Vector2
 import Control.Applicative(liftA2)
 import Control.Arrow(second)
-
+import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
-import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 type Endo a = a -> a

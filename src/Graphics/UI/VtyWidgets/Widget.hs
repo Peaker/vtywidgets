@@ -11,8 +11,8 @@ where
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
 import Data.Function.Utils(result)
+import Data.Vector.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Rect(Rect(..))
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage

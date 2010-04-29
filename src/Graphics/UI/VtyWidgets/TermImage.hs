@@ -13,10 +13,10 @@ import Data.List.Split(splitOn)
 import Data.List.Utils(safeIndex)
 import Data.Function(on)
 import Data.Monoid(Monoid(..), First(First, getFirst))
+import Data.Vector.Vector2(Vector2(..))
+import qualified Data.Vector.Vector2 as Vector2
 import Control.Applicative(pure, liftA2)
 import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
-import qualified Graphics.UI.VtyWidgets.Vector2 as Vector2
 import Graphics.UI.VtyWidgets.Rect(ExpandingRect(..), Rect(..), Coordinate)
 import Graphics.UI.VtyWidgets.Image(Image)
 import qualified Graphics.UI.VtyWidgets.Image as Image

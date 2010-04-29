@@ -6,8 +6,8 @@ where
 
 import Control.Applicative(pure)
 import Data.Monoid(mempty)
+import Data.Vector.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 
 maxBoundHack :: (Bounded a, Integral a) => a
 maxBoundHack = maxBound `div` 2

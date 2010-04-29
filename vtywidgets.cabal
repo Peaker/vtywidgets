@@ -34,10 +34,10 @@ Library
                        Graphics.UI.VtyWidgets.Bar,
                        Graphics.UI.VtyWidgets.Spacer,
                        Graphics.UI.VtyWidgets.TableGrid,
-                       Graphics.UI.VtyWidgets.Vector2,
                        Graphics.UI.VtyWidgets.TMap,
                        Graphics.UI.VtyWidgets.VtyWrap,
-                       Graphics.UI.VtyWidgets.Widget
+                       Graphics.UI.VtyWidgets.Widget,
+                       Data.Vector.Vector2
   Other-Modules:       Data.List.Utils,
                        Data.Function.Utils
 

@@ -7,10 +7,10 @@ where
 import Data.Ord(comparing)
 import Data.List(sortBy, intercalate)
 import Data.List.Split(splitEvery)
+import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Map as Map
 import Control.Arrow((***))
 import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Keymap(Keymap(keymapGroups))
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
