@@ -3,13 +3,14 @@
 module Graphics.UI.VtyWidgets.Widget
     (SizeRange(..), Size, fixedSize, makeSizeRange,
      horizontallyExpanding, verticallyExpanding,
-     Display(..), atRequestedSize, atImage, atImageArg, expand,
+     Display(..), atRequestedSize, atImage, expand, makeDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
      HasFocus(..), adaptModel)
 where
 
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
+import Data.Function.Utils(result)
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Rect(Rect(..))
@@ -48,24 +49,28 @@ verticallyExpanding :: Int -> Int -> SizeRange
 verticallyExpanding fixedWidth minHeight = SizeRange (Vector2 fixedWidth minHeight)
                                                      (Vector2 fixedWidth (maxBound `div` 2))
 
-result :: (b -> c) -> (a -> b) -> a -> c
-result = (.)
-
 data Display imgarg = Display {
   displayRequestedSize :: SizeRange,
   displayImage :: imgarg -> Size -> TermImage
   }
 atRequestedSize :: Endo SizeRange -> Endo (Display imgarg)
 atRequestedSize f d = d{displayRequestedSize = f $ displayRequestedSize d}
-atImage :: Endo TermImage -> Endo (Display imgarg)
-atImage f d = d{displayImage = (result . result) f $ displayImage d}
-atImageArg :: (b -> a) -> Display a -> Display b
-atImageArg f d = d{displayImage = displayImage d . f}
+
+atImage :: ((imgarg -> Size -> TermImage) ->
+            imgarg' -> Size -> TermImage) ->
+           Display imgarg ->
+           Display imgarg'
+atImage f d = d{displayImage = f . displayImage $ d}
+
+clipDisplay :: Display imgarg -> Display imgarg
+clipDisplay = (atImage . result) clip
+  where
+    clip mkImage = mkImage'
+      where
+        mkImage' size = TermImage.clip (Rect (pure 0) size) (mkImage size)
 
 makeDisplay :: SizeRange -> (imgarg -> Size -> TermImage) -> Display imgarg
-makeDisplay sizeRange mkImage = Display sizeRange mkImage'
-  where
-    mkImage' imgarg size = TermImage.clip (Rect (pure 0) size) (mkImage imgarg size)
+makeDisplay = (result . result) clipDisplay Display
 
 instance Monoid (Display imgarg) where
   mempty = Display mempty mempty
@@ -73,7 +78,7 @@ instance Monoid (Display imgarg) where
 
 expand :: Size -> Endo (Display imgarg)
 expand extra = (atRequestedSize . atBothSizes . liftA2 (+)) extra .
-               (atImage . TermImage.translate . fmap (`div` 2)) extra
+               (atImage . result . result . TermImage.translate . fmap (`div` 2)) extra
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
   deriving (Show, Read, Eq, Ord)

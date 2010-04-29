@@ -30,6 +30,7 @@ Library
                        Graphics.UI.VtyWidgets.TermImage,
                        Graphics.UI.VtyWidgets.TextEdit,
                        Graphics.UI.VtyWidgets.TextView,
+                       Graphics.UI.VtyWidgets.Scroll,
                        Graphics.UI.VtyWidgets.Bar,
                        Graphics.UI.VtyWidgets.Spacer,
                        Graphics.UI.VtyWidgets.TableGrid,
@@ -37,7 +38,8 @@ Library
                        Graphics.UI.VtyWidgets.TMap,
                        Graphics.UI.VtyWidgets.VtyWrap,
                        Graphics.UI.VtyWidgets.Widget
-  Other-Modules:       Data.List.Utils
+  Other-Modules:       Data.List.Utils,
+                       Data.Function.Utils
 
   ghc-options:         -Wall
 

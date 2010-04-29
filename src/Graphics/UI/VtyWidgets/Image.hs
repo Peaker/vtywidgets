@@ -10,7 +10,7 @@ import Data.Monoid(Monoid(..))
 import Control.Applicative(liftA2)
 import Control.Compose((:.)(O, unO))
 import Control.Arrow(first, second, (***))
-import Graphics.UI.VtyWidgets.Rect(Rect, ExpandingRect(..), Coordinate)
+import Graphics.UI.VtyWidgets.Rect(Rect, ExpandingRect(..), inExpandingRect, Coordinate)
 import qualified Graphics.UI.VtyWidgets.Rect as Rect
 import Graphics.UI.VtyWidgets.TMap(TMap)
 import qualified Graphics.UI.VtyWidgets.TMap as TMap
@@ -50,7 +50,8 @@ atBoundingRect = inImage . first
 
 clip :: Monoid a => Rect -> Image a -> Image a
 -- TODO: Also clip the ExpandingRect...
-clip = atTMap . TMap.filterKeys . flip Rect.inside
+clip rect = (atTMap . TMap.filterKeys) (`Rect.inside` rect) .
+            (atBoundingRect . inExpandingRect) (Rect.clip rect)
 
 pick :: Image a -> Coordinate -> a
 pick = flip TMap.lookup . snd . unImage
@@ -58,8 +59,7 @@ pick = flip TMap.lookup . snd . unImage
 translate :: Coordinate -> Image a -> Image a
 translate c =
   inImage $
-  (Rect.inExpandingRect . Rect.atBoth .
-   liftA2 (+)) c
-  ***
-  (TMap.mapKeys .
-   liftA2 (+)) c
+  (Rect.inExpandingRect . Rect.atBoth) move ***
+  TMap.mapKeys move
+  where
+    move = liftA2 (+) c

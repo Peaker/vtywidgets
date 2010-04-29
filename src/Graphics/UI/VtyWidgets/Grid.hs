@@ -8,6 +8,7 @@ where
 
 import qualified Graphics.Vty as Vty
 import Data.List(transpose)
+import Data.Function.Utils(argument, result)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Control.Applicative(liftA2)
@@ -81,16 +82,16 @@ ranges xs = zip (scanl (+) 0 xs) xs
 -- Replace keymap and image cursor of a widget with mempty/Nothing
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atDisplay . Widget.atImage . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . Widget.atImageArg) (const . Widget.HasFocus $ False)
+             (Widget.atDisplay . Widget.atImage . result . result . TermImage.setCursor) Nothing .
+             (Widget.atDisplay . Widget.atImage . argument) (const . Widget.HasFocus $ False)
 
 -- Give each min-max range some of the extra budget...
 disperse :: Int -> [(Int, Int)] -> [Int]
 disperse _     [] = []
-disperse extra ((low, high):xs) = result : disperse remaining xs
+disperse extra ((low, high):xs) = r : disperse remaining xs
   where
-    result = max low . min high $ low + extra
-    remaining = extra - (result - low)
+    r = max low . min high $ low + extra
+    remaining = low + extra - r
 
 makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
 makeView rows = Widget.Display requestedSize mkImage
