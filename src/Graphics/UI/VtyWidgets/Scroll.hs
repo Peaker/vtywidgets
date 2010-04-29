@@ -1,5 +1,4 @@
 {-# OPTIONS -O2 -Wall #-}
-
 module Graphics.UI.VtyWidgets.Scroll
     (makeView)
 where
@@ -45,4 +44,9 @@ centered showRange image = image'
 makeView :: Widget.SizeRange -> Display a -> Display a
 makeView sizeRange disp = Widget.makeDisplay sizeRange mkImage
   where
-    mkImage imgArg size = centered (Rect (pure 0) size) . Widget.displayImage disp imgArg . Widget.srMaxSize . Widget.displayRequestedSize $ disp
+    mkImage imgArg size =
+      centered (Rect (pure 0) size) .
+      Widget.displayImage disp imgArg .
+      Widget.srMaxSize .
+      Widget.displayRequestedSize $
+      disp

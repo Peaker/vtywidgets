@@ -21,6 +21,7 @@ import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Bar as Bar
+import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
 import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
@@ -96,7 +97,9 @@ widget model = outerGrid
           (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent)
         ]
       ]
-    innerGrid = makeGrid Grid.centered modelInnerGrid textEdits
+    innerGrid =
+      Widget.atDisplay (Scroll.makeView (Widget.fixedSize (Vector2 4 4))) $
+      makeGrid Grid.centered modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
