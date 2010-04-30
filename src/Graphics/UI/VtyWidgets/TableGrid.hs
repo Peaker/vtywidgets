@@ -20,10 +20,11 @@ type MakeView a = Vty.Attr -> Vty.Attr -> Widget.Display a
 
 makeView :: [(String, String)] -> MakeView a
 makeView table keyAttr valueAttr =
-  Grid.makeView [ [ Grid.Item (Vector2 0 0.5) (TextView.make attr x)
-                  | (attr, x) <- [(keyAttr, key),
-                                  (valueAttr, value)] ]
-                | (key, value) <- table ]
+  Grid.makeView
+  [ [ Grid.Item (Vector2 0 0.5) (TextView.make attr x)
+    | (attr, x) <- [(keyAttr, key),
+                    (valueAttr, value)] ]
+  | (key, value) <- table ]
 
 ljustify :: Int -> a -> [a] -> [a]
 ljustify width x xs = xs ++ replicate (width - length xs) x

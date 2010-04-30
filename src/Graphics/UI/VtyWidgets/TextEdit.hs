@@ -130,7 +130,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
         let swapPoint = min (textLength - 2) (cursor - 1)
             (beforeSwap, x:y:afterSwap) = splitAt swapPoint text
             swapLetters = (min textLength (cursor + 1),
-                           beforeSwap ++ y : x : afterSwap)
+                           beforeSwap ++ y:x:afterSwap)
         in
 
         [ multiKey "Swap letters" (ctrlCharK 't')
