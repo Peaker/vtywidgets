@@ -20,7 +20,6 @@ import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
-import qualified Graphics.UI.VtyWidgets.Bar as Bar
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
 import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
@@ -37,7 +36,6 @@ nth :: Int -> Accessor [a] a
 nth n = accessor (!! n) (nthSet n)
 
 data Model = Model {
-  modelOuterGrid_ :: Grid.Model,
   modelInnerGrid_ :: Grid.Model,
   modelTextEdits_ :: [TextEdit.Model],
   modelLastEvent_ :: String
@@ -46,7 +44,6 @@ $(AT.deriveAccessors ''Model)
 
 initModel :: Model
 initModel = Model {
-  modelOuterGrid_ = Grid.Model (Grid.Cursor (Vector2 1 1)),
   modelInnerGrid_ = Grid.initModel,
   modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
@@ -77,29 +74,18 @@ main = do
       liftIO . Vty.update vty . TermImage.render $ image
 
 widget :: Model -> Widget Model
-widget model = outerGrid
+widget model = Widget.atDisplay outerGrid innerGrid
   where
-    Vector2 w h = Widget.srMinSize . Widget.displayRequestedSize . Widget.widgetDisplay $ innerGrid
-    startRatio = fromIntegral w / 50
-    endRatio = fromIntegral h / 6
-    outerGrid =
-      makeGrid (pure 0) modelOuterGrid
-      [
-        [ (False, Widget.simpleDisplay $ TextView.make attr "Title\n-----"),
-          (False, Widget.simpleDisplay $ Bar.makeHorizontal attr 15 startRatio endRatio)
-        ],
-        [ (False, Widget.simpleDisplay $ Bar.makeVertical attr 3 0.5 0.8),
-          (True, innerGrid),
-          (False, Widget.simpleDisplay Spacer.makeHorizontal),
-          (False, Widget.simpleDisplay . keymapGrid . Widget.widgetKeymap $ innerGrid)
-        ],
-        [ (False, mempty),
-          (False, Widget.simpleDisplay . TextView.make attr $ model ^. modelLastEvent)
-        ]
-      ]
+    outerGrid innerGridDisp =
+      makeGridView (pure 0)
+      [ [ mempty,TextView.make attr "Title\n-----" ],
+        [ innerGridDisp, Spacer.makeHorizontal ],
+        [ Spacer.makeVertical ],
+        [ mempty, mempty, keymapGrid . Widget.widgetKeymap $ innerGrid ],
+        [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
-      Widget.atDisplay (Scroll.makeView (Widget.fixedSize (Vector2 4 4))) $
-      makeGrid Grid.centered modelInnerGrid textEdits
+      Widget.atDisplay (Scroll.makeView . Widget.fixedSize $ Vector2 12 5) $
+      makeGrid (pure 0) modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
@@ -118,6 +104,8 @@ widget model = outerGrid
                 `Vty.with_fore_color` Vty.red
                 `Vty.with_back_color` Vty.blue
                 `Vty.with_style` Vty.bold
+    makeGridView alignment =
+      (Grid.makeView . (map . map) (Grid.Item alignment))
     makeGrid alignment acc rows =
       (Grid.makeAcc acc . (map . map) (Grid.Item alignment))
       rows model

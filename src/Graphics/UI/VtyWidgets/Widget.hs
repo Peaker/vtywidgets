@@ -29,6 +29,7 @@ data SizeRange = SizeRange {
   srMinSize :: Size,
   srMaxSize :: Size
   }
+  deriving (Eq, Ord, Show, Read)
 atBothSizes :: Endo Size -> Endo SizeRange
 atBothSizes f (SizeRange minSize maxSize) = SizeRange (f minSize) (f maxSize)
 fixedSize :: Size -> SizeRange

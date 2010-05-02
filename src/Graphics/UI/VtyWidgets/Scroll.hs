@@ -42,7 +42,8 @@ centered showRange image = image'
     image' = TermImage.translate (fmap negate tl') image
 
 makeView :: Widget.SizeRange -> Display a -> Display a
-makeView sizeRange disp = Widget.makeDisplay sizeRange mkImage
+makeView sizeRange disp =
+  Widget.makeDisplay sizeRange mkImage
   where
     mkImage imgArg size =
       centered (Rect (pure 0) size) .

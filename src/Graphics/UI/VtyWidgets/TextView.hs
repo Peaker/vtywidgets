@@ -11,7 +11,5 @@ import qualified Graphics.UI.VtyWidgets.Widget as Widget
 make :: Vty.Attr -> String -> Widget.Display a
 make attr text = Widget.Display (Widget.fixedSize size) (const . const $ image)
   where
-    image = (TermImage.setCursor . Just) ((`div` 2) `fmap` size) .
-            TermImage.string attr $
-            text
+    image = TermImage.string attr text
     size = TermImage.stringSize text
