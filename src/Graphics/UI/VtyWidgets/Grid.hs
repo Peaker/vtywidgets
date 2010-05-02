@@ -30,7 +30,7 @@ inCursor :: Endo (Vector2 Int) -> Endo Cursor
 inCursor f (Cursor x) = Cursor (f x)
 
 data Item w = Item {
-  _itemAlignment :: Alignment,
+  itemAlignment :: Alignment,
   itemChild :: w
   }
 
