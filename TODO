@@ -1,6 +1,5 @@
-* Scroller:
-
-  * Use the cursor in child widget images as the focal point
+* FocusDelegator:
+  * Need to replace def_attr with that which keeps the external attr
 
 * Widget can also have an "entry" function that returns the same "k"
   that lets it move to where it was entered from?

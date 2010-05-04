@@ -3,12 +3,12 @@
 module Data.Vector.Vector2
     (Vector2(..)
     ,vector2
-    ,first,second,(***),both
+    ,first,second,(***),both,zip
     ,fst,snd
     ,curry,uncurry)
 where
 
-import Prelude hiding (fst, snd, curry, uncurry)
+import Prelude hiding (fst, snd, curry, uncurry, zip)
 import Control.Applicative(Applicative(..), liftA2)
 import Control.Monad(join)
 
@@ -41,6 +41,9 @@ vector2 f (Vector2 x y) = f x y
 
 both :: Endo a -> Endo (Vector2 a)
 both = join (***)
+
+zip :: [a] -> [a] -> [Vector2 a]
+zip = zipWith Vector2
 
 curry :: (Vector2 a -> b) -> a -> a -> b
 curry f x y = f (Vector2 x y)
