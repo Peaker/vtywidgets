@@ -75,9 +75,6 @@ keymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
 
-ranges :: Num a => [a] -> [(a, a)]
-ranges xs = zip (scanl (+) 0 xs) xs
-
 -- Replace keymap and image cursor of a widget with mempty/Nothing
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
@@ -92,49 +89,55 @@ disperse extra ((low, high):xs) = r : disperse remaining xs
     r = max low . min high $ low + extra
     remaining = low + extra - r
 
-makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
-makeView rows = Widget.Display requestedSize mkImage
+makeSizes :: [[Widget.SizeRange]] -> (Widget.SizeRange, Widget.Size -> [[Widget.Size]])
+makeSizes rows = (requestedSize, mkSizes)
   where
     requestedSize = Widget.makeSizeRange minSize maxSize
     minSize = Vector2 (sum columnMinWidths) (sum rowMinHeights)
     maxSize = Vector2 (sum columnMaxWidths) (sum rowMaxHeights)
-
     -- Compute all the row/column sizes:
-    computeSizes aggregate f = map aggregate . (map . map) (f . Widget.displayRequestedSize . itemChild)
+    computeSizes aggregate f = map aggregate . (map . map) f
     computeSizeRanges f xs = (computeSizes maximum (f . Widget.srMinSize) xs,
                               computeSizes maximum (f . Widget.srMaxSize) xs)
+
     (rowMinHeights, rowMaxHeights) =
       computeSizeRanges Vector2.snd rows
     (columnMinWidths, columnMaxWidths) =
-      computeSizeRanges Vector2.fst transposedChildWidgetRows
+      computeSizeRanges Vector2.fst . transpose $ rows
+
     rowHeightRanges = zip rowMinHeights rowMaxHeights
     columnWidthRanges = zip columnMinWidths columnMaxWidths
-
-    transposedChildWidgetRows = transpose rows
-
-    mkImage imgarg givenSize = gridImage
+    mkSizes givenSize = map (Vector2.zip columnWidths . repeat) rowHeights
       where
-        (Vector2 extraWidth extraHeight) = liftA2 (-) givenSize minSize
+        Vector2 extraWidth extraHeight = liftA2 (-) givenSize minSize
         columnWidths = disperse extraWidth columnWidthRanges
         rowHeights = disperse extraHeight rowHeightRanges
+
+makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
+makeView rows = Widget.Display requestedSize mkImage
+  where
+    (requestedSize, mkSizes) = makeSizes . (map . map) (Widget.displayRequestedSize . itemChild) $ rows
+    mkImage imgarg givenSize = gridImage
+      where
+        sizes = mkSizes givenSize
+        positions = zipWith Vector2.zip
+                    (map (scanl (+) 0 . map Vector2.fst) sizes)
+                    (transpose . map (scanl (+) 0 . map Vector2.snd) . transpose $ sizes)
+        posSizes = zipWith zip positions sizes
         -- Translate the widget images to their right locations:
-        childImages =
-          zipWith childRowImages (ranges rowHeights) rows
-        childRowImages (y, height) =
-          zipWith (childImage y height) (ranges columnWidths)
-        childImage y height (x, width) (Item alignment display) =
+        translatedImages = (zipWith . zipWith) translateImage posSizes rows
+        translateImage (basePos, size) (Item alignment display) =
           TermImage.translate pos image
           where
-            size = Vector2 width height
             image = Widget.displayImage display imgarg size
-            pos = liftA2 (+) (Vector2 x y) .
+            pos = liftA2 (+) basePos .
                   relativeImagePos size alignment .
                   Widget.srMaxSize .
                   Widget.displayRequestedSize $
                   display
 
-        -- Combine all translated children:
-        gridImage = mconcat . concat $ childImages
+        -- Combine all translated images:
+        gridImage = mconcat . concat $ translatedImages
 
 itemWidget :: Item (Bool, Widget k) -> Widget k
 itemWidget = snd . itemChild
