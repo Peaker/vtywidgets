@@ -3,7 +3,8 @@
 module Graphics.UI.VtyWidgets.Widget
     (SizeRange(..), Size, fixedSize, makeSizeRange,
      horizontallyExpanding, verticallyExpanding,
-     Display(..), atRequestedSize, atImage, expand, makeDisplay,
+     Display(..), unDisplay, atRequestedSize, atImage, expand,
+     makeDisplay, clipDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
      HasFocus(..), adaptModel)
 where
@@ -54,6 +55,9 @@ data Display imgarg = Display {
   displayRequestedSize :: SizeRange,
   displayImage :: imgarg -> Size -> TermImage
   }
+unDisplay :: Display imgarg -> (SizeRange, imgarg -> Size -> TermImage)
+unDisplay (Display rs mkImage) = (rs, mkImage)
+
 atRequestedSize :: Endo SizeRange -> Endo (Display imgarg)
 atRequestedSize f d = d{displayRequestedSize = f $ displayRequestedSize d}
 
@@ -66,9 +70,7 @@ atImage f d = d{displayImage = f . displayImage $ d}
 clipDisplay :: Display imgarg -> Display imgarg
 clipDisplay = (atImage . result) clip
   where
-    clip mkImage = mkImage'
-      where
-        mkImage' size = TermImage.clip (Rect (pure 0) size) (mkImage size)
+    clip mkImage size = TermImage.clip (Rect (pure 0) size) (mkImage size)
 
 makeDisplay :: SizeRange -> (imgarg -> Size -> TermImage) -> Display imgarg
 makeDisplay = (result . result) clipDisplay Display
