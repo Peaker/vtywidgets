@@ -28,14 +28,14 @@ type Endo a = a -> a
 type TermChar = First (Vty.Attr, Char)
 data TermImage = TermImage {
   tiImage :: Image TermChar,
-  tiCursor :: First (Vector2 Int)
+  tiCursor :: First Coordinate
   }
 atImage :: Endo (Image TermChar) -> Endo TermImage
 atImage f ti = ti{tiImage = f (tiImage ti)}
-atCursor :: Endo (First (Vector2 Int)) -> Endo TermImage
+atCursor :: Endo (First Coordinate) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
 
-setCursor :: Maybe (Vector2 Int) -> Endo TermImage
+setCursor :: Maybe Coordinate -> Endo TermImage
 setCursor = atCursor . const . First
 
 instance Monoid TermImage where

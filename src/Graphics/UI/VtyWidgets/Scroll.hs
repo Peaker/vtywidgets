@@ -25,7 +25,7 @@ moveIn big small = Rect smalltl' smallbr'
                liftA2 (+) smalltl' $
                smallSize
 
-centerRect :: Vector2 Int -> Rect -> Rect
+centerRect :: Coordinate -> Rect -> Rect
 centerRect pos (Rect tl br) = Rect tl' br'
   where
     size = liftA2 (-) br tl
