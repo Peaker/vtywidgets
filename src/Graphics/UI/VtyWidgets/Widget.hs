@@ -2,7 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (SizeRange(..), Size, fixedSize, makeSizeRange,
-     horizontallyExpanding, verticallyExpanding,
+     expanding, horizontallyExpanding, verticallyExpanding,
      Display(..), unDisplay, atRequestedSize, atImage, expand,
      makeDisplay, clipDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
@@ -37,19 +37,26 @@ fixedSize :: Size -> SizeRange
 fixedSize size = SizeRange size size
 
 instance Monoid SizeRange where
-  mempty = SizeRange (pure 0) (pure 0)
+  mempty = fixedSize (pure 0)
   SizeRange minSize1 maxSize1 `mappend` SizeRange minSize2 maxSize2 =
     SizeRange (max minSize1 minSize2) (max maxSize1 maxSize2)
 
 makeSizeRange :: Size -> Size -> SizeRange
 makeSizeRange minSize maxSize = SizeRange minSize (max minSize maxSize)
 
+maxBoundHack :: (Bounded a, Integral a) => a
+maxBoundHack = maxBound `div` 2
+
 horizontallyExpanding :: Int -> Int -> SizeRange
 horizontallyExpanding fixedHeight minWidth = SizeRange (Vector2 minWidth fixedHeight)
-                                                       (Vector2 (maxBound `div` 2) fixedHeight)
+                                                       (Vector2 maxBoundHack fixedHeight)
 verticallyExpanding :: Int -> Int -> SizeRange
 verticallyExpanding fixedWidth minHeight = SizeRange (Vector2 fixedWidth minHeight)
-                                                     (Vector2 fixedWidth (maxBound `div` 2))
+                                                     (Vector2 fixedWidth maxBoundHack)
+
+expanding :: Int -> Int -> SizeRange
+expanding minWidth minHeight = SizeRange (Vector2 minWidth minHeight)
+                                         (pure maxBoundHack)
 
 data Display imgarg = Display {
   displayRequestedSize :: SizeRange,

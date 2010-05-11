@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (makeView, make, makeAcc,
+    (makeView, make, makeAcc, makeSizes, simpleRows,
      Cursor(..), Model(..), Item(..),
      initModel, centered)
 where
@@ -12,7 +12,7 @@ import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Control.Applicative(liftA2)
+import Control.Applicative(liftA2, pure)
 import Control.Arrow(second)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -75,12 +75,6 @@ keymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
 
--- Replace keymap and image cursor of a widget with mempty/Nothing
-neutralize :: Widget a -> Widget a
-neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atDisplay . Widget.atImage . result . result . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . Widget.atImage . argument) (const . Widget.HasFocus $ False)
-
 -- Give each min-max range some of the extra budget...
 disperse :: Int -> [(Int, Int)] -> [Int]
 disperse _     [] = []
@@ -88,6 +82,9 @@ disperse extra ((low, high):xs) = r : disperse remaining xs
   where
     r = max low . min high $ low + extra
     remaining = low + extra - r
+
+simpleRows :: [[Widget.Display a]] -> [[Item (Widget.Display a)]]
+simpleRows = (map . map) (Item (pure 0))
 
 makeSizes :: [[Widget.SizeRange]] -> (Widget.SizeRange, Widget.Size -> [[Widget.Size]])
 makeSizes rows = (requestedSize, mkSizes)
@@ -144,6 +141,12 @@ itemWidget = snd . itemChild
 
 itemWantFocus :: Item (Bool, Widget k) -> Bool
 itemWantFocus = fst . itemChild
+
+-- Replace keymap and image cursor of a widget with mempty/Nothing
+neutralize :: Widget a -> Widget a
+neutralize = (Widget.atKeymap . const) mempty .
+             (Widget.atDisplay . Widget.atImage . result . result . TermImage.setCursor) Nothing .
+             (Widget.atDisplay . Widget.atImage . argument) (const . Widget.HasFocus $ False)
 
 make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) =
