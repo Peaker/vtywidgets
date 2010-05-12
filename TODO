@@ -1,24 +1,12 @@
+* Various "make" widget funcs:
+  * Move various params that the SizeRange doesn't depend on to be imgarg
+
 * Scroll:
-  * A scrollable display can also just have the size it was
-    given. Bounding Rect is probably not what I want to use:
-    Just use the srMaxSize of the scrollable.
-
-  * I want to decide whether to make hbar/vbar based on the size I was
-    given, but Grid wants them to make its SizeRange.
-
-  * A scrollable display may only have an estimate about the scroll
-    range in each axis, rather than an actual size, so the interface
-    should be something like:
-
-    type RangeRatio = (Double, Double)
-    scrollEstimate :: SizeRange -> ((RangeRatio, RangeRatio), Display a) -> Display a
-
-* PotentialScroller:
-  * Choose a Scroller or the widget, based on whether or not it fits
-    in the given space...
+  * To support scrolling with pos history, need to be able to use the
+    child widget keymap to get the child's new widget...
+  * How to clean up the code?
 
 * FocusDelegator:
-  * Need to replace def_attr with that which keeps the external attr
 
 * Widget can also have an "entry" function that returns the same "k"
   that lets it move to where it was entered from?
