@@ -7,7 +7,6 @@ module Graphics.UI.VtyWidgets.Grid
 where
 
 import Data.List(transpose)
-import Data.Function.Utils(argument)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Vector.Vector2(Vector2(..))
@@ -148,7 +147,7 @@ itemWantFocus = fst . itemChild
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
              (Widget.atDisplay . Widget.atImage . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . fmap . argument) (const . Widget.HasFocus $ False)
+             (Widget.atDisplay . Widget.atImageArg) (const . Widget.HasFocus $ False)
 
 make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) =

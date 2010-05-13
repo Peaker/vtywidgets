@@ -2,7 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (Placable(..), atPlace, atRequestedSize,
-     Display, unDisplay, atImage, expand,
+     Display, unDisplay, atImage, atImageArg, expand,
      makeDisplay, clipDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize,
      make, simpleDisplay,
@@ -10,7 +10,7 @@ module Graphics.UI.VtyWidgets.Widget
 where
 
 import Data.Monoid(Monoid(..))
-import Data.Function.Utils(result, inFlip)
+import Data.Function.Utils(argument, result, inFlip)
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
@@ -42,6 +42,9 @@ unDisplay (Placable rs mkImage) = (rs, mkImage)
 
 atImage :: Endo TermImage -> Endo (Display imgarg)
 atImage = fmap . result
+atImageArg :: (imgarg' -> imgarg) ->
+              Display imgarg -> Display imgarg'
+atImageArg = fmap . argument
 
 clipDisplay :: Display imgarg -> Display imgarg
 clipDisplay = (atPlace . inFlip . result) clip

@@ -4,7 +4,6 @@ module Graphics.UI.VtyWidgets.Scroll
 where
 
 import Control.Applicative(pure, liftA2)
-import Data.Function.Utils(argument)
 import Data.Maybe(fromMaybe)
 import Data.Monoid(First(..), mempty)
 import Graphics.UI.VtyWidgets.Rect(Coordinate, Rect(..))
@@ -96,7 +95,7 @@ makeView sizeRange' (Widget.Placable sizeRange mkImage) =
                            [ vbar, mempty ]]
         Vector2 hbarNeeded vbarNeeded = liftA2 (<) wcSize scrollSize
 
-        makeBar m range = (fmap . argument) (const range) $ m 3
+        makeBar m range = Widget.atImageArg (const range) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],
