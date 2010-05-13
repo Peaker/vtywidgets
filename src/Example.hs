@@ -74,6 +74,9 @@ main = do
       let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
       liftIO . Vty.update vty . TermImage.render $ image
 
+adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
+adaptModel acc pwidget w = Widget.atKeymap (flip (setVal acc) w `fmap`) (pwidget (w ^. acc))
+
 widget :: Model -> Widget Model
 widget model = Widget.atDisplay outerGrid innerGrid
   where
@@ -90,7 +93,7 @@ widget model = Widget.atDisplay outerGrid innerGrid
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
-                 Widget.adaptModel (nth i . modelTextEdits)
+                 adaptModel (nth i . modelTextEdits)
                  (TextEdit.make 5 attr editingAttr) $
                  model)
         | y <- [0, 1]

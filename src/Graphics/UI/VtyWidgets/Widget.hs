@@ -4,10 +4,9 @@ module Graphics.UI.VtyWidgets.Widget
     (Display(..), unDisplay, atRequestedSize, atImage, expand,
      makeDisplay, clipDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
-     HasFocus(..), adaptModel)
+     HasFocus(..))
 where
 
-import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
 import Data.Function.Utils(result)
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
@@ -19,12 +18,6 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Control.Applicative(pure, liftA2)
 
 type Endo a = a -> a
-
-adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget w = widget {widgetKeymap = flip (setVal acc) w `fmap` keymap}
-  where
-    widget = pwidget (w ^. acc)
-    keymap = widgetKeymap widget
 
 data Display imgarg = Display {
   displayRequestedSize :: SizeRange,
