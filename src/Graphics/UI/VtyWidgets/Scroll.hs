@@ -7,7 +7,6 @@ import Control.Applicative(pure, liftA2)
 import Data.Function.Utils(argument)
 import Data.Maybe(fromMaybe)
 import Data.Monoid(First(..), mempty)
-import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.Rect(Coordinate, Rect(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Data.Vector.Vector2(Vector2(..))
@@ -64,14 +63,12 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 -- a |   display  |
 -- r |            |
 -- : \____________/
-makeView :: Vty.Attr
-            -- ^ Bars' attribute
-            -> SizeRange
+makeView :: SizeRange
             -- ^ Size range of the scroller itself, including bars
             -> Display a
             -- ^ The display to scroll through
             -> Display a
-makeView attr sizeRange' (Widget.Display sizeRange mkImage) =
+makeView sizeRange' (Widget.Display sizeRange mkImage) =
   Widget.makeDisplay sizeRange' mkGridImage
   where
     mkGridImage imgarg givenSize = image'
@@ -81,8 +78,8 @@ makeView attr sizeRange' (Widget.Display sizeRange mkImage) =
         bigEnough = liftA2 (>=) givenSize scrollSize
         barsNeeded = Vector2 True True /= bigEnough
 
-        hbar = Bar.makeHorizontal attr 3
-        vbar = Bar.makeVertical attr 3
+        hbar = Bar.makeHorizontal 3
+        vbar = Bar.makeVertical 3
 
         image = mkImage imgarg givenSize
         image' = if barsNeeded
@@ -99,7 +96,7 @@ makeView attr sizeRange' (Widget.Display sizeRange mkImage) =
                            [ vbar, mempty ]]
         Vector2 hbarNeeded vbarNeeded = liftA2 (<) wcSize scrollSize
 
-        makeBar m range = (Widget.atImage . argument) (const range) $ m attr 3
+        makeBar m range = (Widget.atImage . argument) (const range) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],

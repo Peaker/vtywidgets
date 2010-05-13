@@ -3,8 +3,10 @@
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage(..),
      atImage, atCursor, setCursor,
-     render, string, stringSize, clip,
-     translate, boundingRect, atBoundingRect)
+     render,
+     string, stringSize, hstrings, vstrings,
+     clip, translate,
+     boundingRect, atBoundingRect)
 where
 
 import Data.Maybe(fromMaybe)
@@ -114,3 +116,16 @@ string attr chars = make (Rect (pure 0) (Vector2 w h)) m
 
 stringSize :: String -> Vector2 Int
 stringSize = fst . stringParse
+
+combineStrings :: (Endo Int -> Endo (Vector2 Int)) -> [(Vty.Attr, String)] -> TermImage
+combineStrings toIgnore = foldr combine mempty
+  where
+    combine (attr, str) rest =
+      string attr str `mappend`
+      (translate . (toIgnore . const) 0 . stringSize) str rest
+
+hstrings :: [(Vty.Attr, String)] -> TermImage
+hstrings = combineStrings Vector2.second
+
+vstrings :: [(Vty.Attr, String)] -> TermImage
+vstrings = combineStrings Vector2.first
