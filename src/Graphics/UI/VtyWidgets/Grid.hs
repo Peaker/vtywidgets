@@ -7,7 +7,7 @@ module Graphics.UI.VtyWidgets.Grid
 where
 
 import Data.List(transpose)
-import Data.Function.Utils(argument, result)
+import Data.Function.Utils(argument)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Vector.Vector2(Vector2(..))
@@ -113,10 +113,10 @@ makeSizes rows = (requestedSize, mkSizes)
         rowHeights = disperse extraHeight rowHeightRanges
 
 makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
-makeView rows = Widget.Display requestedSize mkImage
+makeView rows = Widget.makeDisplay requestedSize mkImage
   where
-    (requestedSize, mkSizes) = makeSizes . (map . map) (Widget.displayRequestedSize . itemChild) $ rows
-    mkImage imgarg givenSize = gridImage
+    (requestedSize, mkSizes) = makeSizes . (map . map) (Widget.placableRequestedSize . itemChild) $ rows
+    mkImage givenSize imgarg = gridImage
       where
         sizes = mkSizes givenSize
         positions = zipWith Vector2.zip
@@ -128,11 +128,11 @@ makeView rows = Widget.Display requestedSize mkImage
         translateImage (basePos, size) (Item alignment display) =
           TermImage.translate pos image
           where
-            image = Widget.displayImage display imgarg size
+            image = Widget.placablePlace display size imgarg
             pos = liftA2 (+) basePos .
                   relativeImagePos size alignment .
                   SizeRange.srMaxSize .
-                  Widget.displayRequestedSize $
+                  Widget.placableRequestedSize $
                   display
 
         -- Combine all translated images:
@@ -147,8 +147,8 @@ itemWantFocus = fst . itemChild
 -- Replace keymap and image cursor of a widget with mempty/Nothing
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atDisplay . Widget.atImage . result . result . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . Widget.atImage . argument) (const . Widget.HasFocus $ False)
+             (Widget.atDisplay . Widget.atImage . TermImage.setCursor) Nothing .
+             (Widget.atDisplay . fmap . argument) (const . Widget.HasFocus $ False)
 
 make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) =

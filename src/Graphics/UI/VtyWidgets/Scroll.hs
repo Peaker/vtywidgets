@@ -68,10 +68,10 @@ makeView :: SizeRange
             -> Display a
             -- ^ The display to scroll through
             -> Display a
-makeView sizeRange' (Widget.Display sizeRange mkImage) =
+makeView sizeRange' (Widget.Placable sizeRange mkImage) =
   Widget.makeDisplay sizeRange' mkGridImage
   where
-    mkGridImage imgarg givenSize = image'
+    mkGridImage givenSize imgarg = image'
       where
         -- Just use the maximum size for the scrollable:
         scrollSize = SizeRange.srMaxSize sizeRange
@@ -81,27 +81,27 @@ makeView sizeRange' (Widget.Display sizeRange mkImage) =
         hbar = Bar.makeHorizontal 3
         vbar = Bar.makeVertical 3
 
-        image = mkImage imgarg givenSize
+        image = mkImage scrollSize imgarg
         image' = if barsNeeded
-                 then Widget.displayImage (Grid.makeView . Grid.simpleRows $ rows) imgarg givenSize
+                 then Widget.placablePlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
                  else image
         getSSize rs = sSize
           where
             [[_, _],
              [_, sSize]] = ($ givenSize) . snd . Grid.makeSizes .
-                           (map . map) Widget.displayRequestedSize $ rs
+                           (map . map) Widget.placableRequestedSize $ rs
         -- Worst-case, we'll have both bars:
         -- Check which scroll bars we still need:
         wcSize = getSSize [[ mempty, hbar ],
                            [ vbar, mempty ]]
         Vector2 hbarNeeded vbarNeeded = liftA2 (<) wcSize scrollSize
 
-        makeBar m range = (Widget.atImage . argument) (const range) $ m 3
+        makeBar m range = (fmap . argument) (const range) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],
                 [ conditionalMakeBar vbarNeeded Bar.makeVertical   vrange,
-                  Widget.Display (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
+                  Widget.makeDisplay (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
           where
             sSize = getSSize rows
             (Rect leftTop rightBottom, scrollImage) =

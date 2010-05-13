@@ -71,7 +71,7 @@ main = do
   where
     render vty = do
       (curModel, size) <- get
-      let image = (Widget.displayImage . Widget.widgetDisplay . widget $ curModel) (Widget.HasFocus True) size
+      let image = (Widget.placablePlace . Widget.widgetDisplay . widget $ curModel) size (Widget.HasFocus True)
       liftIO . Vty.update vty . TermImage.render $ image
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w

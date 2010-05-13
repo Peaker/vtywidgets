@@ -39,12 +39,12 @@ tillEndOfWord xs = spaces ++ nonSpaces
 -- text...
 make :: Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
 make maxLines unfocusedAttr focusedAttr (Model cursor text) =
-  Widget.make requestedSize mkImage keymap
+  Widget.make requestedSize (const mkImage) keymap
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
     requestedSize = SizeRange.fixedSize (Vector2 width height)
-    mkImage (Widget.HasFocus hf) _givenSize =
+    mkImage (Widget.HasFocus hf) =
       (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
       TermImage.string (attr hf) $
       text

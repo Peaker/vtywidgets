@@ -15,7 +15,7 @@ maxBoundHack :: (Bounded a, Integral a) => a
 maxBoundHack = maxBound `div` 2
 
 make :: SizeRange -> Widget.Display a
-make sizeRange = Widget.Display sizeRange mempty
+make sizeRange = Widget.makeDisplay sizeRange mempty
 
 makeHorizontal :: Widget.Display a
 makeHorizontal = make $ SizeRange.make (pure 0) (Vector2 maxBoundHack 0)

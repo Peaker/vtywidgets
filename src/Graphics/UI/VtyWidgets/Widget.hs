@@ -1,14 +1,16 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Widget
-    (Display(..), unDisplay, atRequestedSize, atImage, expand,
+    (Placable(..), atPlace, atRequestedSize,
+     Display, unDisplay, atImage, expand,
      makeDisplay, clipDisplay,
-     Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
+     Widget(..), atDisplay, atKeymap, requestedSize,
+     make, simpleDisplay,
      HasFocus(..))
 where
 
 import Data.Monoid(Monoid(..))
-import Data.Function.Utils(result)
+import Data.Function.Utils(result, inFlip)
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
@@ -19,37 +21,39 @@ import Control.Applicative(pure, liftA2)
 
 type Endo a = a -> a
 
-data Display imgarg = Display {
-  displayRequestedSize :: SizeRange,
-  displayImage :: imgarg -> Size -> TermImage
+data Placable r = Placable {
+  placableRequestedSize :: SizeRange,
+  placablePlace :: Size -> r
   }
-unDisplay :: Display imgarg -> (SizeRange, imgarg -> Size -> TermImage)
-unDisplay (Display rs mkImage) = (rs, mkImage)
+atRequestedSize :: Endo SizeRange -> Endo (Placable r)
+atRequestedSize f d = d{placableRequestedSize = f $ placableRequestedSize d}
+atPlace :: ((Size -> r) -> Size -> r') ->
+           Placable r -> Placable r'
+atPlace f d = d{placablePlace = f $ placablePlace d}
+instance Functor Placable where
+  fmap = atPlace . result
+instance Monoid r => Monoid (Placable r) where
+  mempty = Placable mempty mempty
+  Placable x1 y1 `mappend` Placable x2 y2 = Placable (x1 `mappend` x2) (y1 `mappend` y2)
 
-atRequestedSize :: Endo SizeRange -> Endo (Display imgarg)
-atRequestedSize f d = d{displayRequestedSize = f $ displayRequestedSize d}
+type Display imgarg = Placable (imgarg -> TermImage)
+unDisplay :: Display imgarg -> (SizeRange, Size -> imgarg -> TermImage)
+unDisplay (Placable rs mkImage) = (rs, mkImage)
 
-atImage :: ((imgarg -> Size -> TermImage) ->
-            imgarg' -> Size -> TermImage) ->
-           Display imgarg ->
-           Display imgarg'
-atImage f d = d{displayImage = f . displayImage $ d}
+atImage :: Endo TermImage -> Endo (Display imgarg)
+atImage = fmap . result
 
 clipDisplay :: Display imgarg -> Display imgarg
-clipDisplay = (atImage . result) clip
+clipDisplay = (atPlace . inFlip . result) clip
   where
     clip mkImage size = TermImage.clip (Rect (pure 0) size) (mkImage size)
 
-makeDisplay :: SizeRange -> (imgarg -> Size -> TermImage) -> Display imgarg
-makeDisplay = (result . result) clipDisplay Display
-
-instance Monoid (Display imgarg) where
-  mempty = Display mempty mempty
-  Display x1 y1 `mappend` Display x2 y2 = Display (x1 `mappend` x2) (y1 `mappend` y2)
+makeDisplay :: SizeRange -> (Size -> imgarg -> TermImage) -> Display imgarg
+makeDisplay = (result . result) clipDisplay Placable
 
 expand :: Size -> Endo (Display imgarg)
 expand extra = (atRequestedSize . SizeRange.atBothSizes . liftA2 (+)) extra .
-               (atImage . result . result . TermImage.translate . fmap (`div` 2)) extra
+               (atImage . TermImage.translate . fmap (`div` 2)) extra
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
   deriving (Show, Read, Eq, Ord)
@@ -73,11 +77,11 @@ instance Monoid (Widget k) where
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay display = Widget display mempty
 
-make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Keymap k -> Widget k
+make :: SizeRange -> (Size -> HasFocus -> TermImage) -> Keymap k -> Widget k
 make sr f = Widget (makeDisplay sr f)
 
 instance Functor Widget where
   fmap = atKeymap . fmap
 
 requestedSize :: Widget k -> SizeRange
-requestedSize = displayRequestedSize . widgetDisplay
+requestedSize = placableRequestedSize . widgetDisplay
