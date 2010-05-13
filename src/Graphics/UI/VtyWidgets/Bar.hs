@@ -9,6 +9,7 @@ import Data.Vector.Vector2(Vector2(..))
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
 getHText :: Double -> Double -> Int -> String
 getHText low high size = htext
@@ -26,14 +27,14 @@ getHText low high size = htext
 
 makeHorizontal :: Vty.Attr -> Int -> Widget.Display (Double, Double)
 makeHorizontal attr minWidth =
-  Widget.Display (Widget.horizontallyExpanding height minWidth) mkImage
+  Widget.Display (SizeRange.horizontallyExpanding height minWidth) mkImage
   where
     height = 1
     mkImage (start, end) (Vector2 size _) = TermImage.string attr $ getHText start end size
 
 makeVertical :: Vty.Attr -> Int -> Widget.Display (Double, Double)
 makeVertical attr minHeight =
-  Widget.Display (Widget.verticallyExpanding width minHeight) mkImage
+  Widget.Display (SizeRange.verticallyExpanding width minHeight) mkImage
   where
     width = 1
     mkImage (start, end) (Vector2 _ size) = TermImage.string attr . intersperse '\n' $ getHText start end size

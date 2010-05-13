@@ -14,6 +14,7 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
 type Cursor = Int
 
@@ -42,7 +43,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
-    requestedSize = Widget.fixedSize (Vector2 width height)
+    requestedSize = SizeRange.fixedSize (Vector2 width height)
     mkImage (Widget.HasFocus hf) _givenSize =
       (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
       TermImage.string (attr hf) $

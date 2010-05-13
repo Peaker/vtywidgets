@@ -18,6 +18,7 @@ import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
@@ -84,7 +85,7 @@ widget model = Widget.atDisplay outerGrid innerGrid
         [ mempty, mempty, keymapGrid . Widget.widgetKeymap $ innerGrid ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
-      Widget.atDisplay (Scroll.makeView Vty.def_attr . Widget.fixedSize $ Vector2 40 6) $
+      Widget.atDisplay (Scroll.makeView Vty.def_attr . SizeRange.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =

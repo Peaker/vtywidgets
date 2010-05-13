@@ -13,6 +13,8 @@ import qualified Data.Vector.Vector2 as Vector2
 import Data.Vector.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.Widget(Display)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.SizeRange(SizeRange, Size)
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.Bar as Bar
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
@@ -50,7 +52,7 @@ centered showRange imageRect image = (imageRect', image')
              TermImage.clip imageRect' $
              image
 
-makeCenteredImage :: Widget.Size -> Widget.Size -> TermImage -> (Rect, TermImage)
+makeCenteredImage :: Size -> Size -> TermImage -> (Rect, TermImage)
 makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (pure 0) imageSize)
 
 -- Terminology:
@@ -64,7 +66,7 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 -- : \____________/
 makeView :: Vty.Attr
             -- ^ Bars' attribute
-            -> Widget.SizeRange
+            -> SizeRange
             -- ^ Size range of the scroller itself, including bars
             -> Display a
             -- ^ The display to scroll through
@@ -75,7 +77,7 @@ makeView attr sizeRange' (Widget.Display sizeRange mkImage) =
     mkGridImage imgarg givenSize = image'
       where
         -- Just use the maximum size for the scrollable:
-        scrollSize = Widget.srMaxSize sizeRange
+        scrollSize = SizeRange.srMaxSize sizeRange
         bigEnough = liftA2 (>=) givenSize scrollSize
         barsNeeded = Vector2 True True /= bigEnough
 
@@ -102,7 +104,7 @@ makeView attr sizeRange' (Widget.Display sizeRange mkImage) =
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],
                 [ conditionalMakeBar vbarNeeded Bar.makeVertical   vrange,
-                  Widget.Display (Widget.expanding 0 0) ((const . const) scrollImage) ]]
+                  Widget.Display (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
           where
             sSize = getSSize rows
             (Rect leftTop rightBottom, scrollImage) =

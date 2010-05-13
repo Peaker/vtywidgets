@@ -19,6 +19,8 @@ import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
+import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 type Endo a = a -> a
@@ -47,7 +49,7 @@ initModel = Model (Cursor (Vector2 0 0))
 centered :: Alignment
 centered = Vector2 0.5 0.5
 
-relativeImagePos :: Widget.Size -> Alignment -> Widget.Size -> Widget.Size
+relativeImagePos :: Size -> Alignment -> Size -> Size
 relativeImagePos totalSize align imageSize = alignLeftTop
   where
     totalAlign = liftA2 (-) totalSize imageSize
@@ -86,16 +88,16 @@ disperse extra ((low, high):xs) = r : disperse remaining xs
 simpleRows :: [[Widget.Display a]] -> [[Item (Widget.Display a)]]
 simpleRows = (map . map) (Item (pure 0))
 
-makeSizes :: [[Widget.SizeRange]] -> (Widget.SizeRange, Widget.Size -> [[Widget.Size]])
+makeSizes :: [[SizeRange]] -> (SizeRange, Size -> [[Size]])
 makeSizes rows = (requestedSize, mkSizes)
   where
-    requestedSize = Widget.makeSizeRange minSize maxSize
+    requestedSize = SizeRange.make minSize maxSize
     minSize = Vector2 (sum columnMinWidths) (sum rowMinHeights)
     maxSize = Vector2 (sum columnMaxWidths) (sum rowMaxHeights)
     -- Compute all the row/column sizes:
     computeSizes aggregate f = map aggregate . (map . map) f
-    computeSizeRanges f xs = (computeSizes maximum (f . Widget.srMinSize) xs,
-                              computeSizes maximum (f . Widget.srMaxSize) xs)
+    computeSizeRanges f xs = (computeSizes maximum (f . SizeRange.srMinSize) xs,
+                              computeSizes maximum (f . SizeRange.srMaxSize) xs)
 
     (rowMinHeights, rowMaxHeights) =
       computeSizeRanges Vector2.snd rows
@@ -129,7 +131,7 @@ makeView rows = Widget.Display requestedSize mkImage
             image = Widget.displayImage display imgarg size
             pos = liftA2 (+) basePos .
                   relativeImagePos size alignment .
-                  Widget.srMaxSize .
+                  SizeRange.srMaxSize .
                   Widget.displayRequestedSize $
                   display
 

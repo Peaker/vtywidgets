@@ -1,9 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Widget
-    (SizeRange(..), Size, fixedSize, makeSizeRange,
-     expanding, horizontallyExpanding, verticallyExpanding,
-     Display(..), unDisplay, atRequestedSize, atImage, expand,
+    (Display(..), unDisplay, atRequestedSize, atImage, expand,
      makeDisplay, clipDisplay,
      Widget(..), atDisplay, atKeymap, requestedSize, make, simpleDisplay,
      HasFocus(..), adaptModel)
@@ -12,51 +10,21 @@ where
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(Monoid(..))
 import Data.Function.Utils(result)
-import Data.Vector.Vector2(Vector2(..))
+import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
+import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import Graphics.UI.VtyWidgets.Rect(Rect(..))
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Control.Applicative(pure, liftA2)
 
+type Endo a = a -> a
+
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget w = widget {widgetKeymap = flip (setVal acc) w `fmap` keymap}
   where
     widget = pwidget (w ^. acc)
     keymap = widgetKeymap widget
-
-type Size = Vector2 Int
-data SizeRange = SizeRange {
-  srMinSize :: Size,
-  srMaxSize :: Size
-  }
-  deriving (Eq, Ord, Show, Read)
-atBothSizes :: Endo Size -> Endo SizeRange
-atBothSizes f (SizeRange minSize maxSize) = SizeRange (f minSize) (f maxSize)
-fixedSize :: Size -> SizeRange
-fixedSize size = SizeRange size size
-
-instance Monoid SizeRange where
-  mempty = fixedSize (pure 0)
-  SizeRange minSize1 maxSize1 `mappend` SizeRange minSize2 maxSize2 =
-    SizeRange (max minSize1 minSize2) (max maxSize1 maxSize2)
-
-makeSizeRange :: Size -> Size -> SizeRange
-makeSizeRange minSize maxSize = SizeRange minSize (max minSize maxSize)
-
-maxBoundHack :: (Bounded a, Integral a) => a
-maxBoundHack = maxBound `div` 2
-
-horizontallyExpanding :: Int -> Int -> SizeRange
-horizontallyExpanding fixedHeight minWidth = SizeRange (Vector2 minWidth fixedHeight)
-                                                       (Vector2 maxBoundHack fixedHeight)
-verticallyExpanding :: Int -> Int -> SizeRange
-verticallyExpanding fixedWidth minHeight = SizeRange (Vector2 fixedWidth minHeight)
-                                                     (Vector2 fixedWidth maxBoundHack)
-
-expanding :: Int -> Int -> SizeRange
-expanding minWidth minHeight = SizeRange (Vector2 minWidth minHeight)
-                                         (pure maxBoundHack)
 
 data Display imgarg = Display {
   displayRequestedSize :: SizeRange,
@@ -87,7 +55,7 @@ instance Monoid (Display imgarg) where
   Display x1 y1 `mappend` Display x2 y2 = Display (x1 `mappend` x2) (y1 `mappend` y2)
 
 expand :: Size -> Endo (Display imgarg)
-expand extra = (atRequestedSize . atBothSizes . liftA2 (+)) extra .
+expand extra = (atRequestedSize . SizeRange.atBothSizes . liftA2 (+)) extra .
                (atImage . result . result . TermImage.translate . fmap (`div` 2)) extra
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
@@ -114,8 +82,6 @@ simpleDisplay display = Widget display mempty
 
 make :: SizeRange -> (HasFocus -> Size -> TermImage) -> Keymap k -> Widget k
 make sr f = Widget (makeDisplay sr f)
-
-type Endo a = a -> a
 
 instance Functor Widget where
   fmap = atKeymap . fmap
