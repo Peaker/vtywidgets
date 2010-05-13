@@ -84,7 +84,7 @@ widget model = Widget.atDisplay outerGrid innerGrid
         [ mempty, mempty, keymapGrid . Widget.widgetKeymap $ innerGrid ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
-      Widget.atDisplay (Scroll.makeView Vty.def_attr . Widget.fixedSize $ Vector2 12 7) $
+      Widget.atDisplay (Scroll.makeView Vty.def_attr . Widget.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =

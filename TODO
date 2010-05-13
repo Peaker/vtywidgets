@@ -1,3 +1,7 @@
+* Placable r = (RequestedSize, Size -> r)
+* Display arg = Placable (arg -> TermImage)
+* Widget arg k = Placable (arg -> (TermImage, Keymap k))
+
 * Various "make" widget funcs:
   * Move various params that the SizeRange doesn't depend on to be imgarg
 
