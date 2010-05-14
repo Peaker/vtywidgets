@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Display
-    (Display, unDisplay, atImage, atImageArg, expand, make, clip)
+    (Display, atImage, atImageArg, expand, make, clip)
 where
 
 import Control.Applicative(pure, liftA2)
@@ -15,8 +15,6 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage(..))
 
 type Display imgarg = Placable (imgarg -> TermImage)
-unDisplay :: Display imgarg -> (SizeRange, Size -> imgarg -> TermImage)
-unDisplay (Placable rs mkImage) = (rs, mkImage)
 
 atImage :: Endo TermImage -> Endo (Display imgarg)
 atImage = fmap . result
