@@ -14,6 +14,7 @@ import Data.List(foldl', groupBy)
 import Data.List.Split(splitOn)
 import Data.List.Utils(safeIndex)
 import Data.Function(on)
+import Data.Function.Utils(Endo)
 import Data.Monoid(Monoid(..), First(First, getFirst))
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
@@ -24,8 +25,6 @@ import Graphics.UI.VtyWidgets.Image(Image)
 import qualified Graphics.UI.VtyWidgets.Image as Image
 import Graphics.UI.VtyWidgets.TMap(TMap)
 import qualified Graphics.UI.VtyWidgets.TMap as TMap
-
-type Endo a = a -> a
 
 type TermChar = First (Vty.Attr, Char)
 data TermImage = TermImage {

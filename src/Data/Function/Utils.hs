@@ -1,6 +1,9 @@
 {-# OPTIONS -Wall -O2 #-}
 
-module Data.Function.Utils(result, argument, inFlip) where
+module Data.Function.Utils(Endo, Endo2, result, argument, inFlip) where
+
+type Endo a = a -> a
+type Endo2 a = a -> a -> a
 
 result :: (b -> c) -> (a -> b) -> a -> c
 result = (.)

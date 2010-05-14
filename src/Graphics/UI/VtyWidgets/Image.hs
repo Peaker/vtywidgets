@@ -6,6 +6,7 @@ module Graphics.UI.VtyWidgets.Image
      boundingRect, atBoundingRect)
 where
 
+import Data.Function.Utils(Endo)
 import Data.Monoid(Monoid(..))
 import Control.Applicative(liftA2)
 import Control.Compose((:.)(O, unO))
@@ -14,8 +15,6 @@ import Graphics.UI.VtyWidgets.Rect(Rect, ExpandingRect(..), inExpandingRect, Coo
 import qualified Graphics.UI.VtyWidgets.Rect as Rect
 import Graphics.UI.VtyWidgets.TMap(TMap)
 import qualified Graphics.UI.VtyWidgets.TMap as TMap
-
-type Endo a = a -> a
 
 newtype Image a = Image { runImage :: ((,) ExpandingRect :. TMap Coordinate) a }
   deriving (Functor)

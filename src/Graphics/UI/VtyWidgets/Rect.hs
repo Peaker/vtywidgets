@@ -7,12 +7,10 @@ module Graphics.UI.VtyWidgets.Rect
     )
 where
 
+import Data.Function.Utils(Endo, Endo2)
 import Data.Monoid(Monoid(..))
 import Data.Vector.Vector2(Vector2(..))
 import Control.Applicative(pure, liftA2)
-
-type Endo a = a -> a
-type Endo2 a = a -> a -> a
 
 type Coordinate = Vector2 Int
 data Rect = Rect { topLeft :: Coordinate,

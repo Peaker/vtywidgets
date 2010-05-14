@@ -9,7 +9,8 @@ import qualified Data.Vector.Vector2 as Vector2
 import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Display(Display)
+import qualified Graphics.UI.VtyWidgets.Display as Display
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
@@ -38,16 +39,16 @@ makeStrings before inside after =
 makeDisplay :: (Vector2 Int -> Int) ->
              ([(Vty.Attr, String)] -> TermImage) ->
              (Int -> SizeRange) -> Int ->
-             Widget.Display (Double, Double)
+             Display (Double, Double)
 makeDisplay f combine mkSizeRange minAxisSize =
-  Widget.makeDisplay (mkSizeRange minAxisSize) mkImage
+  Display.make (mkSizeRange minAxisSize) mkImage
   where
     mkImage size (start, end) = combine $ makeStrings before inside after
       where
         (before, inside, after) = ranges start end (f size)
 
-makeHorizontal :: Int -> Widget.Display (Double, Double)
+makeHorizontal :: Int -> Display (Double, Double)
 makeHorizontal = makeDisplay Vector2.fst TermImage.hstrings (SizeRange.horizontallyExpanding 1)
 
-makeVertical :: Int -> Widget.Display (Double, Double)
+makeVertical :: Int -> Display (Double, Double)
 makeVertical = makeDisplay Vector2.snd TermImage.vstrings (SizeRange.verticallyExpanding 1)

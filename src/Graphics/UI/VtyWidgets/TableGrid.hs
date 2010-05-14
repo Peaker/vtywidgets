@@ -13,10 +13,10 @@ import Control.Arrow((***))
 import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.Keymap(Keymap(keymapGroups))
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 
-type MakeView a = Vty.Attr -> Vty.Attr -> Widget.Display a
+type MakeView a = Vty.Attr -> Vty.Attr -> Display a
 
 makeView :: [(String, String)] -> MakeView a
 makeView table keyAttr valueAttr =

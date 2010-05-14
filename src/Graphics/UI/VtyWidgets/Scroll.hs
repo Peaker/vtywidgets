@@ -9,8 +9,10 @@ import Data.Monoid(First(..), mempty)
 import Graphics.UI.VtyWidgets.Rect(Coordinate, Rect(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Data.Vector.Vector2(Vector2(..))
-import Graphics.UI.VtyWidgets.Widget(Display)
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.Display as Display
+import Graphics.UI.VtyWidgets.Display(Display)
+import Graphics.UI.VtyWidgets.Placable(Placable(..))
+import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange, Size)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
@@ -67,8 +69,8 @@ makeView :: SizeRange
             -> Display a
             -- ^ The display to scroll through
             -> Display a
-makeView sizeRange' (Widget.Placable sizeRange mkImage) =
-  Widget.makeDisplay sizeRange' mkGridImage
+makeView sizeRange' (Placable sizeRange mkImage) =
+  Display.make sizeRange' mkGridImage
   where
     mkGridImage givenSize imgarg = image'
       where
@@ -82,25 +84,25 @@ makeView sizeRange' (Widget.Placable sizeRange mkImage) =
 
         image = mkImage scrollSize imgarg
         image' = if barsNeeded
-                 then Widget.placablePlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
+                 then Placable.placablePlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
                  else image
         getSSize rs = sSize
           where
             [[_, _],
              [_, sSize]] = ($ givenSize) . snd . Grid.makeSizes .
-                           (map . map) Widget.placableRequestedSize $ rs
+                           (map . map) Placable.placableRequestedSize $ rs
         -- Worst-case, we'll have both bars:
         -- Check which scroll bars we still need:
         wcSize = getSSize [[ mempty, hbar ],
                            [ vbar, mempty ]]
         Vector2 hbarNeeded vbarNeeded = liftA2 (<) wcSize scrollSize
 
-        makeBar m range = Widget.atImageArg (const range) $ m 3
+        makeBar m range = Display.atImageArg (const range) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],
                 [ conditionalMakeBar vbarNeeded Bar.makeVertical   vrange,
-                  Widget.makeDisplay (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
+                  Display.make (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
           where
             sSize = getSSize rows
             (Rect leftTop rightBottom, scrollImage) =

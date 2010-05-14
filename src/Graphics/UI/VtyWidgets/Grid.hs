@@ -6,6 +6,7 @@ module Graphics.UI.VtyWidgets.Grid
      initModel, centered)
 where
 
+import Data.Function.Utils(Endo)
 import Data.List(transpose)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
@@ -18,11 +19,12 @@ import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import qualified Graphics.UI.VtyWidgets.Placable as Placable
+import qualified Graphics.UI.VtyWidgets.Display as Display
+import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-
-type Endo a = a -> a
 
 type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
@@ -84,7 +86,7 @@ disperse extra ((low, high):xs) = r : disperse remaining xs
     r = max low . min high $ low + extra
     remaining = low + extra - r
 
-simpleRows :: [[Widget.Display a]] -> [[Item (Widget.Display a)]]
+simpleRows :: [[Display a]] -> [[Item (Display a)]]
 simpleRows = (map . map) (Item (pure 0))
 
 makeSizes :: [[SizeRange]] -> (SizeRange, Size -> [[Size]])
@@ -111,10 +113,10 @@ makeSizes rows = (requestedSize, mkSizes)
         columnWidths = disperse extraWidth columnWidthRanges
         rowHeights = disperse extraHeight rowHeightRanges
 
-makeView :: [[Item (Widget.Display a)]] -> Widget.Display a
-makeView rows = Widget.makeDisplay requestedSize mkImage
+makeView :: [[Item (Display a)]] -> Display a
+makeView rows = Display.make requestedSize mkImage
   where
-    (requestedSize, mkSizes) = makeSizes . (map . map) (Widget.placableRequestedSize . itemChild) $ rows
+    (requestedSize, mkSizes) = makeSizes . (map . map) (Placable.placableRequestedSize . itemChild) $ rows
     mkImage givenSize imgarg = gridImage
       where
         sizes = mkSizes givenSize
@@ -127,11 +129,11 @@ makeView rows = Widget.makeDisplay requestedSize mkImage
         translateImage (basePos, size) (Item alignment display) =
           TermImage.translate pos image
           where
-            image = Widget.placablePlace display size imgarg
+            image = Placable.placablePlace display size imgarg
             pos = liftA2 (+) basePos .
                   relativeImagePos size alignment .
                   SizeRange.srMaxSize .
-                  Widget.placableRequestedSize $
+                  Placable.placableRequestedSize $
                   display
 
         -- Combine all translated images:
@@ -146,8 +148,8 @@ itemWantFocus = fst . itemChild
 -- Replace keymap and image cursor of a widget with mempty/Nothing
 neutralize :: Widget a -> Widget a
 neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atDisplay . Widget.atImage . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . Widget.atImageArg) (const . Widget.HasFocus $ False)
+             (Widget.atDisplay . Display.atImage . TermImage.setCursor) Nothing .
+             (Widget.atDisplay . Display.atImageArg) (const . Widget.HasFocus $ False)
 
 make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) =

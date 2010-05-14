@@ -18,13 +18,13 @@ data Vector2 a = Vector2 !a !a
   -- tree though.
   deriving (Eq, Ord, Show, Read)
 
-type Endo a = a -> a
-
 fst :: Vector2 a -> a
 fst (Vector2 x _) = x
 
 snd :: Vector2 a -> a
 snd (Vector2 _ y) = y
+
+type Endo a = a -> a
 
 first :: Endo a -> Endo (Vector2 a)
 first f (Vector2 x y) = Vector2 (f x) y

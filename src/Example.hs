@@ -18,6 +18,8 @@ import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.Display as Display
+import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
@@ -71,7 +73,8 @@ main = do
   where
     render vty = do
       (curModel, size) <- get
-      let image = (Widget.placablePlace . Widget.widgetDisplay . widget $ curModel) size (Widget.HasFocus True)
+      let image = (Placable.placablePlace . Widget.widgetDisplay . widget $ curModel) size
+                  (Widget.HasFocus True)
       liftIO . Vty.update vty . TermImage.render $ image
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
@@ -92,7 +95,7 @@ widget model = Widget.atDisplay outerGrid innerGrid
       makeGrid (pure 0) modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
-      [ [ (True, Widget.atDisplay (Widget.expand (Vector2 1 0)) .
+      [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
                  adaptModel (nth i . modelTextEdits)
                  (TextEdit.make 5 attr editingAttr) $
                  model)

@@ -9,16 +9,17 @@ import Data.Monoid(mempty)
 import Data.Vector.Vector2(Vector2(..))
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Display(Display)
+import qualified Graphics.UI.VtyWidgets.Display as Display
 
 maxBoundHack :: (Bounded a, Integral a) => a
 maxBoundHack = maxBound `div` 2
 
-make :: SizeRange -> Widget.Display a
-make sizeRange = Widget.makeDisplay sizeRange mempty
+make :: SizeRange -> Display a
+make sizeRange = Display.make sizeRange mempty
 
-makeHorizontal :: Widget.Display a
+makeHorizontal :: Display a
 makeHorizontal = make $ SizeRange.make (pure 0) (Vector2 maxBoundHack 0)
 
-makeVertical :: Widget.Display a
+makeVertical :: Display a
 makeVertical = make $ SizeRange.make (pure 0) (Vector2 0 maxBoundHack)
