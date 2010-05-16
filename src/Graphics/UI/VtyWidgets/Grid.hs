@@ -126,7 +126,7 @@ translateImage (Item alignment ((basePos, size), (imgSize, image))) =
 mapu :: (a -> b -> c) -> [(a, b)] -> [c]
 mapu = map . uncurry
 
-combineImages :: [[Item ((Placement, (Size, TermImage)))]] -> TermImage
+combineImages :: [[Item (Placement, (Size, TermImage))]] -> TermImage
 combineImages = mconcat . map translateImage . concat
 
 --- Displays:

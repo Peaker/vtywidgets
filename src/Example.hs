@@ -93,7 +93,7 @@ widget size model = (mkImage (Widget.HasFocus True), km)
       [ [ mempty,TextView.make attr "Title\n-----" ],
         [ innerGridDisp, Spacer.makeHorizontal ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty, keymapGrid $ km ],
+        [ mempty, mempty, keymapGrid km ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
       Widget.atDisplay (Scroll.makeView . SizeRange.fixedSize $ Vector2 40 6) $
@@ -117,7 +117,7 @@ widget size model = (mkImage (Widget.HasFocus True), km)
                 `Vty.with_back_color` Vty.blue
                 `Vty.with_style` Vty.bold
     makeGridView alignment =
-      (Grid.makeView . (map . map) (Grid.Item alignment))
+      Grid.makeView . (map . map) (Grid.Item alignment)
     makeGrid alignment acc rows =
       (Grid.makeAcc acc . (map . map) (Grid.Item alignment))
       rows model
