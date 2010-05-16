@@ -12,7 +12,7 @@ import Control.Arrow(first)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Widget(Widget(..))
+import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
@@ -39,13 +39,13 @@ tillEndOfWord xs = spaces ++ nonSpaces
 -- text...
 make :: Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
 make maxLines unfocusedAttr focusedAttr (Model cursor text) =
-  Widget.make requestedSize (const mkImage) keymap
+  Widget.make requestedSize $ const (mkImage, keymap)
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
     requestedSize = SizeRange.fixedSize (Vector2 width height)
     mkImage (Widget.HasFocus hf) =
-      (TermImage.setCursor . Just) (Vector2 cursorX cursorY) .
+      (TermImage.inCursor . const . Just) (Vector2 cursorX cursorY) .
       TermImage.string (attr hf) $
       text
 

@@ -9,14 +9,14 @@ import Data.Function.Utils(Endo, result)
 import Graphics.UI.VtyWidgets.SizeRange(Size, SizeRange)
 
 data Placable r = Placable {
-  placableRequestedSize :: SizeRange,
-  placablePlace :: Size -> r
+  pRequestedSize :: SizeRange,
+  pPlace :: Size -> r
   }
 atRequestedSize :: Endo SizeRange -> Endo (Placable r)
-atRequestedSize f d = d{placableRequestedSize = f $ placableRequestedSize d}
+atRequestedSize f d = d{pRequestedSize = f $ pRequestedSize d}
 atPlace :: ((Size -> r) -> Size -> r') ->
            Placable r -> Placable r'
-atPlace f d = d{placablePlace = f $ placablePlace d}
+atPlace f d = d{pPlace = f $ pPlace d}
 instance Functor Placable where
   fmap = atPlace . result
 instance Monoid r => Monoid (Placable r) where

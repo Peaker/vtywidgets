@@ -1,4 +1,5 @@
 {-# OPTIONS -O2 -Wall #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes, simpleRows,
@@ -6,25 +7,30 @@ module Graphics.UI.VtyWidgets.Grid
      initModel, centered)
 where
 
-import Data.Function.Utils(Endo)
+import Data.Function.Utils(Endo, result, (~>))
 import Data.List(transpose)
 import Data.Accessor(Accessor, (^.), setVal)
 import Data.Monoid(mempty, mappend, mconcat)
+import Data.Maybe(fromMaybe)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Control.Applicative(liftA2, pure)
-import Control.Arrow(second)
+import Control.Arrow((***), second)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
+import Graphics.UI.VtyWidgets.Placable(Placable(..))
 import qualified Graphics.UI.VtyWidgets.Display as Display
 import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
+
+-- Item:
 
 type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
@@ -36,9 +42,16 @@ data Item w = Item {
   itemAlignment :: Alignment,
   itemChild :: w
   }
-
 atItemChild :: (k -> k') -> Item k -> Item k'
 atItemChild f item = item{itemChild = f . itemChild $ item}
+
+instance Functor Item where
+  fmap = atItemChild
+
+centered :: Alignment
+centered = Vector2 0.5 0.5
+
+-- Model:
 
 data Model = Model {
   gridModelCursor :: Cursor
@@ -47,36 +60,7 @@ data Model = Model {
 initModel :: Model
 initModel = Model (Cursor (Vector2 0 0))
 
-centered :: Alignment
-centered = Vector2 0.5 0.5
-
-relativeImagePos :: Size -> Alignment -> Size -> Size
-relativeImagePos totalSize align imageSize = alignLeftTop
-  where
-    totalAlign = liftA2 (-) totalSize imageSize
-    alignLeftTop = fmap truncate . liftA2 (*) align . fmap fromIntegral $ totalAlign
-
-enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
-enumerate = zip [0..]
-
-keymap :: [[Bool]] -> Cursor -> Keymap Cursor
-keymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
-  mconcat . concat $ [
-    mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
-    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)       curRow),
-    mover "up"    ([], Vty.KUp)    Vector2.second (-) (reverse . take cursorY $ curColumn),
-    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
-    ]
-  where
-    mover dirName key set f xs =
-       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . set . f . (+1) . countUnwanters $ xs) cursor)
-       | True `elem` xs ]
-    curColumn = transpose wantFocusRows !! cursorX
-    curRow = wantFocusRows !! cursorY
-    countUnwanters = length . takeWhile not
-
-setter :: w -> Accessor w p -> p -> w
-setter w acc p = setVal acc p w
+--- Size computations:
 
 -- Give each min-max range some of the extra budget...
 disperse :: Int -> [(Int, Int)] -> [Int]
@@ -86,9 +70,6 @@ disperse extra ((low, high):xs) = r : disperse remaining xs
     r = max low . min high $ low + extra
     remaining = low + extra - r
 
-simpleRows :: [[Display a]] -> [[Item (Display a)]]
-simpleRows = (map . map) (Item (pure 0))
-
 makeSizes :: [[SizeRange]] -> (SizeRange, Size -> [[Size]])
 makeSizes rows = (requestedSize, mkSizes)
   where
@@ -96,9 +77,10 @@ makeSizes rows = (requestedSize, mkSizes)
     minSize = Vector2 (sum columnMinWidths) (sum rowMinHeights)
     maxSize = Vector2 (sum columnMaxWidths) (sum rowMaxHeights)
     -- Compute all the row/column sizes:
-    computeSizes aggregate f = map aggregate . (map . map) f
-    computeSizeRanges f xs = (computeSizes maximum (f . SizeRange.srMinSize) xs,
-                              computeSizes maximum (f . SizeRange.srMaxSize) xs)
+    computeSizes f = map maximum . (map . map) f
+    computeSizeRanges f xs =
+      (computeSizes (f . SizeRange.srMinSize) xs,
+       computeSizes (f . SizeRange.srMaxSize) xs)
 
     (rowMinHeights, rowMaxHeights) =
       computeSizeRanges Vector2.snd rows
@@ -113,66 +95,158 @@ makeSizes rows = (requestedSize, mkSizes)
         columnWidths = disperse extraWidth columnWidthRanges
         rowHeights = disperse extraHeight rowHeightRanges
 
-makeView :: [[Item (Display a)]] -> Display a
-makeView rows = Display.make requestedSize mkImage
+--- Placables:
+
+type Placement = (Coordinate, Size)
+
+makePlacements :: [[SizeRange]] -> (SizeRange, Size -> [[Placement]])
+makePlacements = (result . second . result) placements makeSizes
   where
-    (requestedSize, mkSizes) = makeSizes . (map . map) (Placable.placableRequestedSize . itemChild) $ rows
-    mkImage givenSize imgarg = gridImage
+    placements sizes = zipWith zip positions sizes
       where
-        sizes = mkSizes givenSize
         positions = zipWith Vector2.zip
                     (map (scanl (+) 0 . map Vector2.fst) sizes)
                     (transpose . map (scanl (+) 0 . map Vector2.snd) . transpose $ sizes)
-        posSizes = zipWith zip positions sizes
-        -- Translate the widget images to their right locations:
-        translatedImages = (zipWith . zipWith) translateImage posSizes rows
-        translateImage (basePos, size) (Item alignment display) =
-          TermImage.translate pos image
-          where
-            image = Placable.placablePlace display size imgarg
-            pos = liftA2 (+) basePos .
-                  relativeImagePos size alignment .
-                  SizeRange.srMaxSize .
-                  Placable.placableRequestedSize $
-                  display
+    
+--- Images:
 
-        -- Combine all translated images:
-        gridImage = mconcat . concat $ translatedImages
-
-itemWidget :: Item (Bool, Widget k) -> Widget k
-itemWidget = snd . itemChild
-
-itemWantFocus :: Item (Bool, Widget k) -> Bool
-itemWantFocus = fst . itemChild
-
--- Replace keymap and image cursor of a widget with mempty/Nothing
-neutralize :: Widget a -> Widget a
-neutralize = (Widget.atKeymap . const) mempty .
-             (Widget.atDisplay . Display.atImage . TermImage.setCursor) Nothing .
-             (Widget.atDisplay . Display.atImageArg) (const . Widget.HasFocus $ False)
-
-make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
-make conv rows (Model gcursor) =
-  Widget (makeView ((map . map . atItemChild) (Widget.widgetDisplay . snd) childWidgetRows)) gridKeymap
+relativeImagePos :: Size -> Alignment -> Size -> Size
+relativeImagePos totalSize align imageSize = alignLeftTop
   where
-    -- Neutralize non-current children
-    childWidgetRows =
-      map childRowWidgets (enumerate rows)
-    childRowWidgets (yIndex, row) =
-      map (childWidget yIndex) (enumerate row)
-    childWidget yIndex (xIndex, item) =
-      (atItemChild . second)
-      (if Cursor (Vector2 xIndex yIndex) == gcursor
-       then id
-       else neutralize)
-      item
+    totalAlign = liftA2 (-) totalSize imageSize
+    alignLeftTop = fmap truncate . liftA2 (*) align . fmap fromIntegral $ totalAlign
 
-    childrenKeymap = mconcat . map (Widget.widgetKeymap . itemWidget) . concat $ childWidgetRows
-    myKeymap = fmap (conv . Model) .
-               keymap ((map . map) itemWantFocus childWidgetRows) $
-               gcursor
-    gridKeymap = childrenKeymap `mappend` myKeymap
+translateImage :: Item (Placement, (Size, TermImage)) -> TermImage
+translateImage (Item alignment ((basePos, size), (imgSize, image))) =
+  TermImage.translate pos image
+      where
+        pos = liftA2 (+) basePos $
+              relativeImagePos size alignment imgSize
 
+mapu :: (a -> b -> c) -> [(a, b)] -> [c]
+mapu = map . uncurry
+
+combineImages :: [[Item ((Placement, (Size, TermImage)))]] -> TermImage
+combineImages = mconcat . map translateImage . concat
+
+--- Displays:
+
+feedPlacable :: Placement -> Placable a -> (Placement, (Size, a))
+feedPlacable pl@(_, size) placable = (pl, unPlacable placable)
+  where
+    unPlacable (Placable rs place) = (imgSize, place size)
+      where
+        -- Give the cell the minimum between available space and
+        -- his maximum requested space (in each axis):
+        imgSize = liftA2 min size . SizeRange.srMaxSize $ rs
+
+makeView :: [[Item (Display a)]] -> Display a
+makeView rows = Display.make requestedSize mkImage
+  where
+    (requestedSize, mkPlacements) =
+      makePlacements .
+      (map . map) (Placable.pRequestedSize . itemChild) $
+      rows
+    mkImage givenSize imgarg =
+      combineImages .
+      (zipWith . zipWith) (fmap . feedPlacable) (mkPlacements givenSize) .
+      -- Penetrate [[Item (Placable (..))]] and feed the arg
+      (map . map . fmap . fmap) ($ imgarg) $
+      rows
+
+--- Widgets:
+
+enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
+enumerate = zip [0..]
+
+enumerate2 :: (Enum a, Num a) => [[b]] -> [[((a, a), b)]]
+enumerate2 xss = mapu row (enumerate xss)
+  where
+    row rowIndex items = mapu (add rowIndex) (enumerate items)
+    add rowIndex columnIndex item = ((columnIndex, rowIndex), item)
+
+mkNavKeymap :: [[Bool]] -> Cursor -> Keymap Cursor
+mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
+  mconcat . concat $ [
+    mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
+    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)       curRow),
+    mover "up"    ([], Vty.KUp)    Vector2.second (-) (reverse . take cursorY $ curColumn),
+    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
+    ]
+  where
+    mover dirName key set f xs =
+       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . set . f . (+1) . countUnwanters $ xs) cursor)
+       | True `elem` xs ]
+    curColumn = transpose wantFocusRows !! cursorX
+    curRow = wantFocusRows !! cursorY
+    countUnwanters = length . takeWhile not
+
+make :: forall k. (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
+make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
+  where
+    wantFocusRows = (map . map) (fst . itemChild) rows
+    navKeymap = fmap (conv . Model) .
+                mkNavKeymap wantFocusRows $
+                gcursor
+
+    widgetRows = (map . map . fmap) (Widget.unWidget . snd) rows
+    
+    -- TODO: Reduce duplication with makeView
+    (requestedSize, mkPlacements) =
+      makePlacements . (map . map) (Placable.pRequestedSize . itemChild) $ widgetRows
+    mkImageKeymap givenSize = (mkImage, keymap)
+      where
+        -- Get rid of the Placable, and put the Placable and actual
+        -- Size with each item:
+        placementWidgetRows :: [[Item (Placement, (Size, (Widget.HasFocus -> TermImage, Keymap k)))]]
+        placementWidgetRows = (zipWith . zipWith) (fmap . feedPlacable)
+                              (mkPlacements givenSize) widgetRows
+        
+        -- Disable the cursor and HasFocus of inactive children, and
+        -- replace their keymap with a Nothing. Only the active child gets
+        -- a Just around his keymap:
+
+        childWidgetRows :: [[Item (Placement, (Size, (Widget.HasFocus -> TermImage, Maybe (Keymap k))))]]
+        childWidgetRows = (map . mapu) childWidget . enumerate2 $ placementWidgetRows
+        childWidget :: (Int, Int) ->
+                       Item (Placement, (Size, (Widget.HasFocus -> TermImage, Keymap k))) ->
+                       Item (Placement, (Size, (Widget.HasFocus -> TermImage, Maybe (Keymap k))))
+        childWidget index =
+          (fmap . second . second)
+          (if gcursor == Cursor (uncurry Vector2 index)
+           then curChild
+           else unCurChild)
+
+        curChild :: (Widget.HasFocus -> TermImage, Keymap k) ->
+                    (Widget.HasFocus -> TermImage, Maybe (Keymap k))
+        curChild = second Just -- Keymap
+
+        unCurChild :: (Widget.HasFocus -> TermImage, Keymap k) ->
+                      (Widget.HasFocus -> TermImage, Maybe (Keymap k))
+        unCurChild = ((Widget.inHasFocus . const) False ~>
+                      (TermImage.inCursor . const) Nothing) ***
+                     const Nothing
+
+        mkImage hf = combineImages .
+                     -- Get the TermImage:
+                     (map . map . fmap . second . second) (($hf) . fst) $
+                     childWidgetRows
+    
+        childKeymap = fromMaybe mempty .
+                      mconcat .
+                      -- Get the Maybe-wrapped keymaps
+                      map (snd . snd . snd . itemChild) .
+                      concat $
+                      childWidgetRows
+        keymap = childKeymap `mappend` navKeymap
+
+--- Convenience
+
+simpleRows :: [[Display a]] -> [[Item (Display a)]]
+simpleRows = (map . map) (Item (pure 0))
+
+setter :: w -> Accessor w p -> p -> w
+setter w acc p = setVal acc p w
 
 makeAcc :: Accessor k Model -> [[Item (Bool, Widget k)]] -> k -> Widget k
 makeAcc acc rows k = make (setter k acc) rows (k ^. acc)

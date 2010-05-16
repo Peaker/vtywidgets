@@ -2,11 +2,13 @@
 
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage(..),
-     atImage, atCursor, setCursor,
+     atImage, inCursor, atCursor,
      render,
      string, stringSize, hstrings, vstrings,
      clip, translate,
-     boundingRect, atBoundingRect)
+     boundingRect, atBoundingRect,
+     -- re-export:
+     Coordinate)
 where
 
 import Data.Maybe(fromMaybe)
@@ -36,8 +38,8 @@ atImage f ti = ti{tiImage = f (tiImage ti)}
 atCursor :: Endo (First Coordinate) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
 
-setCursor :: Maybe Coordinate -> Endo TermImage
-setCursor = atCursor . const . First
+inCursor :: Endo (Maybe Coordinate) -> Endo TermImage
+inCursor = atCursor . inFirst
 
 instance Monoid TermImage where
   mempty = TermImage mempty mempty

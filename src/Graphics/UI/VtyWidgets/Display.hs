@@ -22,7 +22,7 @@ atImageArg :: (imgarg' -> imgarg) ->
               Display imgarg -> Display imgarg'
 atImageArg = fmap . argument
 
-clip :: Display imgarg -> Display imgarg
+clip :: Endo (Display imgarg)
 clip = (Placable.atPlace . inFlip . result) clip'
   where
     clip' mkImage size = TermImage.clip (Rect (pure 0) size) (mkImage size)

@@ -16,11 +16,13 @@ import Control.Monad.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Widget(Widget)
+import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Display as Display
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
+import Graphics.UI.VtyWidgets.SizeRange(Size)
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
@@ -28,6 +30,7 @@ import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
 
 nthSet :: Int -> a -> [a] -> [a]
@@ -65,30 +68,32 @@ main = do
         modify . second . const $ size'
         liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
       Vty.EvKey key mods ->
-        modify . first $
-          \curModel ->
-          fromMaybe curModel . fmap (snd . snd) .
-          Keymap.lookup (mods, key) . Widget.widgetKeymap . widget $ curModel
+        modify $
+          \(curModel, size) ->
+          (fromMaybe curModel . fmap (snd . snd) .
+           Keymap.lookup (mods, key) . snd $
+           widget size curModel,
+           size)
       _ -> return ()
   where
     render vty = do
       (curModel, size) <- get
-      let image = (Placable.placablePlace . Widget.widgetDisplay . widget $ curModel) size
-                  (Widget.HasFocus True)
-      liftIO . Vty.update vty . TermImage.render $ image
+      liftIO . Vty.update vty . TermImage.render . fst $ widget size curModel
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget w = Widget.atKeymap (flip (setVal acc) w `fmap`) (pwidget (w ^. acc))
 
-widget :: Model -> Widget Model
-widget model = Widget.atDisplay outerGrid innerGrid
+widget :: Size -> Model -> (TermImage, Keymap Model)
+widget size model = (mkImage (Widget.HasFocus True), km)
   where
+    w = Widget.atDisplay outerGrid innerGrid
+    (mkImage, km) = (Placable.pPlace . Widget.unWidget) w size
     outerGrid innerGridDisp =
       makeGridView (pure 0)
       [ [ mempty,TextView.make attr "Title\n-----" ],
         [ innerGridDisp, Spacer.makeHorizontal ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty, keymapGrid . Widget.widgetKeymap $ innerGrid ],
+        [ mempty, mempty, keymapGrid $ km ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
       Widget.atDisplay (Scroll.makeView . SizeRange.fixedSize $ Vector2 40 6) $

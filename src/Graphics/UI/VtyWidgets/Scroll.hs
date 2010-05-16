@@ -84,13 +84,13 @@ makeView sizeRange' (Placable sizeRange mkImage) =
 
         image = mkImage scrollSize imgarg
         image' = if barsNeeded
-                 then Placable.placablePlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
+                 then Placable.pPlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
                  else image
         getSSize rs = sSize
           where
             [[_, _],
              [_, sSize]] = ($ givenSize) . snd . Grid.makeSizes .
-                           (map . map) Placable.placableRequestedSize $ rs
+                           (map . map) Placable.pRequestedSize $ rs
         -- Worst-case, we'll have both bars:
         -- Check which scroll bars we still need:
         wcSize = getSSize [[ mempty, hbar ],
