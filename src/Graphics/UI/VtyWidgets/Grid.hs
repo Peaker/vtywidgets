@@ -1,5 +1,4 @@
 {-# OPTIONS -O2 -Wall #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes, simpleRows,
@@ -181,7 +180,7 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     curRow = wantFocusRows !! cursorY
     countUnwanters = length . takeWhile not
 
-make :: forall k. (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
+make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
   where
     wantFocusRows = (map . map) (fst . itemChild) rows
@@ -198,7 +197,6 @@ make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
       where
         -- Get rid of the Placable, and put the Placable and actual
         -- Size with each item:
-        placementWidgetRows :: [[Item (Placement, (Size, (Widget.HasFocus -> TermImage, Keymap k)))]]
         placementWidgetRows = (zipWith . zipWith) (fmap . feedPlacable)
                               (mkPlacements givenSize) widgetRows
         
@@ -206,23 +204,15 @@ make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
         -- replace their keymap with a Nothing. Only the active child gets
         -- a Just around his keymap:
 
-        childWidgetRows :: [[Item (Placement, (Size, (Widget.HasFocus -> TermImage, Maybe (Keymap k))))]]
         childWidgetRows = (map . mapu) childWidget . enumerate2 $ placementWidgetRows
-        childWidget :: (Int, Int) ->
-                       Item (Placement, (Size, (Widget.HasFocus -> TermImage, Keymap k))) ->
-                       Item (Placement, (Size, (Widget.HasFocus -> TermImage, Maybe (Keymap k))))
         childWidget index =
           (fmap . second . second)
           (if gcursor == Cursor (uncurry Vector2 index)
            then curChild
            else unCurChild)
 
-        curChild :: (Widget.HasFocus -> TermImage, Keymap k) ->
-                    (Widget.HasFocus -> TermImage, Maybe (Keymap k))
         curChild = second Just -- Keymap
 
-        unCurChild :: (Widget.HasFocus -> TermImage, Keymap k) ->
-                      (Widget.HasFocus -> TermImage, Maybe (Keymap k))
         unCurChild = ((Widget.inHasFocus . const) False ~>
                       (TermImage.inCursor . const) Nothing) ***
                      const Nothing

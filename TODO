@@ -1,39 +1,25 @@
 * Various "make" widget funcs:
+
   * Move various params that the SizeRange doesn't depend on to be imgarg
 
+* Keymap -> Eventmap
+
 * Scroll:
-  * How to clean up the code?
+
+  * If I make a "follow-view", I need it to be in State, which makes
+    it less composable...
+
+* Cleanups:
+
+  * Scroll, Grid are pretty ugly
 
 * FocusDelegator:
 
-* Widget can also have an "entry" function that returns the same "k"
-  that lets it move to where it was entered from?
-  * Maybe replace Keymap with Eventmap and replace ModKey with
-    EventKey, and have other possible events?
-  * Then "direction-entry/direction-exit" could be another event the
-    widget is allowed to handle
-  * Then mouse events could be sent too...
+* Add DirectionEntry event type, and move Grid to that position
 
-* Currently, I'd need to heuristic diff on TextEdit changes to know
-  what it changed... Maybe create a composable Diff that can describe
-  changes accurately?
+* TextEdit:
 
-* makeWidget should Clip the subwidget images:
-
-  Image.clip :: Monoid a => IntersectRect -> Endo (Image a)
-
-  mempty for any out-of-intersection position, to not break the
-  guarantee that nothing is outside the clip rect of the image
-
-* Grid
-
-  * Instead of Grid neutralizing non-current children -- they should
-    do so themselves, based on HasFocus
-
-    * This way, all widgets can implement "global" bindings that do
-      whatever they want
-
-    * No ugly clearing of the keymap and image cursor of grid children
+  * Keep track of diffs
 
 * Trace entries: How to do IO to read the entries?
   * Can have the keymap export the IO action to generate the model
