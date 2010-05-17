@@ -12,7 +12,7 @@ import Control.Category((.))
 import Control.Monad(forever)
 import Control.Arrow(first, second)
 import Control.Applicative(pure)
-import Control.Monad.State(evalStateT, modify, get)
+import Control.Monad.Trans.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.UI.VtyWidgets.VtyWrap(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
