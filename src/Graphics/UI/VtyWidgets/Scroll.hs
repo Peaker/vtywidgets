@@ -1,6 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 module Graphics.UI.VtyWidgets.Scroll
-    (makeView)
+    (centeredView)
 where
 
 import Control.Applicative(pure, liftA2)
@@ -64,12 +64,12 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 -- a |   display  |
 -- r |            |
 -- : \____________/
-makeView :: SizeRange
+centeredView :: SizeRange
             -- ^ Size range of the scroller itself, including bars
             -> Display a
             -- ^ The display to scroll through
             -> Display a
-makeView sizeRange' (Placable sizeRange mkImage) =
+centeredView sizeRange' (Placable sizeRange mkImage) =
   Display.make sizeRange' mkGridImage
   where
     mkGridImage givenSize imgarg = image'

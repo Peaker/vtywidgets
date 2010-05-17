@@ -96,7 +96,7 @@ widget size model = (mkImage (Widget.HasFocus True), km)
         [ mempty, mempty, keymapGrid km ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
-      Widget.atDisplay (Scroll.makeView . SizeRange.fixedSize $ Vector2 40 6) $
+      Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelInnerGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
