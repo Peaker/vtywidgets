@@ -33,13 +33,13 @@ second :: Endo a -> Endo (Vector2 a)
 second f (Vector2 x y) = Vector2 x (f y)
 
 infixr 3 ***
-(***) :: Endo a -> Endo a -> Endo (Vector2 a)
+(***) :: (a -> b) -> (a -> b) -> Vector2 a -> Vector2 b
 (f *** g) (Vector2 x y) = Vector2 (f x) (g y)
 
 vector2 :: (a -> a -> b) -> Vector2 a -> b
 vector2 f (Vector2 x y) = f x y
 
-both :: Endo a -> Endo (Vector2 a)
+both :: (a -> b) -> Vector2 a -> Vector2 b
 both = join (***)
 
 zip :: [a] -> [a] -> [Vector2 a]
@@ -52,7 +52,7 @@ uncurry :: (a -> a -> b) -> Vector2 a -> b
 uncurry f (Vector2 x y) = f x y
 
 instance Functor Vector2 where
-  fmap f (Vector2 x y) = Vector2 (f x) (f y)
+  fmap = both
 instance Applicative Vector2 where
   pure x = Vector2 x x
   Vector2 f g <*> Vector2 x y = Vector2 (f x) (g y)
