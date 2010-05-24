@@ -43,7 +43,7 @@ nth n = accessor (!! n) (nthSet n)
 
 data Model = Model {
   modelGrid_ :: Grid.DelegatedModel,
-  modelTextEdits_ :: [TextEdit.Model],
+  modelTextEdits_ :: [TextEdit.DelegatedModel],
   modelLastEvent_ :: String
   }
 $(AT.deriveAccessors ''Model)
@@ -51,7 +51,7 @@ $(AT.deriveAccessors ''Model)
 initModel :: Model
 initModel = Model {
   modelGrid_ = Grid.initDelegatedModel False,
-  modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  modelTextEdits_ = map (TextEdit.initDelegatedModel False) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
   }
 
@@ -102,7 +102,7 @@ widget size model = (mkImage (Widget.HasFocus True), km)
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
                  adaptModel (nth i . modelTextEdits)
-                 (TextEdit.make 5 attr editingAttr) $
+                 (TextEdit.makeDelegated 5 attr editingAttr) $
                  model)
         | y <- [0, 1]
         , let i = y*2 + x ]

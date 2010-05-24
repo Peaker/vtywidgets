@@ -1,7 +1,8 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TextEdit
-    (make, Model(..), initModel)
+    (make, Model(..), initModel,
+     DelegatedModel, initDelegatedModel, makeDelegated)
 where
 
 import Data.Char(chr, isSpace)
@@ -15,6 +16,7 @@ import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
+import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 
 type Cursor = Int
 
@@ -175,3 +177,14 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
       ++
       [ (k, insert "\n")
       | k <- simpleK Vty.KEnter ]
+
+type DelegatedModel = (FocusDelegator.Model, Model)
+
+initDelegatedModel :: Bool -> String -> DelegatedModel
+initDelegatedModel dm str = (FocusDelegator.initModel dm, initModel str)
+
+makeDelegated :: Int -> Vty.Attr -> Vty.Attr -> DelegatedModel -> Widget DelegatedModel
+makeDelegated maxLines unfocusedAttr focusedAttr (fdm, m) = focusDelegator
+  where
+    focusDelegator = FocusDelegator.make (\fdm' -> (fdm', m)) textEdit fdm
+    textEdit = (\m' -> (fdm, m')) `fmap` make maxLines unfocusedAttr focusedAttr m
