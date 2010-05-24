@@ -42,7 +42,7 @@ nth :: Int -> Accessor [a] a
 nth n = accessor (!! n) (nthSet n)
 
 data Model = Model {
-  modelInnerGrid_ :: Grid.Model,
+  modelGrid_ :: Grid.DelegatedModel,
   modelTextEdits_ :: [TextEdit.Model],
   modelLastEvent_ :: String
   }
@@ -50,7 +50,7 @@ $(AT.deriveAccessors ''Model)
 
 initModel :: Model
 initModel = Model {
-  modelInnerGrid_ = Grid.initModel,
+  modelGrid_ = Grid.initDelegatedModel False,
   modelTextEdits_ = map TextEdit.initModel ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
   }
@@ -97,7 +97,7 @@ widget size model = (mkImage (Widget.HasFocus True), km)
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
-      makeGrid (pure 0) modelInnerGrid textEdits
+      makeGrid (pure 0) modelGrid textEdits
     keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
@@ -119,5 +119,5 @@ widget size model = (mkImage (Widget.HasFocus True), km)
     makeGridView alignment =
       Grid.makeView . (map . map) (Grid.Item alignment)
     makeGrid alignment acc rows =
-      (Grid.makeAcc acc . (map . map) (Grid.Item alignment))
+      (Grid.makeAccDelegated acc . (map . map) (Grid.Item alignment))
       rows model

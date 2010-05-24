@@ -2,6 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes, simpleRows,
+     DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
      Cursor(..), Model(..), Item(..),
      initModel, centered)
 where
@@ -23,6 +24,7 @@ import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import Graphics.UI.VtyWidgets.Placable(Placable(..))
 import qualified Graphics.UI.VtyWidgets.Display as Display
+import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
@@ -240,3 +242,17 @@ setter w acc p = setVal acc p w
 
 makeAcc :: Accessor k Model -> [[Item (Bool, Widget k)]] -> k -> Widget k
 makeAcc acc rows k = make (setter k acc) rows (k ^. acc)
+
+type DelegatedModel = (FocusDelegator.Model, Model)
+
+initDelegatedModel :: Bool -> DelegatedModel
+initDelegatedModel = flip (,) initModel . FocusDelegator.initModel
+
+makeDelegated :: (DelegatedModel -> k) -> [[Item (Bool, Widget k)]] -> DelegatedModel -> Widget k
+makeDelegated conv rows (fdm, m) = focusDelegator
+  where
+    focusDelegator = FocusDelegator.make (\fdm' -> conv (fdm', m)) grid fdm
+    grid = make (\m' -> conv (fdm, m')) rows m
+
+makeAccDelegated :: Accessor k DelegatedModel -> [[Item (Bool, Widget k)]] -> k -> Widget k
+makeAccDelegated acc rows k = makeDelegated (setter k acc) rows (k ^. acc)

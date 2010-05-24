@@ -3,14 +3,14 @@
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget,
-     atDisplay, atKeymap, make, simpleDisplay,
+     atDisplay, atKeymap, atMkImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap)
 where
 
-import Control.Arrow(second)
+import Control.Arrow(first, second)
 import Control.Applicative(liftA2)
 import Data.Monoid(Monoid(..))
-import Data.Function.Utils(Endo, result)
+import Data.Function.Utils(Endo)
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import Graphics.UI.VtyWidgets.Placable(Placable(..))
@@ -34,7 +34,7 @@ fromDisplay :: (Size -> Keymap k) -> Display HasFocus -> Widget k
 fromDisplay mkKeymap = Widget . Placable.atPlace (flip (liftA2 (,)) mkKeymap)
 
 toDisplay :: Widget k -> Display HasFocus
-toDisplay = (Placable.atPlace . result) fst . unWidget
+toDisplay = fmap fst . unWidget
 
 keymap :: Widget k -> Size -> Keymap k
 keymap w = snd . (Placable.pPlace . unWidget) w
@@ -46,6 +46,10 @@ atDisplay f w = fromDisplay (keymap w) .
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
 atKeymap = inWidget . fmap . second
+
+atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
+             Widget a -> Widget a
+atMkImage = inWidget . fmap . first
 
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay = fromDisplay mempty
