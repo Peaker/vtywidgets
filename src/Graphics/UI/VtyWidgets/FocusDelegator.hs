@@ -38,7 +38,8 @@ notDelegatingKeymap :: Keymap Model
 notDelegatingKeymap = Keymap.simpleton "Enter" startDelegatingKey (Model True)
 
 notDelegatingImageEndo :: Endo TermImage
-notDelegatingImageEndo = (TermImage.atEachChar . inFirst) fixChar
+notDelegatingImageEndo = (TermImage.inCursor . const) Nothing .
+                         (TermImage.atEachChar . inFirst) fixChar
   where
     fixChar mChar = Just $
                     (`Vty.with_back_color` Vty.blue) `first` fromMaybe (Vty.def_attr, ' ') mChar
