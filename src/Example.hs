@@ -50,8 +50,8 @@ $(AT.deriveAccessors ''Model)
 
 initModel :: Model
 initModel = Model {
-  modelGrid_ = Grid.initDelegatedModel False,
-  modelTextEdits_ = map (TextEdit.initDelegatedModel False) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  modelGrid_ = Grid.initDelegatedModel True,
+  modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   modelLastEvent_ = ""
   }
 
