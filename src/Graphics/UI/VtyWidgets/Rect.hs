@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall -O2 #-}
 module Graphics.UI.VtyWidgets.Rect
-    (Coordinate, Rect(..), inside, clip,
+    (Coordinate, Rect(..), inside, clip, enum,
      atTopLeft, atBottomRight, atBoth,
      ExpandingRect(..), inExpandingRect, inExpandingRect2, withExpandingRect, withExpandingRect2,
      ShrinkingRect(..), inShrinkingRect, inShrinkingRect2, withShrinkingRect, withShrinkingRect2,
@@ -67,3 +67,9 @@ instance Monoid ShrinkingRect where
 
 clip :: Rect -> Rect -> Rect
 clip = withShrinkingRect2 mappend
+
+enum :: Rect -> [Coordinate]
+enum (Rect (Vector2 l t) (Vector2 r b)) = liftA2 Vector2 xs ys
+  where
+    xs = takeWhile (<r) [l..]
+    ys = takeWhile (<b) [t..]

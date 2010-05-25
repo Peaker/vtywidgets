@@ -6,14 +6,14 @@ module Graphics.UI.VtyWidgets.Image
      boundingRect, atBoundingRect)
 where
 
-import Data.Function.Utils(Endo)
+import Data.Function.Utils(Endo, compose)
 import Data.Monoid(Monoid(..))
 import Control.Applicative(liftA2)
 import Control.Compose((:.)(O, unO))
 import Control.Arrow(first, second, (***))
 import Graphics.UI.VtyWidgets.Rect(Rect, ExpandingRect(..), inExpandingRect, Coordinate)
 import qualified Graphics.UI.VtyWidgets.Rect as Rect
-import Graphics.UI.VtyWidgets.TMap(TMap)
+import Graphics.UI.VtyWidgets.TMap(TMap, (!))
 import qualified Graphics.UI.VtyWidgets.TMap as TMap
 
 newtype Image a = Image { runImage :: ((,) ExpandingRect :. TMap Coordinate) a }
@@ -48,9 +48,14 @@ atBoundingRect :: Endo ExpandingRect -> Endo (Image a)
 atBoundingRect = inImage . first
 
 clip :: Monoid a => Rect -> Image a -> Image a
--- TODO: Also clip the ExpandingRect...
-clip rect = (atTMap . TMap.filterKeys) (`Rect.inside` rect) .
-            (atBoundingRect . inExpandingRect) (Rect.clip rect)
+clip rect = inImage clip'
+  where
+    clip' (expRect, m) = (expRect', m')
+      where
+        expRect' = inExpandingRect (Rect.clip rect) expRect
+        m' = compose [ TMap.override k (m!k)
+                     | k <- Rect.enum rect ]
+             mempty
 
 pick :: Image a -> Coordinate -> a
 pick = flip TMap.lookup . snd . unImage

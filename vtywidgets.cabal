@@ -43,7 +43,8 @@ Library
                        Graphics.UI.VtyWidgets.Widget,
                        Data.Vector.Vector2
   Other-Modules:       Data.List.Utils,
-                       Data.Function.Utils
+                       Data.Function.Utils,
+                       Data.Monoid.Utils
 
   ghc-options:         -Wall
 

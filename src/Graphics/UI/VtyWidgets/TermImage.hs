@@ -2,7 +2,7 @@
 
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage(..),
-     atImage, inCursor, atCursor,
+     atImage, inCursor, atCursor, atEachChar,
      render,
      string, stringSize, hstrings, vstrings,
      clip, translate,
@@ -18,6 +18,7 @@ import Data.List.Utils(safeIndex)
 import Data.Function(on)
 import Data.Function.Utils(Endo)
 import Data.Monoid(Monoid(..), First(First, getFirst))
+import Data.Monoid.Utils(inFirst)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Control.Applicative(pure, liftA2)
@@ -38,6 +39,9 @@ atImage f ti = ti{tiImage = f (tiImage ti)}
 atCursor :: Endo (First Coordinate) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
 
+atEachChar :: Endo (First (Vty.Attr, Char)) -> Endo TermImage
+atEachChar = atImage . fmap
+
 inCursor :: Endo (Maybe Coordinate) -> Endo TermImage
 inCursor = atCursor . inFirst
 
@@ -46,15 +50,9 @@ instance Monoid TermImage where
   TermImage img1 cursor1 `mappend` TermImage img2 cursor2 =
     TermImage (img1 `mappend` img2) (cursor1 `mappend` cursor2)
 
-inFirst :: (Maybe a -> Maybe b) -> First a -> First b
-inFirst f = First . f . getFirst
-
-fmapFirst :: (a -> b) -> First a -> First b
-fmapFirst = inFirst . fmap
-
 translate :: Coordinate -> TermImage -> TermImage
 translate c =
-  (atCursor . fmapFirst . liftA2 (+) $ c) .
+  (atCursor . fmap . liftA2 (+) $ c) .
   (atImage . Image.translate $ c)
 
 boundingRect :: TermImage -> ExpandingRect
