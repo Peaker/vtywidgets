@@ -125,8 +125,7 @@ string attr chars = make rangeRect pixels Nothing
   where
     pixels translation area =
       DList.fromList .
-      concat .
-      map (makePixel translation) .
+      concatMap (makePixel translation) .
       Rect.enum .
       Rect.clip area .
       Rect.translate translation $

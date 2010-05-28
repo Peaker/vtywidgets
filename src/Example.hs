@@ -9,14 +9,14 @@ import Data.Monoid(mempty)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
-import Control.Monad(forever)
+import Control.Monad(forever, when)
 import Control.Arrow(first, second)
 import Control.Applicative(pure)
 import Control.Monad.Trans.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Keymap(Keymap)
+import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Display as Display
@@ -55,6 +55,9 @@ initModel = Model {
   modelLastEvent_ = ""
   }
 
+quitKey :: ModKey
+quitKey = ([Vty.MCtrl], Vty.KASCII 'q')
+
 main :: IO ()
 main = do
   hSetBuffering stderr NoBuffering
@@ -67,11 +70,13 @@ main = do
         let size' = Vector2 w h
         modify . second . const $ size'
         liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
-      Vty.EvKey key mods ->
+      Vty.EvKey key mods -> do
+        let k = (mods, key)
+        when (k == quitKey) $ error "quit"
         modify $
           \(curModel, size) ->
           (fromMaybe curModel . fmap (snd . snd) .
-           Keymap.lookup (mods, key) . snd $
+           Keymap.lookup k . snd $
            widget size curModel,
            size)
       _ -> return ()
