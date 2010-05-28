@@ -1,101 +1,114 @@
 {-# OPTIONS -Wall -O2 #-}
 
 module Graphics.UI.VtyWidgets.TermImage
-    (TermChar, TermImage(..),
-     atImage, inCursor, atCursor, atEachChar,
-     render,
+    (TermChar, TermImage(..), inCursor, atCursor, render,
      string, stringSize, hstrings, vstrings,
-     clip, translate,
-     boundingRect, atBoundingRect,
+     clip, translate, rect,
+     atBoundingRect,
      -- re-export:
      Coordinate)
 where
 
-import Data.Maybe(fromMaybe)
-import Data.List(foldl', groupBy)
+import Data.List(foldl')
 import Data.List.Split(splitOn)
-import Data.List.Utils(safeIndex)
-import Data.Function(on)
-import Data.Function.Utils(Endo)
-import Data.Monoid(Monoid(..), First(First, getFirst))
+import Data.List.Utils(safeIndex, groupFst)
+import Data.Function.Utils(Endo, argument)
+import Data.Monoid(Monoid(..), First(First))
 import Data.Monoid.Utils(inFirst)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
+import Data.Array.Utils(marrayAt)
+import Data.Array((!))
+import Data.Array.ST(runSTArray, newArray)
+import Data.DList(DList)
+import qualified Data.DList as DList
+import qualified Data.Vector.Rect as Rect
+import Data.Vector.Rect(ExpandingRect(..), Rect(..), Coordinate)
+import Control.Monad(forM_)
 import Control.Applicative(pure, liftA2)
 import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.Rect(ExpandingRect(..), Rect(..), Coordinate)
-import Graphics.UI.VtyWidgets.Image(Image)
-import qualified Graphics.UI.VtyWidgets.Image as Image
-import Graphics.UI.VtyWidgets.TMap(TMap)
-import qualified Graphics.UI.VtyWidgets.TMap as TMap
 
-type TermChar = First (Vty.Attr, Char)
+type Pixels = Coordinate -> Rect -> DList (Coordinate, Endo TermChar)
+
+type TermChar = (Vty.Attr, Char)
 data TermImage = TermImage {
-  tiImage :: Image TermChar,
-  tiCursor :: First Coordinate
+  tiBoundingRect :: !ExpandingRect,
+  -- ^ A Rect big enough to at least cover the entire image
+  tiPixels :: Pixels,
+  -- ^ An action to update an array of TermChars
+  tiCursor :: !(First Coordinate)
+  -- ^ The position the cursor is at
   }
-atImage :: Endo (Image TermChar) -> Endo TermImage
-atImage f ti = ti{tiImage = f (tiImage ti)}
+atBoundingRect :: Endo ExpandingRect -> Endo TermImage
+atBoundingRect f ti = ti{tiBoundingRect = f (tiBoundingRect ti)}
+atPixels :: Endo Pixels -> Endo TermImage
+atPixels f ti = ti{tiPixels = f (tiPixels ti)}
 atCursor :: Endo (First Coordinate) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
-
-atEachChar :: Endo (First (Vty.Attr, Char)) -> Endo TermImage
-atEachChar = atImage . fmap
-
 inCursor :: Endo (Maybe Coordinate) -> Endo TermImage
 inCursor = atCursor . inFirst
 
 instance Monoid TermImage where
-  mempty = TermImage mempty mempty
-  TermImage img1 cursor1 `mappend` TermImage img2 cursor2 =
-    TermImage (img1 `mappend` img2) (cursor1 `mappend` cursor2)
+  mempty = TermImage mempty mempty mempty
+  TermImage bRect1 pixels1 cursor1 `mappend`
+    TermImage bRect2 pixels2 cursor2 =
+      TermImage (bRect1 `mappend` bRect2)
+                (pixels1 `mappend` pixels2)
+                (cursor1 `mappend` cursor2)
+
+rect :: Rect -> Endo TermChar -> TermImage
+rect r f = make r pixels Nothing
+  where
+    pixels translation area =
+      DList.fromList .
+      map (flip (,) f) .
+      Rect.enum .
+      Rect.clip area .
+      Rect.translate translation $
+      r
 
 translate :: Coordinate -> TermImage -> TermImage
 translate c =
-  (atCursor . fmap . liftA2 (+) $ c) .
-  (atImage . Image.translate $ c)
-
-boundingRect :: TermImage -> ExpandingRect
-boundingRect = Image.boundingRect . tiImage
-
-atBoundingRect :: Endo ExpandingRect -> Endo TermImage
-atBoundingRect = atImage . Image.atBoundingRect
-
-groupFst :: Eq a => [(a, b)] -> [(a, [b])]
-groupFst = map extractFst . groupBy ((==) `on` fst)
-  where
-    extractFst [] = error "groupBy returned an empty group"
-    extractFst grp = (fst . head $ grp, map snd grp)
+  (atBoundingRect . Rect.inExpandingRect) (Rect.translate c) .
+  (atCursor . fmap . liftA2 (+)) c .
+  (atPixels . argument . liftA2 (+)) c
 
 render :: TermImage -> Vty.Picture
-render (TermImage image (First mCursor)) =
+render (TermImage eBoundingRect pixels (First mCursor)) =
   Vty.Picture cursor img bg
   where
-    cursor = maybe Vty.NoCursor (Vector2.uncurry Vty.Cursor . fmap fromIntegral) mCursor
+    cursor = maybe Vty.NoCursor makeCursor mCursor
+    makeCursor v = if v `Rect.inside` boundingRect
+                   then Vector2.uncurry Vty.Cursor . fmap fromIntegral $ v
+                   else Vty.NoCursor
+    imageArray = runSTArray $ do
+      -- TODO: Let's stop using Int with maxBound/minBound, it's
+      -- terrible. Vector2 r b includes 1 more than we need in each
+      -- axis
+      array <- newArray (tl, br) (Vty.def_attr, ' ')
+      forM_ (DList.toList . pixels (Vector2 0 0) $ boundingRect) $
+            uncurry (marrayAt array)
+      return array
     img = Vty.vert_cat $
           replicate (min t b) (Vty.char Vty.def_attr ' ') ++
           [ Vty.horiz_cat $
             Vty.string Vty.def_attr (replicate (min l r) ' ') :
             (map (uncurry Vty.string) . groupFst)
-            [ fromMaybe (Vty.def_attr, ' ') . getFirst . f $ Vector2 x y
-            | x <- [l..r] ]
-          | y <- [t..b] ]
-          -- we don't need (r, b), but we still iterate them, it's an
-          -- inclusive/exclusive range, but we want to avoid
-          -- arithmetic on these, as they may be minBound/maxBound
+            [ imageArray ! Vector2 x y
+            | x <- takeWhile (<r) [l..] ]
+          | y <- takeWhile (<b) [t..] ]
 
-    ExpandingRect (Rect (Vector2 l t) (Vector2 r b)) = Image.boundingRect image
-    f = Image.pick image
+    boundingRect = (Rect.atTopLeft . fmap) (max 0) .
+                   Rect.unExpandingRect $ eBoundingRect
+    Rect tl@(Vector2 l t) br@(Vector2 r b) = boundingRect
     bg = Vty.Background ' ' Vty.def_attr
 
 clip :: Rect -> TermImage -> TermImage
-clip = atImage . Image.clip
-
-make :: Rect -> TMap Coordinate TermChar -> TermImage
-make r f = TermImage {
-  tiImage = Image.make (ExpandingRect r) f,
-  tiCursor = First Nothing
-  }
+clip r = (atBoundingRect . Rect.inExpandingRect) (Rect.clip r) .
+         atPixels clipPixels
+  where
+    clipPixels pixels translation area =
+      pixels translation . Rect.clip (Rect.translate translation r) $ area
 
 stringParse :: String -> (Vector2 Int, [String])
 stringParse chars = (Vector2 w h, ls)
@@ -104,14 +117,26 @@ stringParse chars = (Vector2 w h, ls)
     w = fromIntegral (foldl' max 0 . map length $ ls)
     h = fromIntegral (length ls)
 
+make :: Rect -> Pixels -> Maybe Coordinate -> TermImage
+make r m c = TermImage (ExpandingRect r) m (First c)
+
 string :: Vty.Attr -> String -> TermImage
-string attr chars = make (Rect (pure 0) (Vector2 w h)) m
+string attr chars = make rangeRect pixels Nothing
   where
-    m = foldr (.) id addItems mempty
-    addItems = [ TMap.override (Vector2 x y) . First . fmap ((,) attr) $ safeIndex y ls >>= safeIndex x
-               | x <- [0..w-1]
-               , y <- [0..h-1] ]
-    (Vector2 w h, ls) = stringParse chars
+    pixels translation area =
+      DList.fromList .
+      concat .
+      map (makePixel translation) .
+      Rect.enum .
+      Rect.clip area .
+      Rect.translate translation $
+      rangeRect
+    makePixel translation v =
+      maybe [] (return . (,) v . const . (,) attr) (safeIndex column =<< safeIndex row ls)
+        where
+          Vector2 column row = liftA2 (-) v translation
+    rangeRect = Rect (pure 0) size
+    (size, ls) = stringParse chars
 
 stringSize :: String -> Vector2 Int
 stringSize = fst . stringParse

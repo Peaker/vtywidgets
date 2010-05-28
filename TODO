@@ -1,3 +1,5 @@
+* Maybe succumb to inclusive/inclusive Haskell ranges?
+
 * Various "make" widget funcs:
 
   * Move various params that the SizeRange doesn't depend on to be imgarg

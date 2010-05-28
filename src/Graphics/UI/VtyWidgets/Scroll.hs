@@ -6,7 +6,7 @@ where
 import Control.Applicative(pure, liftA2)
 import Data.Maybe(fromMaybe)
 import Data.Monoid(First(..), mempty)
-import Graphics.UI.VtyWidgets.Rect(Coordinate, Rect(..))
+import Data.Vector.Rect(Coordinate, Rect(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Data.Vector.Vector2(Vector2(..))
 import qualified Graphics.UI.VtyWidgets.Display as Display

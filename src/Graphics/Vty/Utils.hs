@@ -2,7 +2,7 @@
 
 -- TODO: Add these to Vty itself..
 
-module Graphics.UI.VtyWidgets.VtyWrap
+module Graphics.Vty.Utils
     (withVty, safeMkVty)
 where
 

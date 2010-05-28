@@ -22,10 +22,9 @@ build-type:          Simple
 Library
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, TypeCompose, containers
+  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, containers,
+                       array >= 0.3, dlist >= 0.5 && < 0.6, QuickCheck >= 2.1.0.3
   Exposed-Modules:     Graphics.UI.VtyWidgets.Grid,
-                       Graphics.UI.VtyWidgets.Rect,
-                       Graphics.UI.VtyWidgets.Image,
                        Graphics.UI.VtyWidgets.Keymap,
                        Graphics.UI.VtyWidgets.TermImage,
                        Graphics.UI.VtyWidgets.TextEdit,
@@ -35,23 +34,25 @@ Library
                        Graphics.UI.VtyWidgets.Spacer,
                        Graphics.UI.VtyWidgets.FocusDelegator,
                        Graphics.UI.VtyWidgets.TableGrid,
-                       Graphics.UI.VtyWidgets.TMap,
-                       Graphics.UI.VtyWidgets.VtyWrap,
                        Graphics.UI.VtyWidgets.SizeRange,
                        Graphics.UI.VtyWidgets.Placable,
                        Graphics.UI.VtyWidgets.Display,
                        Graphics.UI.VtyWidgets.Widget,
-                       Data.Vector.Vector2
+                       Data.Vector.Vector2,
+                       Data.Vector.Rect
   Other-Modules:       Data.List.Utils,
                        Data.Function.Utils,
-                       Data.Monoid.Utils
+                       Data.Monoid.Utils,
+                       Data.Array.Utils
+                       Graphics.Vty.Utils
 
   ghc-options:         -Wall
 
 executable vtywidgets-example
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, TypeCompose, containers, transformers
+  Build-Depends:       base >= 4 && < 5, split, data-accessor, data-accessor-template, vty, containers,
+                       array >= 0.3, dlist >= 0.5 && < 0.6, transformers
   ghc-options : -O2 -Wall
   main-is: Example.hs
   ghc-prof-options:    -prof -auto-all 

@@ -4,13 +4,15 @@ module Graphics.UI.VtyWidgets.FocusDelegator
     (make, makeAcc, Model(..), initModel)
 where
 
+import Control.Applicative(pure)
 import Control.Arrow(first)
-import Data.Maybe(fromMaybe)
+import Data.Vector.Rect(Rect(..))
+import Data.Vector.Vector2(Vector2)
 import Data.Monoid(mappend)
-import Data.Monoid.Utils(inFirst)
 import Data.Accessor(Accessor, setVal, (^.))
 import Data.Function.Utils(Endo)
 import qualified Graphics.Vty as Vty
+import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import Graphics.UI.VtyWidgets.Widget(Widget)
@@ -37,25 +39,25 @@ delegatingKeymap = Keymap.simpleton "Leave" stopDelegatingKey (Model False)
 notDelegatingKeymap :: Keymap Model
 notDelegatingKeymap = Keymap.simpleton "Enter" startDelegatingKey (Model True)
 
-notDelegatingImageEndo :: Endo TermImage
-notDelegatingImageEndo = (TermImage.inCursor . const) Nothing .
-                         (TermImage.atEachChar . inFirst) fixChar
-  where
-    fixChar mChar = Just $
-                    (`Vty.with_back_color` Vty.blue) `first` fromMaybe (Vty.def_attr, ' ') mChar
+notDelegatingImageEndo :: Vector2 Int -> Endo TermImage
+notDelegatingImageEndo size =
+  (TermImage.inCursor . const) Nothing .
+  (`mappend` TermImage.rect (Rect (pure 0) size) (first (`Vty.with_back_color` Vty.blue)))
 
 make :: (Model -> k) -> Widget k -> Model -> Widget k
 make conv child model =
   case model of
     Model True -> Widget.atKeymap (`mappend` fmap conv delegatingKeymap) child
     Model False -> (Widget.atKeymap . const) (fmap conv notDelegatingKeymap) .
-                   Widget.atMkImage notDelegatingImage $
+                   (Widget.inWidget . Placable.atPlace) notDelegating $
                    child
   where
-    notDelegatingImage mkImage hf = (if Widget.hasFocus hf
-                                     then notDelegatingImageEndo
-                                     else id) $
-                                    mkImage (Widget.HasFocus False)
+    notDelegating sizeToPair size = notDelegatingImage size `first` sizeToPair size
+    notDelegatingImage size mkImage hf =
+      (if Widget.hasFocus hf
+       then notDelegatingImageEndo size
+       else id) $
+      mkImage (Widget.HasFocus False)
 
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w

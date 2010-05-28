@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall -O2 #-}
-module Graphics.UI.VtyWidgets.Rect
-    (Coordinate, Rect(..), inside, clip, enum,
-     atTopLeft, atBottomRight, atBoth,
+module Data.Vector.Rect
+    (Coordinate, Rect(..), makeSized, inside, clip, enum,
+     atTopLeft, atBottomRight, atBoth, translate,
      ExpandingRect(..), inExpandingRect, inExpandingRect2, withExpandingRect, withExpandingRect2,
      ShrinkingRect(..), inShrinkingRect, inShrinkingRect2, withShrinkingRect, withShrinkingRect2,
     )
@@ -15,12 +15,19 @@ import Control.Applicative(pure, liftA2)
 type Coordinate = Vector2 Int
 data Rect = Rect { topLeft :: Coordinate,
                    bottomRight :: Coordinate }
+  deriving (Show, Read, Eq, Ord)
 atTopLeft :: Endo Coordinate -> Endo Rect
 atTopLeft f (Rect tl br) = Rect (f tl) br
 atBottomRight :: Endo Coordinate -> Endo Rect
 atBottomRight f (Rect tl br) = Rect tl (f br)
 atBoth :: Endo Coordinate -> Endo Rect
 atBoth f (Rect tl br) = Rect (f tl) (f br)
+
+makeSized :: Coordinate -> Coordinate -> Rect
+makeSized offset size = Rect offset (liftA2 (+) offset size)
+
+translate :: Coordinate -> Endo Rect
+translate = atBoth . liftA2 (+)
 
 combineRect2 :: Endo2 Coordinate -> Endo2 Coordinate ->
                 Endo2 Rect
@@ -39,6 +46,7 @@ inside (Vector2 x y) (Rect (Vector2 l t) (Vector2 r b)) =
   t <= y && y < b
 
 newtype ExpandingRect = ExpandingRect { unExpandingRect :: Rect }
+  deriving (Show, Read, Eq, Ord)
 inExpandingRect :: Endo Rect -> Endo ExpandingRect
 inExpandingRect f = ExpandingRect . f . unExpandingRect
 inExpandingRect2 :: Endo2 Rect -> Endo2 ExpandingRect
@@ -53,6 +61,7 @@ instance Monoid ExpandingRect where
   mappend = inExpandingRect2 $ combineRect2 (liftA2 min) (liftA2 max)
 
 newtype ShrinkingRect = ShrinkingRect { unShrinkingRect :: Rect }
+  deriving (Show, Read, Eq, Ord)
 inShrinkingRect :: Endo Rect -> Endo ShrinkingRect
 inShrinkingRect f = ShrinkingRect . f . unShrinkingRect
 inShrinkingRect2 :: Endo2 Rect -> Endo2 ShrinkingRect

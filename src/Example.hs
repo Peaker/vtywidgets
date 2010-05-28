@@ -14,7 +14,7 @@ import Control.Arrow(first, second)
 import Control.Applicative(pure)
 import Control.Monad.Trans.State(evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
-import Graphics.UI.VtyWidgets.VtyWrap(withVty)
+import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
