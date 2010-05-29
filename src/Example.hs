@@ -4,15 +4,14 @@
 import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor, (^.), setVal)
 import qualified Data.Accessor.Template as AT
-import Data.Maybe(fromMaybe)
-import Data.Monoid(mempty)
+import Data.Monoid(mempty, mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
-import Control.Monad(forever, when)
+import Control.Monad(forever)
 import Control.Arrow(first, second)
 import Control.Applicative(pure)
-import Control.Monad.Trans.State(evalStateT, modify, get)
+import Control.Monad.Trans.State(StateT, evalStateT, modify, get)
 import Control.Monad.Trans(liftIO)
 import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -72,38 +71,33 @@ main = do
         liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
       Vty.EvKey key mods -> do
         let k = (mods, key)
-        when (k == quitKey) $ error "quit"
-        modify $
-          \(curModel, size) ->
-          (fromMaybe curModel . fmap (snd . snd) .
-           Keymap.lookup k . snd $
-           widget size curModel,
-           size)
+        (curModel, size) <- get
+        maybe (return ()) (snd . snd) . Keymap.lookup k . snd $ widget size curModel
       _ -> return ()
   where
     render vty = do
       (curModel, size) <- get
       liftIO . Vty.update vty . TermImage.render . fst $ widget size curModel
 
-adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget w = Widget.atKeymap (flip (setVal acc) w `fmap`) (pwidget (w ^. acc))
-
-widget :: Size -> Model -> (TermImage, Keymap Model)
-widget size model = (mkImage (Widget.HasFocus True), km)
+widget :: Size -> Model -> (TermImage, Keymap (StateT (Model, Size) IO ()))
+widget size model = (mkImage (Widget.HasFocus True), km')
   where
     w = Widget.atDisplay outerGrid innerGrid
     (mkImage, km) = (Placable.pPlace . Widget.unWidget) w size
+    km' :: Keymap (StateT (Model, Size) IO ())
+    km' = Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`
+          ((modify . first . const) `fmap` km)
     outerGrid innerGridDisp =
       makeGridView (pure 0)
       [ [ mempty,TextView.make attr "Title\n-----" ],
         [ innerGridDisp, Spacer.makeHorizontal ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty, keymapGrid km ],
+        [ mempty, mempty, keymapView km' ],
         [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelGrid textEdits
-    keymapGrid keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
+    keymapView keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
                  adaptModel (nth i . modelTextEdits)
@@ -126,3 +120,6 @@ widget size model = (mkImage (Widget.HasFocus True), km)
     makeGrid alignment acc rows =
       (Grid.makeAccDelegated acc . (map . map) (Grid.Item alignment))
       rows model
+
+adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
+adaptModel acc pwidget w = Widget.atKeymap (flip (setVal acc) w `fmap`) (pwidget (w ^. acc))
