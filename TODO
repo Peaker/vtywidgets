@@ -1,3 +1,5 @@
+* Put the Ctrl+Q in the Keymap as IO () so that it is documented
+
 * Maybe succumb to inclusive/inclusive Haskell ranges?
 
 * Various "make" widget funcs:

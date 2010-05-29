@@ -14,7 +14,7 @@ import qualified Prelude
 import Control.Applicative(Applicative(..), liftA2, liftA3)
 import Control.Monad(join)
 import Data.Array(Ix(..))
-import Test.QuickCheck.Arbitrary(Arbitrary(..))
+-- import Test.QuickCheck.Arbitrary(Arbitrary(..))
 
 data Vector2 a = Vector2 !a !a
   -- Note the Ord instance is obviously not a mathematical one
@@ -23,11 +23,11 @@ data Vector2 a = Vector2 !a !a
   deriving (Eq, Ord, Show, Read)
 
 -- Taken almost verbatim from QuickCheck's instance for (a, b)
-instance Arbitrary a => Arbitrary (Vector2 a) where
-  arbitrary = liftA2 Vector2 arbitrary arbitrary
-  shrink (Vector2 x y) = [ Vector2 x' y | x' <- shrink x ] ++
-                         [ Vector2 x y' | y' <- shrink y ]
-           
+-- instance Arbitrary a => Arbitrary (Vector2 a) where
+--   arbitrary = liftA2 Vector2 arbitrary arbitrary
+--   shrink (Vector2 x y) = [ Vector2 x' y | x' <- shrink x ] ++
+--                          [ Vector2 x y' | y' <- shrink y ]
+
 instance Ix a => Ix (Vector2 a) where
   range (start, stop) = uncurry (liftA2 Vector2) $ liftA2 (Prelude.curry range) start stop
   inRange (start, stop) = uncurry (&&) . liftA3 (Prelude.curry inRange) start stop
