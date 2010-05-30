@@ -4,7 +4,7 @@ module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, runWidget,
      atDisplay, atKeymap, atMkImage, make, simpleDisplay,
-     fromDisplay, toDisplay, keymap, image)
+     fromDisplay, toDisplay, keymap, image, requestedSize)
 where
 
 import Control.Arrow(first, second)
@@ -39,6 +39,9 @@ fromDisplay mkKeymap = Widget . Placable.atPlace (flip (liftA2 (,)) mkKeymap)
 
 toDisplay :: Widget k -> Display HasFocus
 toDisplay = fmap fst . unWidget
+
+requestedSize :: Widget k -> SizeRange
+requestedSize = Placable.pRequestedSize . unWidget
 
 keymap :: Widget k -> Size -> Keymap k
 keymap w = snd . runWidget w

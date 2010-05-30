@@ -66,6 +66,12 @@ nthSet n x' (x:xs) = x : nthSet (n-1) x' xs
 nth :: Int -> Accessor [a] a
 nth n = accessor (!! n) (nthSet n)
 
+shortDebugLogLimit :: Int
+shortDebugLogLimit = 5
+
+longDebugLogLimit :: Int
+longDebugLogLimit = 100
+
 data Model = Model {
   modelGrid_ :: Grid.DelegatedModel,
   modelTextEdits_ :: [TextEdit.DelegatedModel],
@@ -73,14 +79,11 @@ data Model = Model {
   }
 $(AT.deriveAccessors ''Model)
 
-debugLogLimit :: Int
-debugLogLimit = 5
-
 initModel :: Model
 initModel = Model {
   modelGrid_ = Grid.initDelegatedModel True,
   modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  modelDebugLog_ = replicate debugLogLimit ""
+  modelDebugLog_ = replicate shortDebugLogLimit ""
   }
 
 quitKey :: ModKey
@@ -100,29 +103,36 @@ main = do
           hPutStrLn stderr msg
           pureModifyMVar_ modelMVar (addDebugLog msg)
 
-        addDebugLog msg = modelDebugLog ^: (take debugLogLimit . (msg :))
+        addDebugLog msg = modelDebugLog ^: (take longDebugLogLimit . (msg :))
 
         rootWidget size = modelEdit size fixKeymap `fmap`
                           readMVar modelMVar
         fixKeymap = (Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`) .
                     ((pureModifyMVar_ modelMVar . const) `fmap`)
 
+shortDebugLog :: Model -> [String]
+shortDebugLog model = take shortDebugLogLimit $
+                      model ^. modelDebugLog
+
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
-modelEdit size fixKeymap model = Widget.atDisplay outerGrid innerGrid'
+modelEdit size fixKeymap model = withKeymap
   where
+    withKeymap = TableGrid.addKeymapView 40 size widget 10 30 keyAttr valueAttr
+    widget = Widget.atDisplay outerGrid innerGrid'
     outerGrid innerGridDisp =
       makeGridView (pure 0)
       [ [ mempty, TextView.make attr "Title\n-----" ],
         [ innerGridDisp, Spacer.makeHorizontal ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty, keymapView $ Widget.keymap innerGrid' size ],
-        [ mempty, mempty, TextView.make attr . unlines $ model ^. modelDebugLog ]
+        [ mempty, mempty,
+          TextView.make attr .
+          unlines . shortDebugLog $
+          model ]
       ]
     innerGrid' = Widget.atKeymap fixKeymap innerGrid
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelGrid textEdits
-    keymapView keymap = TableGrid.makeKeymapView 10 30 keymap keyAttr valueAttr
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
                  adaptModel (nth i . modelTextEdits)
