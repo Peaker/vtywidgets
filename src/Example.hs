@@ -2,24 +2,23 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 import qualified Graphics.Vty as Vty
-import Data.Accessor(Accessor, accessor, (^.), setVal)
+import Data.Accessor(Accessor, accessor, (^.), (^:), setVal)
 import qualified Data.Accessor.Template as AT
 import Data.Monoid(mempty, mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Monad(forever)
-import Control.Arrow(first, second)
 import Control.Applicative(pure)
-import Control.Monad.Trans.State(StateT, evalStateT, modify, get)
-import Control.Monad.Trans(liftIO)
+import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
+import Control.Monad.Trans.State(evalStateT, get, put)
+import Control.Monad.Trans(MonadIO, liftIO)
 import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Display as Display
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(Size)
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
@@ -29,8 +28,35 @@ import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
+
+
+defaultSize :: Vector2 Int
+defaultSize = Vector2 80 25
+
+runWidgetLoop :: (String -> IO ()) -> (Size -> IO (Widget (IO ()))) -> IO ()
+runWidgetLoop logMsg makeWidget = do
+  withVty $ \vty -> (`evalStateT` defaultSize) . forever $ do
+    size <- get
+    event <- liftIO $ do
+      widget <- makeWidget size
+      Vty.update vty . TermImage.render .
+        Widget.image widget $ size
+      Vty.next_event $ vty
+    widget <- liftIO $ do
+      logMsg $ "Handling event: " ++ show event
+      -- Remake widget because logMsg is allowed to modify it...
+      makeWidget size
+    case event of
+      Vty.EvResize w h -> do
+        let size' = Vector2 w h
+        put size'
+        liftIO . logMsg $ "Resized to: " ++ show size'
+      Vty.EvKey key mods -> do
+        maybe (return ()) (liftIO . snd . snd) .
+          Keymap.lookup (mods, key) . Widget.keymap widget $ size
+      _ -> return ()
+
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
@@ -43,57 +69,56 @@ nth n = accessor (!! n) (nthSet n)
 data Model = Model {
   modelGrid_ :: Grid.DelegatedModel,
   modelTextEdits_ :: [TextEdit.DelegatedModel],
-  modelLastEvent_ :: String
+  modelDebugLog_ :: [String]
   }
 $(AT.deriveAccessors ''Model)
+
+debugLogLimit :: Int
+debugLogLimit = 5
 
 initModel :: Model
 initModel = Model {
   modelGrid_ = Grid.initDelegatedModel True,
   modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  modelLastEvent_ = ""
+  modelDebugLog_ = replicate debugLogLimit ""
   }
 
 quitKey :: ModKey
 quitKey = ([Vty.MCtrl], Vty.KASCII 'q')
 
+pureModifyMVar_ :: MonadIO m => MVar a -> (a -> a) -> m ()
+pureModifyMVar_ mv f = liftIO $ modifyMVar_ mv (return . f)
+
 main :: IO ()
 main = do
   hSetBuffering stderr NoBuffering
-  withVty $ \vty -> (`evalStateT` (initModel, Vector2 80 25)) . forever $ do
-    render vty
-    event <- liftIO . Vty.next_event $ vty
-    modify . first . setVal modelLastEvent . show $ event
-    case event of
-      Vty.EvResize w h -> do
-        let size' = Vector2 w h
-        modify . second . const $ size'
-        liftIO . hPutStrLn stderr $ "Resized to: " ++ show size'
-      Vty.EvKey key mods -> do
-        let k = (mods, key)
-        (curModel, size) <- get
-        maybe (return ()) (snd . snd) . Keymap.lookup k . snd $ widget size curModel
-      _ -> return ()
+  mainLoop =<< newMVar initModel
   where
-    render vty = do
-      (curModel, size) <- get
-      liftIO . Vty.update vty . TermImage.render . fst $ widget size curModel
+    mainLoop modelMVar = runWidgetLoop logMsg rootWidget
+      where
+        logMsg msg = do
+          hPutStrLn stderr msg
+          pureModifyMVar_ modelMVar (addDebugLog msg)
 
-widget :: Size -> Model -> (TermImage, Keymap (StateT (Model, Size) IO ()))
-widget size model = (mkImage (Widget.HasFocus True), km')
+        addDebugLog msg = modelDebugLog ^: (take debugLogLimit . (msg :))
+
+        rootWidget size = modelEdit size fixKeymap `fmap`
+                          readMVar modelMVar
+        fixKeymap = (Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`) .
+                    ((pureModifyMVar_ modelMVar . const) `fmap`)
+
+modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
+modelEdit size fixKeymap model = Widget.atDisplay outerGrid innerGrid'
   where
-    w = Widget.atDisplay outerGrid innerGrid
-    (mkImage, km) = (Placable.pPlace . Widget.unWidget) w size
-    km' :: Keymap (StateT (Model, Size) IO ())
-    km' = Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`
-          ((modify . first . const) `fmap` km)
     outerGrid innerGridDisp =
       makeGridView (pure 0)
-      [ [ mempty,TextView.make attr "Title\n-----" ],
+      [ [ mempty, TextView.make attr "Title\n-----" ],
         [ innerGridDisp, Spacer.makeHorizontal ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty, keymapView km' ],
-        [ mempty, mempty, TextView.make attr $ model ^. modelLastEvent ] ]
+        [ mempty, mempty, keymapView $ Widget.keymap innerGrid' size ],
+        [ mempty, mempty, TextView.make attr . unlines $ model ^. modelDebugLog ]
+      ]
+    innerGrid' = Widget.atKeymap fixKeymap innerGrid
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
       makeGrid (pure 0) modelGrid textEdits

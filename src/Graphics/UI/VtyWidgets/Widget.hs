@@ -2,9 +2,9 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
-     Widget(..), inWidget,
+     Widget(..), inWidget, runWidget,
      atDisplay, atKeymap, atMkImage, make, simpleDisplay,
-     fromDisplay, toDisplay, keymap)
+     fromDisplay, toDisplay, keymap, image)
 where
 
 import Control.Arrow(first, second)
@@ -30,6 +30,10 @@ inWidget :: (Placable (HasFocus -> TermImage, Keymap k) ->
             Widget k -> Widget k'
 inWidget f = Widget . f . unWidget
 
+runWidget :: Widget k -> Size -> (TermImage, Keymap k)
+runWidget widget size = first ($ HasFocus True) $
+                        (Placable.pPlace . unWidget) widget size
+
 fromDisplay :: (Size -> Keymap k) -> Display HasFocus -> Widget k
 fromDisplay mkKeymap = Widget . Placable.atPlace (flip (liftA2 (,)) mkKeymap)
 
@@ -37,7 +41,11 @@ toDisplay :: Widget k -> Display HasFocus
 toDisplay = fmap fst . unWidget
 
 keymap :: Widget k -> Size -> Keymap k
-keymap w = snd . (Placable.pPlace . unWidget) w
+keymap w = snd . runWidget w
+
+image :: Widget k -> Size -> TermImage
+image w = fst . runWidget w
+
 atDisplay :: Endo (Display HasFocus) -> Endo (Widget k)
 atDisplay f w = fromDisplay (keymap w) .
                 f .

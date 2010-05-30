@@ -1,4 +1,9 @@
-* Put the Ctrl+Q in the Keymap as IO () so that it is documented
+* Scalability:
+
+  * To allow for scalable widget hierarchies, I need to make sure
+    getting the TermImage is O(display size) and not O(entire size). I
+    need to make sure Grid is lazy about the stuff beyond the screen
+    somehow -- how?
 
 * Maybe succumb to inclusive/inclusive Haskell ranges?
 
