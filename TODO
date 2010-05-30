@@ -1,34 +1,27 @@
-* Scalability:
+* How do I get addKeymapView to be flexible about layout?
 
+* Scalability:
   * To allow for scalable widget hierarchies, I need to make sure
     getting the TermImage is O(display size) and not O(entire size). I
     need to make sure Grid is lazy about the stuff beyond the screen
     somehow -- how?
 
-* Maybe succumb to inclusive/inclusive Haskell ranges?
-
-* Various "make" widget funcs:
-
-  * Move various params that the SizeRange doesn't depend on to be imgarg
-
-* Keymap -> Eventmap
+* Nicer navigation:
+  * Keymap -> Eventmap
+  * Add DirectionEntry event type, and move Grid to that position
 
 * Scroll:
-
   * If I make a "follow-view", I need it to be in State, which makes
     it less composable...
+  * Maybe need FRP framework so Scroll is exposed to all of the model
+    changes, or maybe Scroll can get a history or such
 
 * Cleanups:
-
+  * Maybe succumb to inclusive/inclusive Haskell ranges?
+  * Use AddLimits or such instead of the maxBoundHack stuff
   * Scroll, Grid are pretty ugly
-
-* FocusDelegator:
-
-* Add DirectionEntry event type, and move Grid to that position
+  * Various "make" widget funcs, move various params that the
+    SizeRange doesn't depend on to be imgarg
 
 * TextEdit:
-
   * Keep track of diffs
-
-* Trace entries: How to do IO to read the entries?
-  * Can have the keymap export the IO action to generate the model
