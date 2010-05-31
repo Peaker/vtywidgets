@@ -1,5 +1,8 @@
 * How do I get addKeymapView to be flexible about layout?
 
+  * Can associate a key with the overlay of the keymap view on top of
+    the image...
+
 * Scalability:
   * To allow for scalable widget hierarchies, I need to make sure
     getting the TermImage is O(display size) and not O(entire size). I

@@ -117,7 +117,7 @@ shortDebugLog model = take shortDebugLogLimit $
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
 modelEdit size fixKeymap model = withKeymap
   where
-    withKeymap = TableGrid.addKeymapView 40 size widget 10 30 keyAttr valueAttr
+    withKeymap = TableGrid.addKeymapView 40 size widget (keyAttr, 10) (valueAttr, 30)
     widget = Widget.atDisplay outerGrid innerGrid'
     outerGrid innerGridDisp =
       makeGridView (pure 0)
