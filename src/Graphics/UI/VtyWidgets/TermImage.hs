@@ -1,10 +1,10 @@
 {-# OPTIONS -Wall -O2 #-}
 
 module Graphics.UI.VtyWidgets.TermImage
-    (TermChar, TermImage(..), inCursor, atCursor, render,
+    (TermChar, TermImage, tiCursor, inCursor, atCursor, render,
      string, stringSize, hstrings, vstrings,
      clip, translate, rect,
-     atBoundingRect,
+     boundingRect,
      -- re-export:
      Coordinate)
 where
@@ -48,6 +48,9 @@ atCursor f ti = ti{tiCursor = f (tiCursor ti)}
 inCursor :: Endo (Maybe Coordinate) -> Endo TermImage
 inCursor = atCursor . inFirst
 
+boundingRect :: TermImage -> Rect
+boundingRect = Rect.unExpandingRect . tiBoundingRect
+
 instance Monoid TermImage where
   mempty = TermImage mempty mempty mempty
   TermImage bRect1 pixels1 cursor1 `mappend`
@@ -78,7 +81,7 @@ render (TermImage eBoundingRect pixels (First mCursor)) =
   Vty.Picture cursor img bg
   where
     cursor = maybe Vty.NoCursor makeCursor mCursor
-    makeCursor v = if v `Rect.inside` boundingRect
+    makeCursor v = if v `Rect.inside` bRect
                    then Vector2.uncurry Vty.Cursor . fmap fromIntegral $ v
                    else Vty.NoCursor
     imageArray = runSTArray $ do
@@ -86,7 +89,7 @@ render (TermImage eBoundingRect pixels (First mCursor)) =
       -- terrible. Vector2 r b includes 1 more than we need in each
       -- axis
       array <- newArray (tl, br) (Vty.def_attr, ' ')
-      forM_ (DList.toList . pixels (Vector2 0 0) $ boundingRect) $
+      forM_ (DList.toList . pixels (Vector2 0 0) $ bRect) $
             uncurry (marrayAt array)
       return array
     img = Vty.vert_cat $
@@ -98,9 +101,9 @@ render (TermImage eBoundingRect pixels (First mCursor)) =
             | x <- takeWhile (<r) [l..] ]
           | y <- takeWhile (<b) [t..] ]
 
-    boundingRect = (Rect.atTopLeft . fmap) (max 0) .
-                   Rect.unExpandingRect $ eBoundingRect
-    Rect tl@(Vector2 l t) br@(Vector2 r b) = boundingRect
+    bRect = (Rect.atTopLeft . fmap) (max 0) .
+            Rect.unExpandingRect $ eBoundingRect
+    Rect tl@(Vector2 l t) br@(Vector2 r b) = bRect
     bg = Vty.Background ' ' Vty.def_attr
 
 clip :: Rect -> TermImage -> TermImage
