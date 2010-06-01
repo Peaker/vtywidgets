@@ -31,32 +31,31 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
 
 
-defaultSize :: Vector2 Int
-defaultSize = Vector2 80 25
-
 runWidgetLoop :: (String -> IO ()) -> (Size -> IO (Widget (IO ()))) -> IO ()
 runWidgetLoop logMsg makeWidget = do
-  withVty $ \vty -> (`evalStateT` defaultSize) . forever $ do
-    size <- get
-    event <- liftIO $ do
-      widget <- makeWidget size
-      Vty.update vty . TermImage.render .
-        Widget.image widget $ size
-      Vty.next_event $ vty
-    widget <- liftIO $ do
-      logMsg $ "Handling event: " ++ show event
-      -- Remake widget because logMsg is allowed to modify it...
-      makeWidget size
-    case event of
-      Vty.EvResize w h -> do
-        let size' = Vector2 w h
-        put size'
-        liftIO . logMsg $ "Resized to: " ++ show size'
-      Vty.EvKey key mods -> do
-        maybe (return ()) (liftIO . snd . snd) .
-          Keymap.lookup (mods, key) . Widget.keymap widget $ size
-      _ -> return ()
-
+  withVty $ \vty -> do
+    Vty.DisplayRegion width height <- Vty.display_bounds . Vty.terminal $ vty
+    let initSize = fmap fromIntegral $ Vector2 width height
+    (`evalStateT` initSize) . forever $ do
+      size <- get
+      event <- liftIO $ do
+        widget <- makeWidget size
+        Vty.update vty . TermImage.render .
+          Widget.image widget $ size
+        Vty.next_event $ vty
+      widget <- liftIO $ do
+        logMsg $ "Handling event: " ++ show event
+        -- Remake widget because logMsg is allowed to modify it...
+        makeWidget size
+      case event of
+        Vty.EvResize w h -> do
+          let size' = Vector2 w h
+          put size'
+          liftIO . logMsg $ "Resized to: " ++ show size'
+        Vty.EvKey key mods -> do
+          maybe (return ()) (liftIO . snd . snd) .
+            Keymap.lookup (mods, key) . Widget.keymap widget $ size
+        _ -> return ()
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
