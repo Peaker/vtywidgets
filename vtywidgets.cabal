@@ -33,6 +33,7 @@ Library
                        Graphics.UI.VtyWidgets.Bar,
                        Graphics.UI.VtyWidgets.Spacer,
                        Graphics.UI.VtyWidgets.FocusDelegator,
+                       Graphics.UI.VtyWidgets.Overlay,
                        Graphics.UI.VtyWidgets.TableGrid,
                        Graphics.UI.VtyWidgets.SizeRange,
                        Graphics.UI.VtyWidgets.Placable,
