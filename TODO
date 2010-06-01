@@ -19,6 +19,10 @@
   * Maybe need FRP framework so Scroll is exposed to all of the model
     changes, or maybe Scroll can get a history or such
 
+* Grid:
+  * Can remove "Item" because it is easily possible to do the
+    translation to center of available size or such independently
+
 * Cleanups:
   * Maybe succumb to inclusive/inclusive Haskell ranges?
   * Use AddLimits or such instead of the maxBoundHack stuff
