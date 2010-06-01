@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Overlay
-    (display, widget, widgetAcc, Model(..))
+    (display, widget, widgetAcc, Model(..), initModel)
 where
 
 import Control.Applicative(liftA2)
@@ -33,6 +33,9 @@ display = flip mappend . translateToCenter
 newtype Model = Model {
   modelIsOverlaying :: Bool
   }
+
+initModel :: Bool -> Model
+initModel = Model
 
 widget :: (Doc, ModKey) -> (Doc, ModKey) -> Widget k -> (Model -> k) -> Widget k -> Model -> Widget k
 widget startShowing stopShowing overlayWidget conv child (Model isOverlaying) =

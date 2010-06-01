@@ -26,6 +26,7 @@ import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
 import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
+import qualified Graphics.UI.VtyWidgets.Overlay as Overlay
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
@@ -74,7 +75,8 @@ longDebugLogLimit = 100
 data Model = Model {
   modelGrid_ :: Grid.DelegatedModel,
   modelTextEdits_ :: [TextEdit.DelegatedModel],
-  modelDebugLog_ :: [String]
+  modelDebugLog_ :: [String],
+  modelKeymapHelp_ :: Overlay.Model
   }
 $(AT.deriveAccessors ''Model)
 
@@ -82,7 +84,8 @@ initModel :: Model
 initModel = Model {
   modelGrid_ = Grid.initDelegatedModel True,
   modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  modelDebugLog_ = replicate shortDebugLogLimit ""
+  modelDebugLog_ = replicate shortDebugLogLimit "",
+  modelKeymapHelp_ = Overlay.initModel True
   }
 
 quitKey :: ModKey
@@ -114,10 +117,16 @@ shortDebugLog model = take shortDebugLogLimit $
                       model ^. modelDebugLog
 
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
-modelEdit size fixKeymap model = withKeymap
+modelEdit size fixKeymap model = widget
   where
-    withKeymap = TableGrid.addKeymapView 40 size widget (keyAttr, 10) (valueAttr, 30)
-    widget = Widget.atDisplay outerGrid innerGrid'
+    widget = Widget.atKeymap fixKeymap .
+             addOverlay .
+             Widget.atDisplay outerGrid $
+             innerGrid
+    addOverlay w = Overlay.widgetAcc modelKeymapHelp
+                   ("Keybindings: show", ([], Vty.KFun 6))
+                   ("Keybindings: hide", ([], Vty.KFun 6))
+                   (Widget.simpleDisplay keymapView) w model
     outerGrid innerGridDisp =
       makeGridView (pure 0)
       [ [ mempty, TextView.make attr "Title\n-----" ],
@@ -128,9 +137,10 @@ modelEdit size fixKeymap model = withKeymap
           unlines . shortDebugLog $
           model ]
       ]
-    innerGrid' = Widget.atKeymap fixKeymap innerGrid
+    keymap = Widget.keymap widget size
+    keymapView = TableGrid.makeKeymapView keymap (keyAttr, 10) (valueAttr, 30)
     innerGrid =
-      Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 40 6) $
+      Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
       makeGrid (pure 0) modelGrid textEdits
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
