@@ -54,8 +54,8 @@ centered = Vector2 0.5 0.5
 
 -- Model:
 
-data Model = Model {
-  gridModelCursor :: Cursor
+newtype Model = Model {
+  modelCursor :: Cursor
   }
 
 initModel :: Model
