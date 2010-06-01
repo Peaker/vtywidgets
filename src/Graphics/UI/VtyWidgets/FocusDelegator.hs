@@ -45,12 +45,12 @@ notDelegatingImageEndo size =
   (`mappend` TermImage.rect (Rect (pure 0) size) (first (`Vty.with_back_color` Vty.blue)))
 
 make :: (Model -> k) -> Widget k -> Model -> Widget k
-make conv child model =
-  case model of
-    Model True -> Widget.atKeymap (`mappend` fmap conv delegatingKeymap) child
-    Model False -> (Widget.atKeymap . const) (fmap conv notDelegatingKeymap) .
-                   (Widget.inWidget . Placable.atPlace) notDelegating $
-                   child
+make conv child (Model isDelegating) =
+  if isDelegating
+    then Widget.atKeymap (`mappend` fmap conv delegatingKeymap) child
+    else (Widget.atKeymap . const) (fmap conv notDelegatingKeymap) .
+         (Widget.inWidget . Placable.atPlace) notDelegating $
+         child
   where
     notDelegating sizeToPair size = notDelegatingImage size `first` sizeToPair size
     notDelegatingImage size mkImage hf =
