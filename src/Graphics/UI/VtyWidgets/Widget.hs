@@ -2,7 +2,7 @@
 
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
-     Widget(..), inWidget, runWidget,
+     Widget(..), inWidget, inWidget2, runWidget,
      atDisplay, atKeymap, atMkImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap, image, requestedSize)
 where
@@ -29,6 +29,15 @@ inWidget :: (Placable (HasFocus -> TermImage, Keymap k) ->
              Placable (HasFocus -> TermImage, Keymap k')) ->
             Widget k -> Widget k'
 inWidget f = Widget . f . unWidget
+inWidget2 :: (Placable (HasFocus -> TermImage, Keymap k) ->
+              Placable (HasFocus -> TermImage, Keymap k') ->
+              Placable (HasFocus -> TermImage, Keymap k'')) ->
+             Widget k -> Widget k' -> Widget k''
+inWidget2 f = inWidget . f . unWidget
+
+instance Monoid (Widget k) where
+  mempty = Widget mempty
+  mappend = inWidget2 mappend
 
 runWidget :: Widget k -> Size -> (TermImage, Keymap k)
 runWidget widget size = first ($ HasFocus True) $
