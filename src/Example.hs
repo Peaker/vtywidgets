@@ -29,7 +29,7 @@ import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Overlay as Overlay
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering), hPutStrLn)
+import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
 
 
 runWidgetLoop :: (String -> IO ()) -> (Size -> IO (Widget (IO ()))) -> IO ()
@@ -101,9 +101,7 @@ main = do
   where
     mainLoop modelMVar = runWidgetLoop logMsg rootWidget
       where
-        logMsg msg = do
-          hPutStrLn stderr msg
-          pureModifyMVar_ modelMVar (addDebugLog msg)
+        logMsg msg = pureModifyMVar_ modelMVar (addDebugLog msg)
 
         addDebugLog msg = modelDebugLog ^: (take longDebugLogLimit . (msg :))
 
