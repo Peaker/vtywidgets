@@ -1,4 +1,5 @@
 {-# OPTIONS -Wall -O2 #-}
+{-# OPTIONS -fno-warn-orphans #-}
 
 module Data.Monoid.Utils(inFirst) where
 
