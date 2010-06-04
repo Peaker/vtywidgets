@@ -37,6 +37,7 @@ Library
                        Graphics.UI.VtyWidgets.TableGrid,
                        Graphics.UI.VtyWidgets.SizeRange,
                        Graphics.UI.VtyWidgets.Placable,
+                       Graphics.UI.VtyWidgets.Align,
                        Graphics.UI.VtyWidgets.Display,
                        Graphics.UI.VtyWidgets.Widget,
                        Data.Vector.Vector2,
