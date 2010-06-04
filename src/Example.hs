@@ -8,6 +8,7 @@ import Data.Monoid(mempty, mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
+import Control.Arrow(second)
 import Control.Monad(forever)
 import Control.Applicative(pure)
 import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
@@ -21,6 +22,7 @@ import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Display as Display
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(Size)
+import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
@@ -158,9 +160,9 @@ modelEdit size fixKeymap model = widget
                 `Vty.with_back_color` Vty.blue
                 `Vty.with_style` Vty.bold
     makeGridView alignment =
-      Grid.makeView . (map . map) (Grid.Item alignment)
+      Grid.makeView . (map . map) (Align.to alignment)
     makeGrid alignment acc rows =
-      (Grid.makeAccDelegated acc . (map . map) (Grid.Item alignment))
+      (Grid.makeAccDelegated acc . (map . map . second . Widget.atDisplay) (Align.to alignment))
       rows model
 
 adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w

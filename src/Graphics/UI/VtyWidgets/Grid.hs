@@ -1,10 +1,10 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (makeView, make, makeAcc, makeSizes, simpleRows,
+    (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
-     Cursor(..), Model(..), Item(..),
-     initModel, centered)
+     Cursor(..), Model(..),
+     initModel)
 where
 
 import Data.Function.Utils(Endo, result, (~>))
@@ -14,8 +14,8 @@ import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(fromMaybe)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Control.Applicative(liftA2, pure)
-import Control.Arrow((***), second)
+import Control.Applicative(liftA2)
+import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap)
@@ -31,26 +31,10 @@ import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
 
--- Item:
-
-type Alignment = Vector2 Double
 newtype Cursor = Cursor (Vector2 Int)
   deriving (Show, Read, Eq, Ord)
 inCursor :: Endo (Vector2 Int) -> Endo Cursor
 inCursor f (Cursor x) = Cursor (f x)
-
-data Item w = Item {
-  itemAlignment :: Alignment,
-  itemChild :: w
-  }
-atItemChild :: (k -> k') -> Item k -> Item k'
-atItemChild f item = item{itemChild = f . itemChild $ item}
-
-instance Functor Item where
-  fmap = atItemChild
-
-centered :: Alignment
-centered = Vector2 0.5 0.5
 
 -- Model:
 
@@ -108,51 +92,33 @@ makePlacements = (result . second . result) placements makeSizes
         positions = zipWith Vector2.zip
                     (map (scanl (+) 0 . map Vector2.fst) sizes)
                     (transpose . map (scanl (+) 0 . map Vector2.snd) . transpose $ sizes)
-    
---- Images:
-
-relativeImagePos :: Size -> Alignment -> Size -> Size
-relativeImagePos totalSize align imageSize = alignLeftTop
-  where
-    totalAlign = liftA2 (-) totalSize imageSize
-    alignLeftTop = fmap truncate . liftA2 (*) align . fmap fromIntegral $ totalAlign
-
-translateImage :: Item (Placement, (Size, TermImage)) -> TermImage
-translateImage (Item alignment ((basePos, size), (imgSize, image))) =
-  TermImage.translate pos image
-      where
-        pos = liftA2 (+) basePos $
-              relativeImagePos size alignment imgSize
 
 mapu :: (a -> b -> c) -> [(a, b)] -> [c]
 mapu = map . uncurry
 
-combineImages :: [[Item (Placement, (Size, TermImage))]] -> TermImage
-combineImages = mconcat . map translateImage . concat
+combineImages :: [[(Placement, TermImage)]] -> TermImage
+combineImages = mconcat .
+                mapu TermImage.translate .
+                (map . first) fst .       -- Get rid of the (, Size)
+                concat
 
 --- Displays:
 
-feedPlacable :: Placement -> Placable a -> (Placement, (Size, a))
-feedPlacable pl@(_, size) placable = (pl, unPlacable placable)
-  where
-    unPlacable (Placable rs place) = (imgSize, place size)
-      where
-        -- Give the cell the minimum between available space and
-        -- his maximum requested space (in each axis):
-        imgSize = liftA2 min size . SizeRange.srMaxSize $ rs
+feedPlacable :: Placement -> Placable a -> (Placement, a)
+feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 
-makeView :: [[Item (Display a)]] -> Display a
+makeView :: [[Display a]] -> Display a
 makeView rows = Display.make requestedSize mkImage
   where
     (requestedSize, mkPlacements) =
       makePlacements .
-      (map . map) (Placable.pRequestedSize . itemChild) $
+      (map . map) Placable.pRequestedSize $
       rows
     mkImage givenSize imgarg =
       combineImages .
-      (zipWith . zipWith) (fmap . feedPlacable) (mkPlacements givenSize) .
-      -- Penetrate [[Item (Placable (..))]] and feed the arg
-      (map . map . fmap . fmap) ($ imgarg) $
+      (zipWith . zipWith) feedPlacable (mkPlacements givenSize) .
+      -- Penetrate [[Placable (..)]] and feed the arg
+      (map . map . fmap) ($ imgarg) $
       rows
 
 --- Widgets:
@@ -163,8 +129,8 @@ enumerate = zip [0..]
 enumerate2 :: (Enum a, Num a) => [[b]] -> [[((a, a), b)]]
 enumerate2 xss = mapu row (enumerate xss)
   where
-    row rowIndex items = mapu (add rowIndex) (enumerate items)
-    add rowIndex columnIndex item = ((columnIndex, rowIndex), item)
+    row rowIndex = mapu (add rowIndex) . enumerate
+    add rowIndex columnIndex = (,) (columnIndex, rowIndex)
 
 mkNavKeymap :: [[Bool]] -> Cursor -> Keymap Cursor
 mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
@@ -182,24 +148,24 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     curRow = wantFocusRows !! cursorY
     countUnwanters = length . takeWhile not
 
-make :: (Model -> k) -> [[Item (Bool, Widget k)]] -> Model -> Widget k
+make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
 make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
   where
-    wantFocusRows = (map . map) (fst . itemChild) rows
+    wantFocusRows = (map . map) fst rows
     navKeymap = fmap (conv . Model) .
                 mkNavKeymap wantFocusRows $
                 gcursor
 
-    widgetRows = (map . map . fmap) (Widget.unWidget . snd) rows
+    widgetRows = (map . map) (Widget.unWidget . snd) rows
     
     -- TODO: Reduce duplication with makeView
     (requestedSize, mkPlacements) =
-      makePlacements . (map . map) (Placable.pRequestedSize . itemChild) $ widgetRows
+      makePlacements . (map . map) Placable.pRequestedSize $ widgetRows
     mkImageKeymap givenSize = (mkImage, keymap)
       where
-        -- Get rid of the Placable, and put the Placable and actual
+        -- Get rid of the Placable, and put the Placement and actual
         -- Size with each item:
-        placementWidgetRows = (zipWith . zipWith) (fmap . feedPlacable)
+        placementWidgetRows = (zipWith . zipWith) feedPlacable
                               (mkPlacements givenSize) widgetRows
         
         -- Disable the cursor and HasFocus of inactive children, and
@@ -208,7 +174,7 @@ make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
 
         childWidgetRows = (map . mapu) childWidget . enumerate2 $ placementWidgetRows
         childWidget index =
-          (fmap . second . second)
+          second
           (if gcursor == Cursor (uncurry Vector2 index)
            then curChild
            else unCurChild)
@@ -221,26 +187,23 @@ make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
 
         mkImage hf = combineImages .
                      -- Get the TermImage:
-                     (map . map . fmap . second . second) (($hf) . fst) $
+                     (map . map . second) (($hf) . fst) $
                      childWidgetRows
     
         childKeymap = fromMaybe mempty .
                       mconcat .
                       -- Get the Maybe-wrapped keymaps
-                      map (snd . snd . snd . itemChild) .
+                      map (snd . snd) .
                       concat $
                       childWidgetRows
         keymap = childKeymap `mappend` navKeymap
 
 --- Convenience
 
-simpleRows :: [[Display a]] -> [[Item (Display a)]]
-simpleRows = (map . map) (Item (pure 0))
-
 setter :: w -> Accessor w p -> p -> w
 setter w acc p = setVal acc p w
 
-makeAcc :: Accessor k Model -> [[Item (Bool, Widget k)]] -> k -> Widget k
+makeAcc :: Accessor k Model -> [[(Bool, Widget k)]] -> k -> Widget k
 makeAcc acc rows k = make (setter k acc) rows (k ^. acc)
 
 type DelegatedModel = (FocusDelegator.Model, Model)
@@ -248,11 +211,11 @@ type DelegatedModel = (FocusDelegator.Model, Model)
 initDelegatedModel :: Bool -> DelegatedModel
 initDelegatedModel = flip (,) initModel . FocusDelegator.initModel
 
-makeDelegated :: (DelegatedModel -> k) -> [[Item (Bool, Widget k)]] -> DelegatedModel -> Widget k
+makeDelegated :: (DelegatedModel -> k) -> [[(Bool, Widget k)]] -> DelegatedModel -> Widget k
 makeDelegated conv rows (fdm, m) = focusDelegator
   where
     focusDelegator = FocusDelegator.make (\fdm' -> conv (fdm', m)) grid fdm
     grid = make (\m' -> conv (fdm, m')) rows m
 
-makeAccDelegated :: Accessor k DelegatedModel -> [[Item (Bool, Widget k)]] -> k -> Widget k
+makeAccDelegated :: Accessor k DelegatedModel -> [[(Bool, Widget k)]] -> k -> Widget k
 makeAccDelegated acc rows k = makeDelegated (setter k acc) rows (k ^. acc)

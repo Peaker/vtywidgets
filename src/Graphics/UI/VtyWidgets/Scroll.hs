@@ -84,7 +84,7 @@ centeredView sizeRange' (Placable sizeRange mkImage) =
 
         image = mkImage scrollSize imgarg
         image' = if barsNeeded
-                 then Placable.pPlace (Grid.makeView . Grid.simpleRows $ rows) givenSize imgarg
+                 then Placable.pPlace (Grid.makeView rows) givenSize imgarg
                  else image
         getSSize rs = sSize
           where

@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Align
-    (make)
+    (to)
 where
 
 import Control.Applicative(liftA2)
@@ -13,8 +13,8 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 type Alignment = Vector2 Double
 
-make :: Alignment -> Display a -> Display a
-make alignment display = Placable.atPlace alignImage display
+to :: Alignment -> Display a -> Display a
+to alignment display = Placable.atPlace alignImage display
   where
     maxSize = srMaxSize . Placable.pRequestedSize $ display
     alignImage mkImage givenSize = TermImage.translate translation . mkImage size

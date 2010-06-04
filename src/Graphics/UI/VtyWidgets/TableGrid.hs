@@ -11,6 +11,7 @@ import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Map as Map
 import qualified Graphics.Vty as Vty
 import Graphics.UI.VtyWidgets.Keymap(Keymap(keymapGroups))
+import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
@@ -19,7 +20,7 @@ makeColumnView :: [Vty.Attr] -> [[String]] -> Display a
 makeColumnView attrs table =
   Grid.makeView $ (map . zipWith f) attrs table
   where
-    f attr x = Grid.Item (Vector2 0 0.5) (TextView.make attr x)
+    f attr x = Align.to (Vector2 0 0.5) . TextView.make attr $ x
 
 ljustify :: Int -> a -> [a] -> [a]
 ljustify width x xs = xs ++ replicate (width - length xs) x
