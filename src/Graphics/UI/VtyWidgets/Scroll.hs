@@ -64,12 +64,13 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 -- a |   display  |
 -- r |            |
 -- : \____________/
-centeredView :: SizeRange
-            -- ^ Size range of the scroller itself, including bars
-            -> Display a
-            -- ^ The display to scroll through
-            -> Display a
-centeredView sizeRange' (Placable sizeRange mkImage) =
+
+sizedCenteredView :: SizeRange
+                     -- ^ Size range of the scroller itself, including bars
+                     -> Display a
+                     -- ^ The display to scroll through
+                     -> Display a
+sizedCenteredView sizeRange' (Placable sizeRange mkImage) =
   Display.make sizeRange' mkGridImage
   where
     mkGridImage givenSize imgarg = image'
@@ -113,3 +114,16 @@ centeredView sizeRange' (Placable sizeRange mkImage) =
                 dimRange = (/fiDim scrollSize) . fiDim
             hrange = mkRange Vector2.fst
             vrange = mkRange Vector2.snd
+
+centeredView :: SizeRange
+                -- ^ Size range of the scroller itself, including bars
+                -> Display a
+                -- ^ The display to scroll through
+                -> Display a
+centeredView requestedSize display =
+  sizedCenteredView requestedSize' display
+  where
+    requestedSize' = SizeRange.atBothSizes
+                     (liftA2 min maxSize)
+                     requestedSize
+    maxSize = SizeRange.srMaxSize . Placable.pRequestedSize $ display
