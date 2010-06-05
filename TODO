@@ -1,7 +1,3 @@
-* Grid:
-  * Can remove "Item" because it is easily possible to do the
-    translation to center of available size or such independently
-
 * Scalability:
   * To allow for scalable widget hierarchies, I need to make sure
     getting the TermImage is O(display size) and not O(entire size). I
