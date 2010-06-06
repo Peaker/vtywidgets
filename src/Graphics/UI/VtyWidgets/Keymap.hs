@@ -62,7 +62,7 @@ simpleton doc key = singleton (showModKey key) doc key
 showKey :: Vty.Key -> String
 showKey key = case key of
   Vty.KEsc        -> "Escape"
-  Vty.KFun n      -> 'f' : show n
+  Vty.KFun n      -> 'F' : show n
   Vty.KBackTab    -> "BackTab"
   Vty.KPrtScr     -> "PrintScreen"
   Vty.KPause      -> "Pause"
