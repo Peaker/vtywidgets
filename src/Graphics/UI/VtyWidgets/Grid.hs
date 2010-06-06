@@ -96,11 +96,18 @@ makePlacements = (result . second . result) placements makeSizes
 mapu :: (a -> b -> c) -> [(a, b)] -> [c]
 mapu = map . uncurry
 
-combineImages :: [[(Placement, TermImage)]] -> TermImage
-combineImages = mconcat .
-                mapu TermImage.translate .
-                (map . first) fst .       -- Get rid of the (, Size)
-                concat
+combineImages :: Size -> [[(Placement, TermImage)]] -> TermImage
+combineImages size =
+  mconcat .
+  mapu TermImage.translate .
+  (map . first) fst .       -- Get rid of the (, Size)
+  concat .
+  map (takeWhile columnFits) .
+  takeWhile rowFits
+  where
+    rowFits [] = False
+    rowFits (((pos, _), _):_) = Vector2.snd pos < Vector2.snd size
+    columnFits ((pos, _), _) = Vector2.fst pos < Vector2.fst size
 
 --- Displays:
 
@@ -115,7 +122,7 @@ makeView rows = Display.make requestedSize mkImage
       (map . map) Placable.pRequestedSize $
       rows
     mkImage givenSize imgarg =
-      combineImages .
+      combineImages givenSize .
       (zipWith . zipWith) feedPlacable (mkPlacements givenSize) .
       -- Penetrate [[Placable (..)]] and feed the arg
       (map . map . fmap) ($ imgarg) $
@@ -149,7 +156,7 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     countUnwanters = length . takeWhile not
 
 make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
-make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
+make conv rows (Model gcursor@(Cursor (Vector2 gx gy))) = Widget.make requestedSize mkImageKeymap
   where
     wantFocusRows = (map . map) fst rows
     navKeymap = fmap (conv . Model) .
@@ -185,17 +192,12 @@ make conv rows (Model gcursor) = Widget.make requestedSize mkImageKeymap
                       (TermImage.inCursor . const) Nothing) ***
                      const Nothing
 
-        mkImage hf = combineImages .
+        mkImage hf = combineImages givenSize .
                      -- Get the TermImage:
                      (map . map . second) (($hf) . fst) $
                      childWidgetRows
-    
-        childKeymap = fromMaybe mempty .
-                      mconcat .
-                      -- Get the Maybe-wrapped keymaps
-                      map (snd . snd) .
-                      concat $
-                      childWidgetRows
+
+        childKeymap = fromMaybe mempty . snd . snd $ childWidgetRows !! gy !! gx
         keymap = childKeymap `mappend` navKeymap
 
 --- Convenience

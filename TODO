@@ -1,9 +1,3 @@
-* Scalability:
-  * To allow for scalable widget hierarchies, I need to make sure
-    getting the TermImage is O(display size) and not O(entire size). I
-    need to make sure Grid is lazy about the stuff beyond the screen
-    somehow -- how?
-
 * Nicer navigation:
   * Keymap -> Eventmap
   * Add DirectionEntry event type, and move Grid to that position

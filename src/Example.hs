@@ -33,7 +33,6 @@ import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
 
-
 runWidgetLoop :: (String -> IO ()) -> (Size -> IO (Widget (IO ()))) -> IO ()
 runWidgetLoop logMsg makeWidget = do
   withVty $ \vty -> do
