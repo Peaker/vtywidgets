@@ -1,3 +1,6 @@
+* Replace the IO debug log op with a "withDebug" which puts the debug
+  info somewhere on screen?  Keeps its own state in the loop
+
 * Nicer navigation:
   * Keymap -> Eventmap
   * Add DirectionEntry event type, and move Grid to that position

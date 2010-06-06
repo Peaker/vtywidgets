@@ -4,7 +4,7 @@
 import qualified Graphics.Vty as Vty
 import Data.Accessor(Accessor, accessor, (^.), (^:), setVal)
 import qualified Data.Accessor.Template as AT
-import Data.Monoid(mempty, mappend)
+import Data.Monoid(mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
@@ -128,11 +128,10 @@ modelEdit size fixKeymap model = widget
                    (Widget.simpleDisplay keymapView) w model
     outerGrid innerGridDisp =
       makeGridView (pure 0)
-      [ [ mempty, TextView.make attr "Title\n-----" ],
-        [ innerGridDisp, Spacer.makeHorizontal ],
+      [ [ TextView.make attr "Title\n-----" ],
+        [ innerGridDisp ],
         [ Spacer.makeVertical ],
-        [ mempty, mempty,
-          TextView.make attr .
+        [ TextView.make attr .
           unlines . shortDebugLog $
           model ]
       ]
