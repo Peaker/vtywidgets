@@ -1,5 +1,6 @@
 * Replace the IO debug log op with a "withDebug" which puts the debug
   info somewhere on screen?  Keeps its own state in the loop
+  * It's not that important!
 
 * Nicer navigation:
   * Keymap -> Eventmap

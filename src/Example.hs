@@ -67,11 +67,8 @@ nthSet n x' (x:xs) = x : nthSet (n-1) x' xs
 nth :: Int -> Accessor [a] a
 nth n = accessor (!! n) (nthSet n)
 
-shortDebugLogLimit :: Int
-shortDebugLogLimit = 5
-
-longDebugLogLimit :: Int
-longDebugLogLimit = 100
+debugLogLimit :: Int
+debugLogLimit = 5
 
 data Model = Model {
   modelGrid_ :: Grid.DelegatedModel,
@@ -85,7 +82,7 @@ initModel :: Model
 initModel = Model {
   modelGrid_ = Grid.initDelegatedModel True,
   modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  modelDebugLog_ = replicate shortDebugLogLimit "",
+  modelDebugLog_ = replicate debugLogLimit "",
   modelKeymapHelp_ = Overlay.initModel True
   }
 
@@ -104,7 +101,7 @@ main = do
       where
         logMsg msg = pureModifyMVar_ modelMVar (addDebugLog msg)
 
-        addDebugLog msg = modelDebugLog ^: (take longDebugLogLimit . (msg :))
+        addDebugLog msg = modelDebugLog ^: (take debugLogLimit . (msg :))
 
         rootWidget size = modelEdit size fixKeymap `fmap`
                           readMVar modelMVar
@@ -112,7 +109,7 @@ main = do
                     ((pureModifyMVar_ modelMVar . const) `fmap`)
 
 shortDebugLog :: Model -> [String]
-shortDebugLog model = take shortDebugLogLimit $
+shortDebugLog model = take debugLogLimit $
                       model ^. modelDebugLog
 
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
