@@ -4,28 +4,19 @@ module Graphics.UI.VtyWidgets.Overlay
     (display, widget, widgetAcc, Model(..), initModel)
 where
 
-import Control.Applicative(liftA2)
 import Data.Monoid(mappend)
 import Data.Accessor(Accessor, (^.), setVal)
+import Data.Vector.Vector2(Vector2(..))
+import Data.Function.Utils(Endo)
 import Graphics.UI.VtyWidgets.Keymap(ModKey, Doc)
-import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
+import qualified Graphics.UI.VtyWidgets.Align as Align
 import Graphics.UI.VtyWidgets.Display(Display)
-import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
--- TODO: Grid Item is really all about this, can share code:
-translateToCenter :: Display a -> Display a
-translateToCenter disp = Placable.atPlace translate disp
-  where
-    dispMinRS = SizeRange.srMinSize . Placable.pRequestedSize $ disp
-    translate mkImage givenSize imgarg = TermImage.translate (halfPos givenSize dispSize) $
-                                         mkImage givenSize imgarg
-      where
-        dispSize = liftA2 min dispMinRS givenSize
-    halfPos bigSize smallSize = (`div` 2) `fmap` liftA2 (-) bigSize smallSize
+translateToCenter :: Endo (Display a)
+translateToCenter = Align.to (Vector2 0.5 0.5)
 
 display :: Display a -> Display a -> Display a
 display = flip mappend . translateToCenter

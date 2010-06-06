@@ -5,6 +5,7 @@ module Graphics.UI.VtyWidgets.Align
 where
 
 import Control.Applicative(liftA2)
+import Data.Function.Utils(Endo)
 import Data.Vector.Vector2(Vector2)
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..))
 import Graphics.UI.VtyWidgets.Display(Display)
@@ -13,7 +14,7 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 type Alignment = Vector2 Double
 
-to :: Alignment -> Display a -> Display a
+to :: Alignment -> Endo (Display a)
 to alignment display = Placable.atPlace alignImage display
   where
     maxSize = srMaxSize . Placable.pRequestedSize $ display
