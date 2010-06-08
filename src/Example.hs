@@ -13,7 +13,7 @@ import Control.Monad(forever)
 import Control.Applicative(pure)
 import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
 import Control.Monad.Trans.State(evalStateT, get, put)
-import Control.Monad.Trans(MonadIO, liftIO)
+import Control.Monad.IO.Class(MonadIO, liftIO)
 import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
