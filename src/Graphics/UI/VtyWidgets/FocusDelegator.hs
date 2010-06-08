@@ -1,4 +1,5 @@
 {-# OPTIONS -O2 -Wall #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Graphics.UI.VtyWidgets.FocusDelegator
     (make, makeAcc, Model(..), initModel)
@@ -9,7 +10,7 @@ import Control.Arrow(first)
 import Data.Vector.Rect(Rect(..))
 import Data.Vector.Vector2(Vector2)
 import Data.Monoid(mappend)
-import Data.Accessor(Accessor, setVal, (^.))
+import Data.Record.Label((:->), set, get)
 import Data.Function.Utils(Endo)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
@@ -59,9 +60,6 @@ make conv child (Model isDelegating) =
        else id) $
       mkImage (Widget.HasFocus False)
 
-setter :: w -> Accessor w p -> p -> w
-setter w acc p = setVal acc p w
-
-makeAcc :: Accessor k Model -> Widget k -> k -> Widget k
+makeAcc :: k :-> Model -> Widget k -> k -> Widget k
 makeAcc acc child k =
-  make (setter k acc) child (k ^. acc)
+  make (flip (set acc) k) child (get acc k)

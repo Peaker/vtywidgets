@@ -1,9 +1,9 @@
 {-# OPTIONS -O2 -Wall #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TypeOperators #-}
 
 import qualified Graphics.Vty as Vty
-import Data.Accessor(Accessor, accessor, (^.), (^:), setVal)
-import qualified Data.Accessor.Template as AT
+import qualified Data.Record.Label as Label
+import Data.Record.Label((:->), mkLabels, label)
 import Data.Monoid(mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
@@ -64,26 +64,31 @@ nthSet _ _ [] = error "IndexError in nthSet"
 nthSet 0 x' (_:xs) = x' : xs
 nthSet n x' (x:xs) = x : nthSet (n-1) x' xs
 
-nth :: Int -> Accessor [a] a
-nth n = accessor (!! n) (nthSet n)
+nth :: Int -> [a] :-> a
+nth n = label (!! n) (nthSet n)
 
 debugLogLimit :: Int
 debugLogLimit = 5
 
 data Model = Model {
-  modelGrid_ :: Grid.DelegatedModel,
-  modelTextEdits_ :: [TextEdit.DelegatedModel],
-  modelDebugLog_ :: [String],
-  modelKeymapHelp_ :: Overlay.Model
+  _modelGrid :: Grid.DelegatedModel,
+  _modelTextEdits :: [TextEdit.DelegatedModel],
+  _modelDebugLog :: [String],
+  _modelKeymapHelp :: Overlay.Model
   }
-$(AT.deriveAccessors ''Model)
+$(mkLabels [''Model])
+
+modelGrid :: Model :-> Grid.DelegatedModel
+modelTextEdits :: Model :-> [TextEdit.DelegatedModel]
+modelDebugLog :: Model :-> [String]
+modelKeymapHelp :: Model :-> Overlay.Model
 
 initModel :: Model
 initModel = Model {
-  modelGrid_ = Grid.initDelegatedModel True,
-  modelTextEdits_ = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  modelDebugLog_ = replicate debugLogLimit "",
-  modelKeymapHelp_ = Overlay.initModel True
+  _modelGrid = Grid.initDelegatedModel True,
+  _modelTextEdits = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  _modelDebugLog = replicate debugLogLimit "",
+  _modelKeymapHelp = Overlay.initModel True
   }
 
 quitKey :: ModKey
@@ -101,7 +106,7 @@ main = do
       where
         logMsg msg = pureModifyMVar_ modelMVar (addDebugLog msg)
 
-        addDebugLog msg = modelDebugLog ^: (take debugLogLimit . (msg :))
+        addDebugLog msg = Label.mod modelDebugLog (take debugLogLimit . (msg :))
 
         rootWidget size = modelEdit size fixKeymap `fmap`
                           readMVar modelMVar
@@ -110,7 +115,7 @@ main = do
 
 shortDebugLog :: Model -> [String]
 shortDebugLog model = take debugLogLimit $
-                      model ^. modelDebugLog
+                      Label.get modelDebugLog model
 
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
 modelEdit size fixKeymap model = widget
@@ -160,5 +165,5 @@ modelEdit size fixKeymap model = widget
       (Grid.makeAccDelegated acc . (map . map . second . Widget.atDisplay) (Align.to alignment))
       rows model
 
-adaptModel :: Accessor w p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget w = Widget.atKeymap (flip (setVal acc) w `fmap`) (pwidget (w ^. acc))
+adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w
+adaptModel acc pwidget w = Widget.atKeymap (flip (Label.set acc) w `fmap`) (pwidget (Label.get acc w))

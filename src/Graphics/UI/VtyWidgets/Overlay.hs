@@ -1,11 +1,12 @@
 {-# OPTIONS -O2 -Wall #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Graphics.UI.VtyWidgets.Overlay
     (display, widget, widgetAcc, Model(..), initModel)
 where
 
 import Data.Monoid(mappend)
-import Data.Accessor(Accessor, (^.), setVal)
+import Data.Record.Label((:->), set, get)
 import Data.Vector.Vector2(Vector2(..))
 import Data.Function.Utils(Endo)
 import Graphics.UI.VtyWidgets.Keymap(ModKey, Doc)
@@ -41,10 +42,7 @@ widget startShowing stopShowing overlayWidget conv child (Model isOverlaying) =
     mkKeymap docModKey toShow =
       uncurry Keymap.simpleton docModKey . conv . Model $ toShow
 
-setter :: w -> Accessor w p -> p -> w
-setter w acc p = setVal acc p w
-
-widgetAcc :: Accessor k Model ->
+widgetAcc :: k :-> Model ->
              (Doc, ModKey) -> (Doc, ModKey) -> Widget k -> Widget k -> k -> Widget k
 widgetAcc acc startShowing stopShowing overlayWidget child k =
-  widget startShowing stopShowing overlayWidget (setter k acc) child (k ^. acc)
+  widget startShowing stopShowing overlayWidget (flip (set acc) k) child (get acc k)

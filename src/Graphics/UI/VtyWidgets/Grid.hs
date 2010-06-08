@@ -1,4 +1,5 @@
 {-# OPTIONS -O2 -Wall #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
@@ -9,7 +10,7 @@ where
 
 import Data.Function.Utils(Endo, result, (~>))
 import Data.List(transpose)
-import Data.Accessor(Accessor, (^.), setVal)
+import Data.Record.Label((:->), set, get)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(fromMaybe)
 import Data.Vector.Vector2(Vector2(..))
@@ -148,8 +149,8 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
     ]
   where
-    mover dirName key set f xs =
-       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . set . f . (+1) . countUnwanters $ xs) cursor)
+    mover dirName key axis f xs =
+       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . axis . f . (+1) . countUnwanters $ xs) cursor)
        | True `elem` xs ]
     curColumn = transpose wantFocusRows !! cursorX
     curRow = wantFocusRows !! cursorY
@@ -202,11 +203,8 @@ make conv rows (Model gcursor@(Cursor (Vector2 gx gy))) = Widget.make requestedS
 
 --- Convenience
 
-setter :: w -> Accessor w p -> p -> w
-setter w acc p = setVal acc p w
-
-makeAcc :: Accessor k Model -> [[(Bool, Widget k)]] -> k -> Widget k
-makeAcc acc rows k = make (setter k acc) rows (k ^. acc)
+makeAcc :: k :-> Model -> [[(Bool, Widget k)]] -> k -> Widget k
+makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
 
 type DelegatedModel = (FocusDelegator.Model, Model)
 
@@ -219,5 +217,5 @@ makeDelegated conv rows (fdm, m) = focusDelegator
     focusDelegator = FocusDelegator.make (\fdm' -> conv (fdm', m)) grid fdm
     grid = make (\m' -> conv (fdm, m')) rows m
 
-makeAccDelegated :: Accessor k DelegatedModel -> [[(Bool, Widget k)]] -> k -> Widget k
-makeAccDelegated acc rows k = makeDelegated (setter k acc) rows (k ^. acc)
+makeAccDelegated :: k :-> DelegatedModel -> [[(Bool, Widget k)]] -> k -> Widget k
+makeAccDelegated acc rows k = makeDelegated (flip (set acc) k) rows (get acc k)
