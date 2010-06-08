@@ -35,10 +35,10 @@ combineRect2 ftl fbr (Rect tl1 br1) (Rect tl2 br2) =
   Rect (tl1 `ftl` tl2) (br1 `fbr` br2)
 
 minBoundHack :: (Bounded a, Integral a) => a
-minBoundHack = minBound `div` 2
+minBoundHack = minBound `div` 25
 
 maxBoundHack :: (Bounded a, Integral a) => a
-maxBoundHack = maxBound `div` 2
+maxBoundHack = maxBound `div` 25
 
 inside :: Coordinate -> Rect -> Bool
 inside (Vector2 x y) (Rect (Vector2 l t) (Vector2 r b)) =

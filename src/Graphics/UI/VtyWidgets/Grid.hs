@@ -60,8 +60,8 @@ makeSizes :: [[SizeRange]] -> (SizeRange, Size -> [[Size]])
 makeSizes rows = (requestedSize, mkSizes)
   where
     requestedSize = SizeRange.make minSize maxSize
-    minSize = Vector2 (sum columnMinWidths) (sum rowMinHeights)
-    maxSize = Vector2 (sum columnMaxWidths) (sum rowMaxHeights)
+    minSize = fmap sum $ Vector2 columnMinWidths rowMinHeights
+    maxSize = fmap sum $ Vector2 columnMaxWidths rowMaxHeights
     -- Compute all the row/column sizes:
     computeSizes f = map maximum . (map . map) f
     computeSizeRanges f xs =

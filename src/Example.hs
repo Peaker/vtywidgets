@@ -26,38 +26,43 @@ import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
-import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
+--import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Overlay as Overlay
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
+import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering),
+                 withFile, Handle, IOMode(WriteMode), hPutStrLn, hFlush)
 
-runWidgetLoop :: (String -> IO ()) -> (Size -> IO (Widget (IO ()))) -> IO ()
-runWidgetLoop logMsg makeWidget = do
+writeLnFlush :: Handle -> String -> IO ()
+writeLnFlush h str = do
+  hPutStrLn h str
+  hFlush h
+
+runWidgetLoop :: (Size -> IO (Widget (IO ()))) -> IO ()
+runWidgetLoop makeWidget = do
   withVty $ \vty -> do
-    Vty.DisplayRegion width height <- Vty.display_bounds . Vty.terminal $ vty
-    let initSize = fmap fromIntegral $ Vector2 width height
-    (`evalStateT` initSize) . forever $ do
+    withFile "/tmp/debug.log" WriteMode $ \debugHandle -> do
+      let debugLog = liftIO . writeLnFlush debugHandle
+      Vty.DisplayRegion width height <- Vty.display_bounds . Vty.terminal $ vty
+      let initSize = fmap fromIntegral $ Vector2 width height
+      (`evalStateT` initSize) . forever $ do
+        liftIO . Vty.update vty . TermImage.render . fst =<< makeWidget'
+        event <- liftIO . Vty.next_event $ vty
+        debugLog $ "Handling event: " ++ show event
+        case event of
+          Vty.EvResize w h -> do
+            let size' = Vector2 w h
+            put size'
+            debugLog $ "Resized to: " ++ show size'
+          Vty.EvKey key mods -> do
+            maybe (return ()) (liftIO . snd . snd) . Keymap.lookup (mods, key) . snd =<< makeWidget'
+          _ -> return ()
+  where
+    makeWidget' = do
       size <- get
-      event <- liftIO $ do
-        widget <- makeWidget size
-        Vty.update vty . TermImage.render .
-          Widget.image widget $ size
-        Vty.next_event $ vty
-      widget <- liftIO $ do
-        logMsg $ "Handling event: " ++ show event
-        -- Remake widget because logMsg is allowed to modify it...
-        makeWidget size
-      case event of
-        Vty.EvResize w h -> do
-          let size' = Vector2 w h
-          put size'
-          liftIO . logMsg $ "Resized to: " ++ show size'
-        Vty.EvKey key mods -> do
-          maybe (return ()) (liftIO . snd . snd) .
-            Keymap.lookup (mods, key) . Widget.keymap widget $ size
-        _ -> return ()
+      w <- liftIO . makeWidget $ size
+      return (Widget.runWidget w size)
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
@@ -67,27 +72,21 @@ nthSet n x' (x:xs) = x : nthSet (n-1) x' xs
 nth :: Int -> [a] :-> a
 nth n = label (!! n) (nthSet n)
 
-debugLogLimit :: Int
-debugLogLimit = 5
-
 data Model = Model {
   _modelGrid :: Grid.DelegatedModel,
   _modelTextEdits :: [TextEdit.DelegatedModel],
-  _modelDebugLog :: [String],
   _modelKeymapHelp :: Overlay.Model
   }
 $(mkLabels [''Model])
 
 modelGrid :: Model :-> Grid.DelegatedModel
 modelTextEdits :: Model :-> [TextEdit.DelegatedModel]
-modelDebugLog :: Model :-> [String]
 modelKeymapHelp :: Model :-> Overlay.Model
 
 initModel :: Model
 initModel = Model {
   _modelGrid = Grid.initDelegatedModel True,
   _modelTextEdits = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  _modelDebugLog = replicate debugLogLimit "",
   _modelKeymapHelp = Overlay.initModel True
   }
 
@@ -102,28 +101,20 @@ main = do
   hSetBuffering stderr NoBuffering
   mainLoop =<< newMVar initModel
   where
-    mainLoop modelMVar = runWidgetLoop logMsg rootWidget
+    mainLoop modelMVar = runWidgetLoop rootWidget
       where
-        logMsg msg = pureModifyMVar_ modelMVar (addDebugLog msg)
-
-        addDebugLog msg = Label.mod modelDebugLog (take debugLogLimit . (msg :))
-
         rootWidget size = modelEdit size fixKeymap `fmap`
                           readMVar modelMVar
         fixKeymap = (Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`) .
                     ((pureModifyMVar_ modelMVar . const) `fmap`)
 
-shortDebugLog :: Model -> [String]
-shortDebugLog model = take debugLogLimit $
-                      Label.get modelDebugLog model
-
 modelEdit :: Size -> (Keymap Model -> Keymap k) -> Model -> Widget k
-modelEdit size fixKeymap model = widget
+modelEdit size fixKeymap model =
+  Widget.atKeymap fixKeymap .
+  addOverlay .
+  Widget.atDisplay outerGrid $
+  innerGrid
   where
-    widget = Widget.atKeymap fixKeymap .
-             addOverlay .
-             Widget.atDisplay outerGrid $
-             innerGrid
     addOverlay w = Overlay.widgetAcc modelKeymapHelp
                    ("Keybindings: show", ([], Vty.KFun 6))
                    ("Keybindings: hide", ([], Vty.KFun 6))
@@ -131,13 +122,9 @@ modelEdit size fixKeymap model = widget
     outerGrid innerGridDisp =
       makeGridView (pure 0)
       [ [ TextView.make attr "Title\n-----" ],
-        [ innerGridDisp ],
-        [ Spacer.makeVertical ],
-        [ TextView.make attr .
-          unlines . shortDebugLog $
-          model ]
+        [ innerGridDisp ]
       ]
-    keymap = Widget.keymap widget size
+    keymap = fixKeymap $ Widget.keymap innerGrid size
     keymapView = TableGrid.makeKeymapView keymap (keyAttr, 10) (valueAttr, 30)
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $

@@ -39,7 +39,7 @@ make :: Size -> Size -> SizeRange
 make minSize maxSize = SizeRange minSize (max minSize maxSize)
 
 maxBoundHack :: (Bounded a, Integral a) => a
-maxBoundHack = maxBound `div` 2
+maxBoundHack = maxBound `div` 25
 
 horizontallyExpanding :: Int -> Int -> SizeRange
 horizontallyExpanding fixedHeight minWidth = SizeRange (Vector2 minWidth fixedHeight)
