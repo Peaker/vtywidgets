@@ -53,7 +53,7 @@ Library
 executable vtywidgets-example
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base >= 4 && < 5, split, fclabels, vty, containers,
+  Build-Depends:       base >= 4 && < 5, split, fclabels >= 0.4 && < 0.5, vty, containers,
                        array >= 0.2, dlist >= 0.5 && < 0.6, transformers >= 0.1.4.0 && < 0.2
   ghc-options : -O2 -Wall
   main-is: Example.hs
