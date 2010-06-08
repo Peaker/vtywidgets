@@ -1,15 +1,3 @@
-* Giving wrong size to main widget: Can just write the debug info to /tmp/debugLog...
-
-* (Keymap view + Grid) determine the size range, which determines the
-  size given to grid, which determines the keymap, which ...
-
-  * How should it work?  Have Overlay 
-
-* There seems to be a problem with the size allocation, the inner grid
-  has a vertical spacer in it, but isn't getting the extra vertical
-  space. It's as if the maximum size of the grid and the keymap
-  somehow becomes min between their max sizes rather than max.
-
 * Nicer navigation:
   * Keymap -> Eventmap
   * Add DirectionEntry event type, and move Grid to that position
