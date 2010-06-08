@@ -9,12 +9,8 @@ import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
 import Control.Arrow(second)
-import Control.Monad(forever)
 import Control.Applicative(pure)
 import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
-import Control.Monad.Trans.State(evalStateT, get, put)
-import Control.Monad.IO.Class(MonadIO, liftIO)
-import Graphics.Vty.Utils(withVty)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
@@ -26,43 +22,11 @@ import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
---import qualified Graphics.UI.VtyWidgets.Spacer as Spacer
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Overlay as Overlay
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
-import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering),
-                 withFile, Handle, IOMode(WriteMode), hPutStrLn, hFlush)
-
-writeLnFlush :: Handle -> String -> IO ()
-writeLnFlush h str = do
-  hPutStrLn h str
-  hFlush h
-
-runWidgetLoop :: (Size -> IO (Widget (IO ()))) -> IO ()
-runWidgetLoop makeWidget = do
-  withVty $ \vty -> do
-    withFile "/tmp/debug.log" WriteMode $ \debugHandle -> do
-      let debugLog = liftIO . writeLnFlush debugHandle
-      Vty.DisplayRegion width height <- Vty.display_bounds . Vty.terminal $ vty
-      let initSize = fmap fromIntegral $ Vector2 width height
-      (`evalStateT` initSize) . forever $ do
-        liftIO . Vty.update vty . TermImage.render . fst =<< makeWidget'
-        event <- liftIO . Vty.next_event $ vty
-        debugLog $ "Handling event: " ++ show event
-        case event of
-          Vty.EvResize w h -> do
-            let size' = Vector2 w h
-            put size'
-            debugLog $ "Resized to: " ++ show size'
-          Vty.EvKey key mods -> do
-            maybe (return ()) (liftIO . snd . snd) . Keymap.lookup (mods, key) . snd =<< makeWidget'
-          _ -> return ()
-  where
-    makeWidget' = do
-      size <- get
-      w <- liftIO . makeWidget $ size
-      return (Widget.runWidget w size)
+import Graphics.UI.VtyWidgets.Run(runWidgetLoop)
+import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
 
 nthSet :: Int -> a -> [a] -> [a]
 nthSet _ _ [] = error "IndexError in nthSet"
@@ -93,8 +57,8 @@ initModel = Model {
 quitKey :: ModKey
 quitKey = ([Vty.MCtrl], Vty.KASCII 'q')
 
-pureModifyMVar_ :: MonadIO m => MVar a -> (a -> a) -> m ()
-pureModifyMVar_ mv f = liftIO $ modifyMVar_ mv (return . f)
+pureModifyMVar_ :: MVar a -> (a -> a) -> IO ()
+pureModifyMVar_ mv f = modifyMVar_ mv (return . f)
 
 main :: IO ()
 main = do

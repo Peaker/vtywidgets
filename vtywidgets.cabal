@@ -40,14 +40,15 @@ Library
                        Graphics.UI.VtyWidgets.Align,
                        Graphics.UI.VtyWidgets.Display,
                        Graphics.UI.VtyWidgets.Widget,
+                       Graphics.UI.VtyWidgets.Run,
                        Data.Vector.Vector2,
                        Data.Vector.Rect
-  Other-Modules:       Data.List.Utils,
+                       Data.List.Utils,
                        Data.Function.Utils,
                        Data.Monoid.Utils,
                        Data.Array.Utils
                        Graphics.Vty.Utils
-
+  -- Other-Modules:
   ghc-options:         -Wall
 
 executable vtywidgets-example
