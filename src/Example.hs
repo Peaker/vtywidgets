@@ -15,7 +15,6 @@ import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget)
-import qualified Graphics.UI.VtyWidgets.Display as Display
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(Size)
 import qualified Graphics.UI.VtyWidgets.Align as Align
@@ -94,8 +93,7 @@ modelEdit size fixKeymap model =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
       makeGrid (pure 0) modelGrid textEdits
     textEdits =
-      [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
-                 adaptModel (nth i . modelTextEdits)
+      [ [ (True, adaptModel (nth i . modelTextEdits)
                  (TextEdit.makeDelegated 5 attr TextEdit.editingAttr) $
                  model)
         | y <- [0, 1]

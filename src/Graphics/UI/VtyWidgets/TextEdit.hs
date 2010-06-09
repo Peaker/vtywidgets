@@ -46,7 +46,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
-    requestedSize = SizeRange.fixedSize (Vector2 width height)
+    requestedSize = SizeRange.fixedSize (Vector2 (width + 1) height)
     mkImage (Widget.HasFocus hf) =
       (TermImage.inCursor . const . Just) (Vector2 cursorX cursorY) .
       TermImage.string (attr hf) $
