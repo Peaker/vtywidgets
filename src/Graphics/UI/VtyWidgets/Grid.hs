@@ -150,8 +150,8 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
     ]
   where
-    mover dirName key axis f xs =
-       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . axis . f . (+1) . countUnwanters $ xs) cursor)
+    mover dirName key axis sign xs =
+       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . axis . flip sign . (+1) . countUnwanters $ xs) cursor)
        | True `elem` xs ]
     curColumn = transpose wantFocusRows !! cursorX
     curRow = wantFocusRows !! cursorY
