@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall -O2 #-}
 
 module Graphics.UI.VtyWidgets.TermImage
-    (TermChar, TermImage, tiCursor, inCursor, atCursor, render,
+    (TermChar, TermImage, tiCursor, inCursor, render,
      string, stringSize, hstrings, vstrings,
      clip, translate, rect,
      boundingRect,
@@ -13,7 +13,7 @@ import Data.List(foldl')
 import Data.List.Split(splitOn)
 import Data.List.Utils(safeIndex, groupFst)
 import Data.Function.Utils(Endo, argument)
-import Data.Monoid(Monoid(..), First(First))
+import Data.Monoid(Monoid(..), First(First, getFirst))
 import Data.Monoid.Utils(inFirst)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
@@ -45,8 +45,18 @@ atPixels :: Endo Pixels -> Endo TermImage
 atPixels f ti = ti{tiPixels = f (tiPixels ti)}
 atCursor :: Endo (First Coordinate) -> Endo TermImage
 atCursor f ti = ti{tiCursor = f (tiCursor ti)}
+
+expandBoundingRectToCursor :: Endo TermImage
+expandBoundingRectToCursor ti =
+  maybe ti expandToCursor . getFirst . tiCursor $ ti
+  where
+    expandToCursor cursor =
+      atBoundingRect (cursorRect `mappend`) ti
+      where
+        cursorRect = ExpandingRect $ Rect cursor ((+1) `fmap` cursor)
+
 inCursor :: Endo (Maybe Coordinate) -> Endo TermImage
-inCursor = atCursor . inFirst
+inCursor f = expandBoundingRectToCursor . (atCursor . inFirst) f
 
 boundingRect :: TermImage -> Rect
 boundingRect = Rect.unExpandingRect . tiBoundingRect
