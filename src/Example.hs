@@ -96,12 +96,11 @@ modelEdit size fixKeymap model =
     textEdits =
       [ [ (True, Widget.atDisplay (Display.expand (Vector2 1 0)) .
                  adaptModel (nth i . modelTextEdits)
-                 (TextEdit.makeDelegated 5 attr editingAttr) $
+                 (TextEdit.makeDelegated 5 attr TextEdit.editingAttr) $
                  model)
         | y <- [0, 1]
         , let i = y*2 + x ]
       | x <- [0, 1] ]
-    editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
     keyAttr   = Vty.def_attr
                 `Vty.with_fore_color` Vty.green

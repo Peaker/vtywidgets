@@ -42,6 +42,7 @@ inCursor f (Cursor x) = Cursor (f x)
 newtype Model = Model {
   modelCursor :: Cursor
   }
+  deriving (Show, Read, Eq, Ord)
 
 initModel :: Model
 initModel = Model (Cursor (Vector2 0 0))

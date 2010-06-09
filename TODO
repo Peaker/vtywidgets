@@ -1,3 +1,5 @@
+* Try to remove any mention of "Vty" and rename "VtyWidgets" to "FPWidgets"?
+
 * Nicer navigation:
   * Keymap -> Eventmap
   * Add DirectionEntry event type, and move Grid to that position

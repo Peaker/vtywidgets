@@ -2,7 +2,8 @@
 
 module Graphics.UI.VtyWidgets.TextEdit
     (make, Model(..), initModel,
-     DelegatedModel, initDelegatedModel, makeDelegated)
+     DelegatedModel, initDelegatedModel, makeDelegated,
+     defaultAttr, editingAttr)
 where
 
 import Data.Char(chr, isSpace)
@@ -188,3 +189,9 @@ makeDelegated maxLines unfocusedAttr focusedAttr (fdm, m) = focusDelegator
   where
     focusDelegator = FocusDelegator.make (\fdm' -> (fdm', m)) textEdit fdm
     textEdit = (\m' -> (fdm, m')) `fmap` make maxLines unfocusedAttr focusedAttr m
+
+defaultAttr :: Vty.Attr
+defaultAttr = Vty.def_attr
+
+editingAttr :: Vty.Attr
+editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
