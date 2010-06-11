@@ -103,8 +103,7 @@ combineImages size =
   mconcat .
   mapu TermImage.translate .
   (map . first) fst .       -- Get rid of the (, Size)
-  concat .
-  map (takeWhile columnFits) .
+  concatMap (takeWhile columnFits) .
   takeWhile rowFits
   where
     rowFits [] = False

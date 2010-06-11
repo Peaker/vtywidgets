@@ -22,8 +22,8 @@ writeLnFlush h str = do
   hFlush h
 
 runWidgetLoop :: (Size -> IO (Widget (IO ()))) -> IO ()
-runWidgetLoop makeWidget = do
-  withVty $ \vty -> do
+runWidgetLoop makeWidget =
+  withVty $ \vty ->
     withFile "/tmp/debug.log" WriteMode $ \debugHandle -> do
       let debugLog = liftIO . writeLnFlush debugHandle
       Vty.DisplayRegion width height <- Vty.display_bounds . Vty.terminal $ vty
@@ -37,7 +37,7 @@ runWidgetLoop makeWidget = do
             let size' = Vector2 w h
             put size'
             debugLog $ "Resized to: " ++ show size'
-          Vty.EvKey key mods -> do
+          Vty.EvKey key mods ->
             maybe (return ()) (liftIO . snd . snd) . Keymap.lookup (mods, key) . snd =<< makeWidget'
           _ -> return ()
   where

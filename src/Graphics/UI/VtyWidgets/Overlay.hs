@@ -34,7 +34,7 @@ widget startShowing stopShowing overlayWidget conv child (Model isOverlaying) =
   if isOverlaying
   then appendKeymap stopShowing False $
        child `mappend` Widget.atDisplay translateToCenter overlayWidget
-  else appendKeymap startShowing True $
+  else appendKeymap startShowing True
        child
   where
     appendKeymap docModKey toShow =

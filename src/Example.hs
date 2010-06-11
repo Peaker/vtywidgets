@@ -94,7 +94,7 @@ modelEdit size fixKeymap model =
       makeGrid (pure 0) modelGrid textEdits
     textEdits =
       [ [ (True, adaptModel (nth i . modelTextEdits)
-                 (TextEdit.makeDelegated 5 attr TextEdit.editingAttr) $
+                 (TextEdit.makeDelegated 5 attr TextEdit.editingAttr)
                  model)
         | y <- [0, 1]
         , let i = y*2 + x ]
