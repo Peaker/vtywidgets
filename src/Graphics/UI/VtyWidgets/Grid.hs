@@ -120,6 +120,7 @@ feedPlacable :: Placement -> Placable a -> (Placement, a)
 feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 
 makeView :: [[Display a]] -> Display a
+makeView [] = mempty
 makeView rows = Display.make requestedSize mkImage
   where
     (requestedSize, mkPlacements) =
@@ -161,6 +162,7 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     countUnwanters = length . takeWhile not
 
 make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
+make _ [] _ = mempty
 make conv rows (Model gcursor@(Cursor (Vector2 gx gy))) = Widget.make requestedSize mkImageKeymap
   where
     wantFocusRows = (map . map) fst rows
