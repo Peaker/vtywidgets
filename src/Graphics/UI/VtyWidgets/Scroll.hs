@@ -124,6 +124,6 @@ centeredView requestedSize display =
   sizedCenteredView requestedSize' display
   where
     requestedSize' = SizeRange.atBothSizes
-                     (liftA2 min maxSize)
+                     (liftA2 min . fmap (+1) $ maxSize)
                      requestedSize
     maxSize = SizeRange.srMaxSize . Placable.pRequestedSize $ display
