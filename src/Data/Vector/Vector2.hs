@@ -12,8 +12,9 @@ where
 import Prelude hiding (fst, snd, curry, uncurry, zip)
 import qualified Prelude
 import Control.Applicative(Applicative(..), liftA2, liftA3)
-import Control.Monad(join)
+import Control.Monad(join, liftM2)
 import Data.Array(Ix(..))
+import Data.Binary(Binary(..))
 -- import Test.QuickCheck.Arbitrary(Arbitrary(..))
 
 data Vector2 a = Vector2 !a !a
@@ -21,6 +22,10 @@ data Vector2 a = Vector2 !a !a
   -- (Vectors aren't ordinals!). Useful to have in a binary search
   -- tree though.
   deriving (Eq, Ord, Show, Read)
+
+instance Binary a => Binary (Vector2 a) where
+  get = liftM2 Vector2 get get
+  put (Vector2 x y) = put x >> put y
 
 -- Taken almost verbatim from QuickCheck's instance for (a, b)
 -- instance Arbitrary a => Arbitrary (Vector2 a) where

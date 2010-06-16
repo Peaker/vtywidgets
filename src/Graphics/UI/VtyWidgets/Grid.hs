@@ -1,13 +1,14 @@
 {-# OPTIONS -O2 -Wall #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
      Cursor(..), Model(..),
-     initModel)
+     initModel, model)
 where
 
+import Data.Binary(Binary)
 import Data.Function.Utils(Endo, result, (~>))
 import Data.List(transpose)
 import Data.Record.Label((:->), set, get)
@@ -33,7 +34,7 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
 
 newtype Cursor = Cursor (Vector2 Int)
-  deriving (Show, Read, Eq, Ord)
+  deriving (Show, Read, Eq, Ord, Binary)
 inCursor :: Endo (Vector2 Int) -> Endo Cursor
 inCursor f (Cursor x) = Cursor (f x)
 
@@ -42,10 +43,13 @@ inCursor f (Cursor x) = Cursor (f x)
 newtype Model = Model {
   modelCursor :: Cursor
   }
-  deriving (Show, Read, Eq, Ord)
+  deriving (Show, Read, Eq, Ord, Binary)
 
 initModel :: Model
 initModel = Model (Cursor (Vector2 0 0))
+
+model :: Vector2 Int -> Model
+model = Model . Cursor
 
 --- Size computations:
 

@@ -1,10 +1,11 @@
 {-# OPTIONS -O2 -Wall #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Overlay
     (display, widget, widgetAcc, Model(..), initModel)
 where
 
+import Data.Binary(Binary)
 import Data.Monoid(mappend)
 import Data.Record.Label((:->), set, get)
 import Data.Vector.Vector2(Vector2(..))
@@ -25,6 +26,7 @@ display = flip mappend . translateToCenter
 newtype Model = Model {
   modelIsOverlaying :: Bool
   }
+  deriving (Binary)
 
 initModel :: Bool -> Model
 initModel = Model

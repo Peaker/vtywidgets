@@ -6,11 +6,13 @@ module Graphics.UI.VtyWidgets.TextEdit
      defaultAttr, editingAttr)
 where
 
+import Data.Binary(Binary(..))
 import Data.Char(chr, isSpace)
 import Data.Monoid(mconcat)
 import Data.List.Split(splitOn)
 import Data.Vector.Vector2(Vector2(..))
 import Control.Arrow(first)
+import Control.Monad(liftM2)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -25,6 +27,10 @@ data Model = Model {
   textEditCursor :: Cursor,
   textEditText :: String
   }
+
+instance Binary Model where
+  get = liftM2 Model get get
+  put (Model cursor text) = put cursor >> put text
 
 initModel :: String -> Model
 initModel s = Model (length s) s

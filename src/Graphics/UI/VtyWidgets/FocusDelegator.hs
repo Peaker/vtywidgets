@@ -1,5 +1,5 @@
 {-# OPTIONS -O2 -Wall #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.FocusDelegator
     (make, makeAcc, Model(..), initModel)
@@ -7,6 +7,7 @@ where
 
 import Control.Applicative(pure)
 import Control.Arrow(first)
+import Data.Binary(Binary)
 import Data.Vector.Rect(Rect(..))
 import Data.Vector.Vector2(Vector2)
 import Data.Monoid(mappend)
@@ -24,6 +25,7 @@ import qualified Graphics.UI.VtyWidgets.Widget as Widget
 newtype Model = Model {
   focusDelegated :: Bool
   }
+  deriving (Binary)
 
 initModel :: Bool -> Model
 initModel = Model
