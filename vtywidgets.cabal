@@ -8,13 +8,13 @@ Description:
   .
   Project wiki page: <http://haskell.org/haskellwiki/VtyWidgets>
   .
-  &#169; 2009 by Eyal Lotem; BSD3 license.
+  &#169; 2010 by Eyal Lotem; BSD3 license.
 
 Author:              Eyal Lotem
 Maintainer:          eyal.lotem@gmail.com
 --Homepage:            http://haskell.org/haskellwiki/VtyWidgets
 --Package-Url:         http://code.haskell.org/VtyWidgets
-Copyright:           (c) 2008 by Eyal Lotem
+Copyright:           (c) 2010 by Eyal Lotem
 License:             BSD3
 Stability:           experimental
 build-type:          Simple
