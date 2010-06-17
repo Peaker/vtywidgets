@@ -112,6 +112,7 @@ feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 
 makeView :: [[Display a]] -> Display a
 makeView [] = mempty
+makeView [[]] = mempty
 makeView rows = Display.make requestedSize mkImage
   where
     (requestedSize, mkPlacements) =
@@ -165,6 +166,7 @@ getCursor rows =
 
 make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
 make _ [] _ = mempty
+make _ [[]] _ = mempty
 make conv rows model = Widget.make requestedSize mkImageKeymap
   where
     gcursor@(Vector2 gx gy) = getCursor rows model
