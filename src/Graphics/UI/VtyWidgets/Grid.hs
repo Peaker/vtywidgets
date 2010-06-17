@@ -2,21 +2,20 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (makeView, make, makeAcc, makeSizes,
+    (makeView, make, makeAcc, getCursor, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
-     Cursor(..), Model(..),
-     initModel, model)
+     Model(..), initModel)
 where
 
 import Data.Binary(Binary)
-import Data.Function.Utils(Endo, result, (~>))
+import Data.Function.Utils(result, (~>))
 import Data.List(transpose)
 import Data.Record.Label((:->), set, get)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(fromMaybe)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Control.Applicative(liftA2)
+import Control.Applicative(pure, liftA2)
 import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -33,23 +32,15 @@ import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
 
-newtype Cursor = Cursor (Vector2 Int)
-  deriving (Show, Read, Eq, Ord, Binary)
-inCursor :: Endo (Vector2 Int) -> Endo Cursor
-inCursor f (Cursor x) = Cursor (f x)
-
 -- Model:
 
 newtype Model = Model {
-  modelCursor :: Cursor
+  modelCursor :: Vector2 Int
   }
   deriving (Show, Read, Eq, Ord, Binary)
 
 initModel :: Model
-initModel = Model (Cursor (Vector2 0 0))
-
-model :: Vector2 Int -> Model
-model = Model . Cursor
+initModel = Model (pure 0)
 
 --- Size computations:
 
@@ -145,8 +136,8 @@ enumerate2 xss = mapu row (enumerate xss)
     row rowIndex = mapu (add rowIndex) . enumerate
     add rowIndex columnIndex = (,) (columnIndex, rowIndex)
 
-mkNavKeymap :: [[Bool]] -> Cursor -> Keymap Cursor
-mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) = 
+mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
+mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
   mconcat . concat $ [
     mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
     mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)       curRow),
@@ -155,16 +146,28 @@ mkNavKeymap wantFocusRows cursor@(Cursor (Vector2 cursorX cursorY)) =
     ]
   where
     mover dirName key axis sign xs =
-       [ Keymap.simpleton ("Move " ++ dirName) key ((inCursor . axis . flip sign . (+1) . countUnwanters $ xs) cursor)
+       [ Keymap.simpleton ("Move " ++ dirName) key ((axis . flip sign . (+1) . countUnwanters $ xs) cursor)
        | True `elem` xs ]
     curColumn = transpose wantFocusRows !! cursorX
     curRow = wantFocusRows !! cursorY
     countUnwanters = length . takeWhile not
 
+-- | length2d assumes the given list has a square shape
+length2d :: [[a]] -> Vector2 Int
+length2d [] = pure 0
+length2d xs@(x:_) = Vector2 (length x) (length xs)
+
+getCursor :: [[(Bool, Widget k)]] -> Model -> Vector2 Int
+getCursor rows =
+  fmap (max 0) .
+  liftA2 min (fmap (subtract 1) $ length2d rows) .
+  modelCursor
+
 make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
 make _ [] _ = mempty
-make conv rows (Model gcursor@(Cursor (Vector2 gx gy))) = Widget.make requestedSize mkImageKeymap
+make conv rows model = Widget.make requestedSize mkImageKeymap
   where
+    gcursor@(Vector2 gx gy) = getCursor rows model
     wantFocusRows = (map . map) fst rows
     navKeymap = fmap (conv . Model) .
                 mkNavKeymap wantFocusRows $
@@ -189,7 +192,7 @@ make conv rows (Model gcursor@(Cursor (Vector2 gx gy))) = Widget.make requestedS
         childWidgetRows = (map . mapu) childWidget . enumerate2 $ placementWidgetRows
         childWidget index =
           second
-          (if gcursor == Cursor (uncurry Vector2 index)
+          (if gcursor == uncurry Vector2 index
            then curChild
            else unCurChild)
 
