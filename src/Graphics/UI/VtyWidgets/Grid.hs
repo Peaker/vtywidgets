@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (makeView, make, makeAcc, getCursor, makeSizes,
+    (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
      Model(..), initModel)
 where
@@ -10,6 +10,7 @@ where
 import Data.Binary(Binary)
 import Data.Function.Utils(result, (~>))
 import Data.List(transpose)
+import Data.List.Utils(safeIndex)
 import Data.Record.Label((:->), set, get)
 import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(fromMaybe)
@@ -111,8 +112,6 @@ feedPlacable :: Placement -> Placable a -> (Placement, a)
 feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 
 makeView :: [[Display a]] -> Display a
-makeView [] = mempty
-makeView [[]] = mempty
 makeView rows = Display.make requestedSize mkImage
   where
     (requestedSize, mkPlacements) =
@@ -138,6 +137,8 @@ enumerate2 xss = mapu row (enumerate xss)
     add rowIndex columnIndex = (,) (columnIndex, rowIndex)
 
 mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
+mkNavKeymap []            _ = mempty
+mkNavKeymap [[]]          _ = mempty
 mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
   mconcat . concat $ [
     mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
@@ -158,21 +159,19 @@ length2d :: [[a]] -> Vector2 Int
 length2d [] = pure 0
 length2d xs@(x:_) = Vector2 (length x) (length xs)
 
-getCursor :: [[(Bool, Widget k)]] -> Model -> Vector2 Int
-getCursor rows =
+clipRange :: Vector2 Int -> Vector2 Int -> Vector2 Int
+clipRange size =
   fmap (max 0) .
-  liftA2 min (fmap (subtract 1) $ length2d rows) .
-  modelCursor
+  liftA2 min (fmap (subtract 1) $ size)
 
 make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
-make _ [] _ = mempty
-make _ [[]] _ = mempty
 make conv rows model = Widget.make requestedSize mkImageKeymap
   where
-    gcursor@(Vector2 gx gy) = getCursor rows model
+    gcursor@(Vector2 gx gy) = modelCursor model
     wantFocusRows = (map . map) fst rows
     navKeymap = fmap (conv . Model) .
-                mkNavKeymap wantFocusRows $
+                mkNavKeymap wantFocusRows .
+                clipRange (length2d rows) $
                 gcursor
 
     widgetRows = (map . map) (Widget.unWidget . snd) rows
@@ -209,7 +208,7 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
                      (map . map . second) (($hf) . fst) $
                      childWidgetRows
 
-        childKeymap = fromMaybe mempty . snd . snd $ childWidgetRows !! gy !! gx
+        childKeymap = fromMaybe mempty $ snd . snd =<< safeIndex gx =<< safeIndex gy childWidgetRows
         keymap = childKeymap `mappend` navKeymap
 
 --- Convenience
