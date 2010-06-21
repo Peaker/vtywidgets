@@ -3,12 +3,12 @@
 
 import qualified Graphics.Vty as Vty
 import qualified Data.Record.Label as Label
+import Data.Maybe(fromMaybe)
 import Data.Record.Label((:->), mkLabels, label)
-import Data.Monoid(mappend)
+import Data.Monoid(mempty, mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
-import Control.Arrow(second)
 import Control.Applicative(pure)
 import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
@@ -87,15 +87,15 @@ modelEdit size fixKeymap model =
       [ [ TextView.make attr "Title\n-----" ],
         [ innerGridDisp ]
       ]
-    keymap = fixKeymap $ Widget.keymap innerGrid size
+    keymap = fixKeymap . fromMaybe mempty $ Widget.keymap innerGrid size
     keymapView = TableGrid.makeKeymapView keymap (keyAttr, 10) (valueAttr, 30)
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
       makeGrid (pure 0) modelGrid textEdits
     textEdits =
-      [ [ (True, adaptModel (nth i . modelTextEdits)
-                 (TextEdit.makeDelegated 5 attr TextEdit.editingAttr)
-                 model)
+      [ [ adaptModel (nth i . modelTextEdits)
+          (TextEdit.makeDelegated 5 attr TextEdit.editingAttr)
+          model
         | y <- [0, 1]
         , let i = y*2 + x ]
       | x <- [0, 1] ]
@@ -110,7 +110,7 @@ modelEdit size fixKeymap model =
     makeGridView alignment =
       Grid.makeView . (map . map) (Align.to alignment)
     makeGrid alignment acc rows =
-      (Grid.makeAccDelegated acc . (map . map . second . Widget.atDisplay) (Align.to alignment))
+      (Grid.makeAccDelegated acc . (map . map . Widget.atDisplay) (Align.to alignment))
       rows model
 
 adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w

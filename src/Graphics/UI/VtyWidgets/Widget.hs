@@ -24,14 +24,14 @@ newtype HasFocus = HasFocus { hasFocus :: Bool }
 inHasFocus :: Endo Bool -> Endo HasFocus
 inHasFocus f = HasFocus . f . hasFocus
 
-newtype Widget k = Widget { unWidget :: Placable (HasFocus -> TermImage, Keymap k) }
-inWidget :: (Placable (HasFocus -> TermImage, Keymap k) ->
-             Placable (HasFocus -> TermImage, Keymap k')) ->
+newtype Widget k = Widget { unWidget :: Placable (HasFocus -> TermImage, Maybe (Keymap k)) }
+inWidget :: (Placable (HasFocus -> TermImage, Maybe (Keymap k)) ->
+             Placable (HasFocus -> TermImage, Maybe (Keymap k'))) ->
             Widget k -> Widget k'
 inWidget f = Widget . f . unWidget
-inWidget2 :: (Placable (HasFocus -> TermImage, Keymap k) ->
-              Placable (HasFocus -> TermImage, Keymap k') ->
-              Placable (HasFocus -> TermImage, Keymap k'')) ->
+inWidget2 :: (Placable (HasFocus -> TermImage, Maybe (Keymap k)) ->
+              Placable (HasFocus -> TermImage, Maybe (Keymap k')) ->
+              Placable (HasFocus -> TermImage, Maybe (Keymap k''))) ->
              Widget k -> Widget k' -> Widget k''
 inWidget2 f = inWidget . f . unWidget
 
@@ -39,11 +39,11 @@ instance Monoid (Widget k) where
   mempty = Widget mempty
   mappend = inWidget2 mappend
 
-runWidget :: Widget k -> Size -> (TermImage, Keymap k)
+runWidget :: Widget k -> Size -> (TermImage, Maybe (Keymap k))
 runWidget widget size = first ($ HasFocus True) $
                         (Placable.pPlace . unWidget) widget size
 
-fromDisplay :: (Size -> Keymap k) -> Display HasFocus -> Widget k
+fromDisplay :: (Size -> Maybe (Keymap k)) -> Display HasFocus -> Widget k
 fromDisplay mkKeymap = Widget . Placable.atPlace (flip (liftA2 (,)) mkKeymap)
 
 toDisplay :: Widget k -> Display HasFocus
@@ -52,7 +52,7 @@ toDisplay = fmap fst . unWidget
 requestedSize :: Widget k -> SizeRange
 requestedSize = Placable.pRequestedSize . unWidget
 
-keymap :: Widget k -> Size -> Keymap k
+keymap :: Widget k -> Size -> Maybe (Keymap k)
 keymap w = snd . runWidget w
 
 image :: Widget k -> Size -> TermImage
@@ -63,9 +63,14 @@ atDisplay f w = fromDisplay (keymap w) .
                 f .
                 toDisplay $ w
 
+atMKeymap :: (Maybe (Keymap a) ->
+              Maybe (Keymap b)) ->
+             Widget a -> Widget b
+atMKeymap = inWidget . fmap . second
+
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
-atKeymap = inWidget . fmap . second
+atKeymap = atMKeymap . fmap
 
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a
@@ -77,8 +82,8 @@ simpleDisplay = fromDisplay mempty
 clip :: Endo (Widget k)
 clip = atDisplay Display.clip
 
-make :: SizeRange -> (Size -> (HasFocus -> TermImage, Keymap k)) -> Widget k
-make sr f = clip (Widget $ Placable sr f)
+make :: SizeRange -> (Size -> (HasFocus -> TermImage, Maybe (Keymap k))) -> Widget k
+make sr f = clip . Widget $ Placable sr f
 
 instance Functor Widget where
   fmap = atKeymap . fmap

@@ -13,9 +13,10 @@ import Data.List(transpose)
 import Data.List.Utils(safeIndex)
 import Data.Record.Label((:->), set, get)
 import Data.Monoid(mempty, mappend, mconcat)
-import Data.Maybe(fromMaybe)
+import Data.Maybe(fromMaybe, isJust)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
+import Control.Monad(msum)
 import Control.Applicative(pure, liftA2)
 import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
@@ -164,17 +165,11 @@ clipRange size =
   fmap (max 0) .
   liftA2 min (fmap (subtract 1) $ size)
 
-make :: (Model -> k) -> [[(Bool, Widget k)]] -> Model -> Widget k
+make :: (Model -> k) -> [[Widget k]] -> Model -> Widget k
 make conv rows model = Widget.make requestedSize mkImageKeymap
   where
     gcursor@(Vector2 gx gy) = modelCursor model
-    wantFocusRows = (map . map) fst rows
-    navKeymap = fmap (conv . Model) .
-                mkNavKeymap wantFocusRows .
-                clipRange (length2d rows) $
-                gcursor
-
-    widgetRows = (map . map) (Widget.unWidget . snd) rows
+    widgetRows = (map . map) Widget.unWidget rows
     
     -- TODO: Reduce duplication with makeView
     (requestedSize, mkPlacements) =
@@ -185,7 +180,13 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
         -- Size with each item:
         placementWidgetRows = (zipWith . zipWith) feedPlacable
                               (mkPlacements givenSize) widgetRows
-        
+
+        wantFocusRows = (map . map) (isJust . snd . snd) placementWidgetRows
+        navKeymap = fmap (conv . Model) .
+                    mkNavKeymap wantFocusRows .
+                    clipRange (length2d rows) $
+                    gcursor
+
         -- Disable the cursor and HasFocus of inactive children, and
         -- replace their keymap with a Nothing. Only the active child gets
         -- a Just around his keymap:
@@ -209,11 +210,18 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
                      childWidgetRows
 
         childKeymap = fromMaybe mempty $ snd . snd =<< safeIndex gx =<< safeIndex gy childWidgetRows
-        keymap = childKeymap `mappend` navKeymap
+        keymap =
+          -- Use msum to figure out whether at least one of the
+          -- children has a Just keymap, and not a Nothing. If all are
+          -- Nothing, we want to also remain Nothing, thus the use of
+          -- (fmap . const) on the result of msum:
+          (fmap . const) (fromMaybe mempty childKeymap `mappend` navKeymap) .
+          msum . map (snd . snd) . concat $
+          placementWidgetRows
 
 --- Convenience
 
-makeAcc :: k :-> Model -> [[(Bool, Widget k)]] -> k -> Widget k
+makeAcc :: k :-> Model -> [[Widget k]] -> k -> Widget k
 makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
 
 type DelegatedModel = (FocusDelegator.Model, Model)
@@ -221,11 +229,11 @@ type DelegatedModel = (FocusDelegator.Model, Model)
 initDelegatedModel :: Bool -> DelegatedModel
 initDelegatedModel = flip (,) initModel . FocusDelegator.initModel
 
-makeDelegated :: (DelegatedModel -> k) -> [[(Bool, Widget k)]] -> DelegatedModel -> Widget k
+makeDelegated :: (DelegatedModel -> k) -> [[Widget k]] -> DelegatedModel -> Widget k
 makeDelegated conv rows (fdm, m) = focusDelegator
   where
     focusDelegator = FocusDelegator.make (\fdm' -> conv (fdm', m)) grid fdm
     grid = make (\m' -> conv (fdm, m')) rows m
 
-makeAccDelegated :: k :-> DelegatedModel -> [[(Bool, Widget k)]] -> k -> Widget k
+makeAccDelegated :: k :-> DelegatedModel -> [[Widget k]] -> k -> Widget k
 makeAccDelegated acc rows k = makeDelegated (flip (set acc) k) rows (get acc k)

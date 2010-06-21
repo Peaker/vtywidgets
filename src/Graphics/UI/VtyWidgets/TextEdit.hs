@@ -96,6 +96,7 @@ make maxLines unfocusedAttr focusedAttr (Model cursor text) =
     endKeymap doc = multiKey doc endKeys
 
     keymap =
+      Just .
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
         [ multiKey "Move left" (simpleK Vty.KLeft) $
           moveRelative (-1)
@@ -201,3 +202,4 @@ defaultAttr = Vty.def_attr
 
 editingAttr :: Vty.Attr
 editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
+              

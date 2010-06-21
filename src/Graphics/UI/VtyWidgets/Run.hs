@@ -7,6 +7,8 @@ import Control.Monad(forever)
 import Control.Monad.Trans.State(evalStateT, get, put)
 import Control.Monad.IO.Class(MonadIO, liftIO)
 import Data.Vector.Vector2(Vector2(..))
+import Data.Maybe(fromMaybe)
+import Data.Monoid(mempty)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
@@ -38,7 +40,10 @@ runWidgetLoop makeWidget =
             put size'
             debugLog $ "Resized to: " ++ show size'
           Vty.EvKey key mods ->
-            maybe (return ()) (liftIO . snd . snd) . Keymap.lookup (mods, key) . snd =<< makeWidget'
+            maybe (return ()) (liftIO . snd . snd) .
+            Keymap.lookup (mods, key) .
+            fromMaybe mempty . snd =<<
+            makeWidget'
           _ -> return ()
   where
     makeWidget' = do
