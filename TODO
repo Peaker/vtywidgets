@@ -1,6 +1,3 @@
-* Grid shouldn't cap the cursor into range except when calculating the
-  nav keymap
-
 * newtype WidgetAction m = WidgetAction (Widget (m (WidgetAction m)))
   * runWidgetLoop :: WidgetAction IO -> IO ()
 
