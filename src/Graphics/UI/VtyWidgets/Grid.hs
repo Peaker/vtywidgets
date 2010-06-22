@@ -9,11 +9,11 @@ where
 
 import Data.Binary(Binary)
 import Data.Function.Utils(result, (~>))
-import Data.List(transpose)
+import Data.List(find, transpose)
 import Data.List.Utils(safeIndex)
 import Data.Record.Label((:->), set, get)
 import Data.Monoid(mempty, mappend, mconcat)
-import Data.Maybe(fromMaybe, isJust)
+import Data.Maybe(maybeToList, fromMaybe, isJust)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
 import Control.Monad(msum)
@@ -21,7 +21,7 @@ import Control.Applicative(pure, liftA2)
 import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Keymap(Keymap)
+import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
@@ -128,6 +128,45 @@ makeView rows = Display.make requestedSize mkImage
 
 --- Widgets:
 
+kLeft :: ModKey
+kLeft  = ([], Vty.KLeft)
+kRight :: ModKey
+kRight = ([], Vty.KRight)
+kUp :: ModKey
+kUp    = ([], Vty.KUp)
+kDown :: ModKey
+kDown  = ([], Vty.KDown)
+
+-- | length2d assumes the given list has a square shape
+length2d :: [[a]] -> Vector2 Int
+length2d [] = pure 0
+length2d xs@(x:_) = Vector2 (length x) (length xs)
+
+mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
+mkNavKeymap []            _ = mempty
+mkNavKeymap [[]]          _ = mempty
+mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
+  mconcat . concat $ [
+    movement "left"  kLeft  leftOfCursor,
+    movement "right" kRight rightOfCursor,
+    movement "up"    kUp    aboveCursor,
+    movement "down"  kDown  belowCursor
+    ]
+  where
+    movement dirName key pos
+                  = maybeToList . fmap (Keymap.simpleton ("Move " ++ dirName) key) $ pos
+    size          = length2d wantFocusRows
+    Vector2 cappedX cappedY
+                  = fmap (max 0) . liftA2 min (fmap (subtract 1) size) $ cursor
+    leftOfCursor  = fmap (`Vector2` cappedY) . findMove . reverse . take cursorX $ curRow
+    aboveCursor   = fmap (cappedX `Vector2`) . findMove . reverse . take cursorY $ curColumn
+    rightOfCursor = fmap (`Vector2` cappedY) . findMove . drop (cursorX+1) $ curRow
+    belowCursor   = fmap (cappedX `Vector2`) . findMove . drop (cursorY+1) $ curColumn
+    findMove      = fmap fst . find snd
+    curRow        = enumerate $ wantFocusRows !! cappedY
+    curColumn     = enumerate $ transpose wantFocusRows !! cappedX
+
+
 enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
 enumerate = zip [0..]
 
@@ -136,34 +175,6 @@ enumerate2 xss = mapu row (enumerate xss)
   where
     row rowIndex = mapu (add rowIndex) . enumerate
     add rowIndex columnIndex = (,) (columnIndex, rowIndex)
-
-mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
-mkNavKeymap []            _ = mempty
-mkNavKeymap [[]]          _ = mempty
-mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
-  mconcat . concat $ [
-    mover "left"  ([], Vty.KLeft)  Vector2.first  (-) (reverse . take cursorX $ curRow),
-    mover "right" ([], Vty.KRight) Vector2.first  (+) (drop (cursorX + 1)       curRow),
-    mover "up"    ([], Vty.KUp)    Vector2.second (-) (reverse . take cursorY $ curColumn),
-    mover "down"  ([], Vty.KDown)  Vector2.second (+) (drop (cursorY + 1)       curColumn)
-    ]
-  where
-    mover dirName key axis sign xs =
-       [ Keymap.simpleton ("Move " ++ dirName) key ((axis . flip sign . (+1) . countUnwanters $ xs) cursor)
-       | True `elem` xs ]
-    curColumn = transpose wantFocusRows !! cursorX
-    curRow = wantFocusRows !! cursorY
-    countUnwanters = length . takeWhile not
-
--- | length2d assumes the given list has a square shape
-length2d :: [[a]] -> Vector2 Int
-length2d [] = pure 0
-length2d xs@(x:_) = Vector2 (length x) (length xs)
-
-clipRange :: Vector2 Int -> Vector2 Int -> Vector2 Int
-clipRange size =
-  fmap (max 0) .
-  liftA2 min (fmap (subtract 1) $ size)
 
 make :: (Model -> k) -> [[Widget k]] -> Model -> Widget k
 make conv rows model = Widget.make requestedSize mkImageKeymap
@@ -183,8 +194,7 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
 
         wantFocusRows = (map . map) (isJust . snd . snd) placementWidgetRows
         navKeymap = fmap (conv . Model) .
-                    mkNavKeymap wantFocusRows .
-                    clipRange (length2d rows) $
+                    mkNavKeymap wantFocusRows $
                     gcursor
 
         -- Disable the cursor and HasFocus of inactive children, and
