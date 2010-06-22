@@ -4,7 +4,7 @@ module Data.Vector.Vector2
     (Vector2(..)
     ,vector2
     ,first,second,(***),both,zip
-    ,fst,snd
+    ,fst,snd,swap
     ,curry,uncurry
     ,prop_range)
 where
@@ -53,6 +53,9 @@ fst (Vector2 x _) = x
 
 snd :: Vector2 a -> a
 snd (Vector2 _ y) = y
+
+swap :: Vector2 a -> Vector2 a
+swap (Vector2 x y) = Vector2 y x
 
 type Endo a = a -> a
 
