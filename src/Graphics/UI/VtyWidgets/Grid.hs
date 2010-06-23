@@ -4,7 +4,7 @@
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
-     Model(..), initModel)
+     Model(..), inModel, initModel)
 where
 
 import Data.Binary(Binary)
@@ -40,6 +40,8 @@ newtype Model = Model {
   modelCursor :: Vector2 Int
   }
   deriving (Show, Read, Eq, Ord, Binary)
+inModel :: (Vector2 Int -> Vector2 Int) -> Model -> Model
+inModel f (Model cursor) = Model (f cursor)
 
 initModel :: Model
 initModel = Model (pure 0)
