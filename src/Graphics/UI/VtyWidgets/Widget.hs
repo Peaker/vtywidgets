@@ -4,7 +4,8 @@ module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
      atDisplay, atKeymap, atMkImage, make, simpleDisplay,
-     fromDisplay, toDisplay, keymap, image, requestedSize)
+     fromDisplay, toDisplay, keymap, image, requestedSize,
+     strongerKeys, weakerKeys)
 where
 
 import Control.Arrow(first, second)
@@ -71,6 +72,12 @@ atMKeymap = inWidget . fmap . second
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
 atKeymap = atMKeymap . fmap
+
+strongerKeys :: Keymap a -> Widget a -> Widget a
+strongerKeys = atKeymap . flip mappend
+
+weakerKeys :: Keymap a -> Widget a -> Widget a
+weakerKeys = atKeymap . mappend
 
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a
