@@ -4,7 +4,7 @@
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
-     Model(..), inModel, initModel)
+     Model(..), inModel, initModel, fixModelB)
 where
 
 import Data.Binary(Binary)
@@ -16,7 +16,7 @@ import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(maybeToList, fromMaybe, isJust)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Control.Monad(msum)
+import Control.Monad(msum, join)
 import Control.Applicative(pure, liftA2)
 import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
@@ -45,6 +45,33 @@ inModel f (Model cursor) = Model (f cursor)
 
 initModel :: Model
 initModel = Model (pure 0)
+
+length2d [] = pure 0
+length2d xs@(x:_) = Vector2 (length x) (length xs)
+
+capCursor :: Vector2 Int -> Vector2 Int -> Vector2 Int
+capCursor size = fmap (max 0) . liftA2 min (fmap (subtract 1) size)
+
+enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
+enumerate = zip [0..]
+
+enumerate2d :: (Enum a, Num a) => [[b]] -> [[(Vector2 a, b)]]
+enumerate2d xss = mapu row (enumerate xss)
+  where
+    row rowIndex = mapu (add rowIndex) . enumerate
+    add rowIndex columnIndex = (,) (Vector2 columnIndex rowIndex)
+
+sqrDist :: Num a => Vector2 a -> Vector2 a -> a
+sqrDist a b = Vector2.uncurry (+) . fmap (join (*)) $ liftA2 (-) a b
+
+fixModelB :: [[Bool]] -> Model -> Model
+fixModelB []   m = m
+fixModelB [[]] m = m
+fixModelB rows (Model cursor) = Model . snd . minimum $ scores
+  where
+    scores = map score . concat . enumerate2d $ rows
+    score (_  , False) = (maxBound, cursor)
+    score (pos, True)  = (sqrDist pos cursor, pos)
 
 --- Size computations:
 
@@ -141,9 +168,6 @@ kDown  = ([], Vty.KDown)
 
 -- | length2d assumes the given list has a square shape
 length2d :: [[a]] -> Vector2 Int
-length2d [] = pure 0
-length2d xs@(x:_) = Vector2 (length x) (length xs)
-
 mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
 mkNavKeymap []            _ = mempty
 mkNavKeymap [[]]          _ = mempty
@@ -159,7 +183,7 @@ mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
                   = maybeToList . fmap (Keymap.simpleton ("Move " ++ dirName) key) $ pos
     size          = length2d wantFocusRows
     Vector2 cappedX cappedY
-                  = fmap (max 0) . liftA2 min (fmap (subtract 1) size) $ cursor
+                  = capCursor size cursor
     leftOfCursor  = fmap (`Vector2` cappedY) . findMove . reverse . take cursorX $ curRow
     aboveCursor   = fmap (cappedX `Vector2`) . findMove . reverse . take cursorY $ curColumn
     rightOfCursor = fmap (`Vector2` cappedY) . findMove . drop (cursorX+1) $ curRow
@@ -167,16 +191,6 @@ mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
     findMove      = fmap fst . find snd
     curRow        = enumerate $ wantFocusRows !! cappedY
     curColumn     = enumerate $ transpose wantFocusRows !! cappedX
-
-
-enumerate :: (Enum a, Num a) => [b] -> [(a, b)]
-enumerate = zip [0..]
-
-enumerate2 :: (Enum a, Num a) => [[b]] -> [[((a, a), b)]]
-enumerate2 xss = mapu row (enumerate xss)
-  where
-    row rowIndex = mapu (add rowIndex) . enumerate
-    add rowIndex columnIndex = (,) (columnIndex, rowIndex)
 
 make :: (Model -> k) -> [[Widget k]] -> Model -> Widget k
 make conv rows model = Widget.make requestedSize mkImageKeymap
@@ -203,10 +217,10 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
         -- replace their keymap with a Nothing. Only the active child gets
         -- a Just around his keymap:
 
-        childWidgetRows = (map . mapu) childWidget . enumerate2 $ placementWidgetRows
+        childWidgetRows = (map . mapu) childWidget . enumerate2d $ placementWidgetRows
         childWidget index =
           second
-          (if gcursor == uncurry Vector2 index
+          (if gcursor == index
            then curChild
            else unCurChild)
 
