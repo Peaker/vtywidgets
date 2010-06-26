@@ -90,7 +90,7 @@ makeSizes rows = (requestedSize, mkSizes)
     minSize = fmap sum $ Vector2 columnMinWidths rowMinHeights
     maxSize = fmap sum $ Vector2 columnMaxWidths rowMaxHeights
     -- Compute all the row/column sizes:
-    computeSizes f = map maximum . (map . map) f
+    computeSizes f = map (maximum . map f)
     computeSizeRanges f xs =
       (computeSizes (f . SizeRange.srMinSize) xs,
        computeSizes (f . SizeRange.srMaxSize) xs)
