@@ -89,6 +89,13 @@ modelEdit size fixKeymap model =
       ]
     keymap = fixKeymap . fromMaybe mempty $ Widget.keymap innerGrid size
     keymapView = TableGrid.makeKeymapView keymap (keyAttr, 10) (valueAttr, 30)
+    keyAttr   = Vty.def_attr
+                `Vty.with_fore_color` Vty.green
+                `Vty.with_back_color` Vty.blue
+    valueAttr = Vty.def_attr
+                `Vty.with_fore_color` Vty.red
+                `Vty.with_back_color` Vty.blue
+                `Vty.with_style` Vty.bold
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
       makeGrid (pure 0) modelGrid textEdits
@@ -100,13 +107,6 @@ modelEdit size fixKeymap model =
         , let i = y*2 + x ]
       | x <- [0, 1] ]
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    keyAttr   = Vty.def_attr
-                `Vty.with_fore_color` Vty.green
-                `Vty.with_back_color` Vty.blue
-    valueAttr = Vty.def_attr
-                `Vty.with_fore_color` Vty.red
-                `Vty.with_back_color` Vty.blue
-                `Vty.with_style` Vty.bold
     makeGridView alignment =
       Grid.makeView . (map . map) (Align.to alignment)
     makeGrid alignment acc rows =
