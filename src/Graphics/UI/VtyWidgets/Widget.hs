@@ -74,10 +74,10 @@ atKeymap :: (Keymap a -> Keymap b) ->
 atKeymap = atMKeymap . fmap
 
 strongerKeys :: Keymap a -> Widget a -> Widget a
-strongerKeys = atMKeymap . flip mappend . Just
+strongerKeys = atKeymap . flip mappend
 
 weakerKeys :: Keymap a -> Widget a -> Widget a
-weakerKeys = atMKeymap . mappend . Just
+weakerKeys = atKeymap . mappend
 
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a
