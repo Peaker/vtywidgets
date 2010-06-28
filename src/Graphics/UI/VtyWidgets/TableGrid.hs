@@ -35,8 +35,8 @@ makeFittedColumnView attrsWidths table = makeColumnView attrs fittedTable
     attrs = map fst attrsWidths
     widths = map snd attrsWidths
 
-makeKeymapView :: Keymap k -> (Vty.Attr, Int) -> (Vty.Attr, Int) -> Display a
-makeKeymapView keymap keyAttrWidth valueAttrWidth =
+makeKeymapView :: (Vty.Attr, Int) -> (Vty.Attr, Int) -> Keymap k -> Display a
+makeKeymapView keyAttrWidth valueAttrWidth keymap =
   makeFittedColumnView [keyAttrWidth, valueAttrWidth] .
   map (\(x, y) -> [x, y]) .
   sortBy (comparing snd) .

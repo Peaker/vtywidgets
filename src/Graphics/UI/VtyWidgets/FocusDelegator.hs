@@ -50,8 +50,8 @@ notDelegatingImageEndo size =
 make :: (Model -> k) -> Widget k -> Model -> Widget k
 make conv child (Model isDelegating) =
   if isDelegating
-    then Widget.atKeymap (`mappend` fmap conv delegatingKeymap) child
-    else (Widget.atKeymap . const) (fmap conv notDelegatingKeymap) .
+    then Widget.strongerKeys (conv `fmap` delegatingKeymap) child
+    else (Widget.atMKeymap . const . Just) (conv `fmap` notDelegatingKeymap) .
          (Widget.inWidget . Placable.atPlace) notDelegating $
          child
   where
