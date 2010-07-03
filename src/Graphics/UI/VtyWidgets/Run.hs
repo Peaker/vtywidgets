@@ -54,7 +54,7 @@ widgetLoop makeWidget =
       return (Widget.runWidget w size)
 
 widgetLoopWithOverlay :: (Size -> IO (Widget (IO ()))) -> IO ()
-widgetLoopWithOverlay makeWidget = do
+widgetLoopWithOverlay makeWidget =
   widgetLoop . makeWidget' =<< newIORef (Overlay.initModel True)
   where
     makeWidget' overlayModelRef size = do
