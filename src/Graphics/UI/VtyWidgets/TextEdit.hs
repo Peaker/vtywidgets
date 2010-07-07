@@ -11,6 +11,8 @@ import Data.Char(chr, isSpace)
 import Data.Monoid(mconcat)
 import Data.List.Split(splitOn)
 import Data.Vector.Vector2(Vector2(..))
+import qualified Data.Vector.Vector2 as Vector2
+import Control.Applicative(pure, liftA2)
 import Control.Arrow(first)
 import Control.Monad(liftM2)
 import qualified Graphics.Vty as Vty
@@ -46,18 +48,23 @@ tillEndOfWord xs = spaces ++ nonSpaces
 
 -- Note: maxLines prevents the *user* from exceeding it, not the given
 -- text...
-make :: Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
-make maxLines unfocusedAttr focusedAttr (Model cursor text) =
+make :: String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
+make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
   Widget.make requestedSize $ const (mkImage, keymap)
   where
     attr True = focusedAttr
     attr False = unfocusedAttr
-    requestedSize = SizeRange.fixedSize (Vector2 (width + 1) height)
+    emptyStringSize = if null text
+                      then fst . TermImage.stringParse $ emptyString
+                      else pure 0
+    requestedSize = SizeRange.fixedSize (Vector2.first (+1) $ liftA2 max emptyStringSize (Vector2 width height))
     mkImage (Widget.HasFocus hf) =
-      (TermImage.inCursor . const . Just) (Vector2 cursorX cursorY) .
-      TermImage.string (attr hf) $
-      text
+      if null text
+      then TermImage.string (attr hf) emptyString
+      else setCursor . TermImage.string (attr hf) $
+           text
 
+    setCursor = TermImage.inCursor . const . Just $ Vector2 cursorX cursorY
     (before, after) = splitAt cursor text
     textLength = length text
     textLines = splitLines text
@@ -191,11 +198,11 @@ type DelegatedModel = (FocusDelegator.Model, Model)
 initDelegatedModel :: Bool -> String -> DelegatedModel
 initDelegatedModel dm str = (FocusDelegator.initModel dm, initModel str)
 
-makeDelegated :: Int -> Vty.Attr -> Vty.Attr -> DelegatedModel -> Widget DelegatedModel
-makeDelegated maxLines unfocusedAttr focusedAttr (fdm, m) = focusDelegator
+makeDelegated :: String -> Int -> Vty.Attr -> Vty.Attr -> DelegatedModel -> Widget DelegatedModel
+makeDelegated emptyString maxLines unfocusedAttr focusedAttr (fdm, m) = focusDelegator
   where
     focusDelegator = FocusDelegator.make (\fdm' -> (fdm', m)) textEdit fdm
-    textEdit = (\m' -> (fdm, m')) `fmap` make maxLines unfocusedAttr focusedAttr m
+    textEdit = (\m' -> (fdm, m')) `fmap` make emptyString maxLines unfocusedAttr focusedAttr m
 
 defaultAttr :: Vty.Attr
 defaultAttr = Vty.def_attr

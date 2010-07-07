@@ -2,7 +2,7 @@
 
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage, tiCursor, inCursor, render,
-     string, stringSize, hstrings, vstrings,
+     string, stringParse, stringSize, hstrings, vstrings,
      clip, translate, rect,
      boundingRect,
      -- re-export:
