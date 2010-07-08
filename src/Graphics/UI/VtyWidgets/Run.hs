@@ -53,8 +53,8 @@ widgetLoop makeWidget =
       w <- liftIO . makeWidget $ size
       return (Widget.runWidget w size)
 
-widgetLoopWithOverlay :: (Size -> IO (Widget (IO ()))) -> IO ()
-widgetLoopWithOverlay makeWidget =
+widgetLoopWithOverlay :: Int -> Int -> (Size -> IO (Widget (IO ()))) -> IO ()
+widgetLoopWithOverlay keysWidth descriptionWidth makeWidget =
   widgetLoop . makeWidget' =<< newIORef (Overlay.initModel True)
   where
     makeWidget' overlayModelRef size = do
@@ -68,8 +68,8 @@ widgetLoopWithOverlay makeWidget =
     hideModKey = showModKey
     keyAttr   = (Vty.def_attr
                  `Vty.with_fore_color` Vty.green
-                 `Vty.with_back_color` Vty.blue, 10)
+                 `Vty.with_back_color` Vty.blue, keysWidth)
     valueAttr = (Vty.def_attr
                  `Vty.with_fore_color` Vty.red
                  `Vty.with_back_color` Vty.blue
-                 `Vty.with_style` Vty.bold, 30)
+                 `Vty.with_style` Vty.bold, descriptionWidth)

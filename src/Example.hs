@@ -57,7 +57,7 @@ main = do
   hSetBuffering stderr NoBuffering
   mainLoop =<< newMVar initModel
   where
-    mainLoop modelMVar = Run.widgetLoopWithOverlay . const $ rootWidget
+    mainLoop modelMVar = Run.widgetLoopWithOverlay 20 30 . const $ rootWidget
       where
         rootWidget = modelEdit fixKeymap `fmap`
                      readMVar modelMVar
