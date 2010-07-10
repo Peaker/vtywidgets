@@ -3,7 +3,7 @@
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
-     atDisplay, atMKeymap, atKeymap, atMkImage, make, simpleDisplay,
+     atDisplay, atMKeymap, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap, image, requestedSize,
      strongerKeys, weakerKeys)
 where
@@ -78,6 +78,11 @@ strongerKeys = atKeymap . flip mappend
 
 weakerKeys :: Keymap a -> Widget a -> Widget a
 weakerKeys = atKeymap . mappend
+
+atMkSizedImage :: ((Size -> HasFocus -> TermImage) ->
+                   Size -> HasFocus -> TermImage) ->
+                  Widget a -> Widget a
+atMkSizedImage = atDisplay . Placable.atPlace
 
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a

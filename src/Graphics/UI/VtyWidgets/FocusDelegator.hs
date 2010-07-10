@@ -14,7 +14,6 @@ import Data.Monoid(mappend)
 import Data.Record.Label((:->), set, get)
 import Data.Function.Utils(Endo)
 import qualified Graphics.Vty as Vty
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import Graphics.UI.VtyWidgets.Widget(Widget)
@@ -52,15 +51,17 @@ make conv child (Model isDelegating) =
   if isDelegating
     then Widget.strongerKeys (conv `fmap` delegatingKeymap) child
     else (Widget.atMKeymap . const . Just) (conv `fmap` notDelegatingKeymap) .
-         (Widget.inWidget . Placable.atPlace) notDelegating $
+         Widget.atMkSizedImage notDelegating $
          child
   where
-    notDelegating sizeToPair size = notDelegatingImage size `first` sizeToPair size
-    notDelegatingImage size mkImage hf =
-      (if Widget.hasFocus hf
-       then notDelegatingImageEndo size
-       else id) $
-      mkImage (Widget.HasFocus False)
+    notDelegating mkSizedImage size hf =
+      notDelegatingImage size (Widget.hasFocus hf) $
+      mkSizedImage size hf
+
+    -- When focus isn't on us, we don't tell whether we delegate or
+    -- not
+    notDelegatingImage  size True = notDelegatingImageEndo size
+    notDelegatingImage _size False = id
 
 makeAcc :: k :-> Model -> Widget k -> k -> Widget k
 makeAcc acc child k =
