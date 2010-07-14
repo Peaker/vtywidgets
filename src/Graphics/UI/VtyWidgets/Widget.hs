@@ -3,7 +3,7 @@
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
-     atDisplay, atMKeymap, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
+     atDisplay, atMKeymap, takesFocus, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap, image, requestedSize,
      strongerKeys, weakerKeys)
 where
@@ -68,6 +68,9 @@ atMKeymap :: (Maybe (Keymap a) ->
               Maybe (Keymap b)) ->
              Widget a -> Widget b
 atMKeymap = inWidget . fmap . second
+
+takesFocus :: Widget a -> Widget a
+takesFocus = atMKeymap $ maybe (Just mempty) Just
 
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
