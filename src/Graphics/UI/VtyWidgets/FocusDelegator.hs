@@ -6,14 +6,15 @@ module Graphics.UI.VtyWidgets.FocusDelegator
 where
 
 import Control.Applicative(pure)
-import Control.Arrow(first)
+import Control.Arrow(first, second)
 import Data.Binary(Binary)
 import Data.Vector.Rect(Rect(..))
 import Data.Vector.Vector2(Vector2)
-import Data.Monoid(mappend)
+import Data.Monoid(mempty, mappend)
 import Data.Record.Label((:->), set, get)
 import Data.Function.Utils(Endo)
 import qualified Graphics.Vty as Vty
+import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage)
 import Graphics.UI.VtyWidgets.Widget(Widget)
@@ -50,18 +51,19 @@ make :: (Model -> k) -> Widget k -> Model -> Widget k
 make conv child (Model isDelegating) =
   if isDelegating
     then Widget.strongerKeys (conv `fmap` delegatingKeymap) child
-    else (Widget.atMKeymap . const . Just) (conv `fmap` notDelegatingKeymap) .
-         Widget.atMkSizedImage notDelegating $
+    else Widget.atMkSizedImage notDelegatingMkImage .
+         (Widget.inWidget . Placable.atPlace) nonDelegatingReplace $
          child
   where
-    notDelegating mkSizedImage size hf =
+    notDelegatingMkImage mkSizedImage size hf =
       notDelegatingImage size (Widget.hasFocus hf) $
       mkSizedImage size hf
-
     -- When focus isn't on us, we don't tell whether we delegate or
     -- not
     notDelegatingImage  size True = notDelegatingImageEndo size
     notDelegatingImage _size False = id
+    nonDelegatingReplace childPlace size = modifyKeymap `second` childPlace size
+    modifyKeymap = maybe (Just mempty) (const . Just $ conv `fmap` notDelegatingKeymap)
 
 makeAcc :: k :-> Model -> Widget k -> k -> Widget k
 makeAcc acc child k =

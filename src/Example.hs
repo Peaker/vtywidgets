@@ -18,6 +18,7 @@ import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
+import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.Run as Run
@@ -33,17 +34,20 @@ nth n = label (!! n) (nthSet n)
 
 data Model = Model {
   _modelGrid :: Grid.DelegatedModel,
-  _modelTextEdits :: [TextEdit.DelegatedModel]
+  _modelTextEdits :: [TextEdit.DelegatedModel],
+  _modelDelegators :: [FocusDelegator.Model]
   }
 $(mkLabels [''Model])
 
 modelGrid :: Model :-> Grid.DelegatedModel
 modelTextEdits :: Model :-> [TextEdit.DelegatedModel]
+modelDelegators :: Model :-> [FocusDelegator.Model]
 
 initModel :: Model
 initModel = Model {
   _modelGrid = Grid.initDelegatedModel True,
-  _modelTextEdits = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"]
+  _modelTextEdits = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  _modelDelegators = replicate 2 $ FocusDelegator.initModel False
   }
 
 quitKey :: ModKey
@@ -75,9 +79,11 @@ modelEdit fixKeymap model =
       [ [ TextView.make attr "Title\n-----" ],
         [ innerGridDisp ]
       ]
+    delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators)
+                          (Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " ") model
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
-      makeGrid (pure 0) modelGrid textEdits
+      makeGrid (pure 0) modelGrid ([ map delegatedTextView [0..1] ] ++ textEdits)
     textEdits =
       [ [ adaptModel (nth i . modelTextEdits)
           (TextEdit.makeDelegated "<insert text here>" 5 attr TextEdit.editingAttr)
