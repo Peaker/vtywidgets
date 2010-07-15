@@ -83,7 +83,7 @@ modelEdit fixKeymap model =
                           (Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " ") model
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
-      makeGrid (pure 0) modelGrid ([ map delegatedTextView [0..1] ] ++ textEdits)
+      makeGrid (pure 0) modelGrid $ map delegatedTextView [0..1] : textEdits
     textEdits =
       [ [ adaptModel (nth i . modelTextEdits)
           (TextEdit.makeDelegated "<insert text here>" 5 attr TextEdit.editingAttr)
