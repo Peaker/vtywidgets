@@ -5,7 +5,7 @@ module Graphics.UI.VtyWidgets.Widget
      Widget(..), inWidget, inWidget2, runWidget,
      atDisplay, atMKeymap, takesFocus, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap, image, requestedSize,
-     strongerKeys, weakerKeys)
+     strongerKeys, weakerKeys, whenFocused)
 where
 
 import Control.Arrow(first, second)
@@ -90,6 +90,12 @@ atMkSizedImage = atDisplay . Placable.atPlace
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a
 atMkImage = inWidget . fmap . first
+
+whenFocused :: Endo (Size -> TermImage) -> Endo (Widget k)
+whenFocused onSizedImage = atMkSizedImage f
+  where
+    f mkImage size hf@(HasFocus True) = onSizedImage (`mkImage` hf) size
+    f mkImage size hf@(HasFocus False) = mkImage size hf
 
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay = fromDisplay mempty
