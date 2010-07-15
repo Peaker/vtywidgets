@@ -50,7 +50,7 @@ notDelegatingImageEndo size =
 make :: (Model -> k) -> Widget k -> Model -> Widget k
 make conv child (Model isDelegating) =
   if isDelegating
-    then Widget.strongerKeys (conv `fmap` delegatingKeymap) child
+    then Widget.weakerKeys (conv `fmap` delegatingKeymap) child
     else Widget.whenFocused (notDelegatingImageEndo <*>) .
          (Widget.inWidget . Placable.atPlace) nonDelegatingModKeymap $
          child
