@@ -30,7 +30,10 @@ instance Functor Keymap where
 
 instance Monoid (Keymap a) where
   mempty = make mempty
-  x `mappend` y = make $ keymapGroups x `mappend` keymapGroups y
+  strong `mappend` weak = make $ keymapGroups strong `mappend` unshadowedWeakGroups
+    where
+      unshadowedWeakGroups = Map.filter (unshadowed . snd) $ keymapGroups weak
+      unshadowed modKeys = all (`Map.notMember` keymapCache strong) . Map.keys $ modKeys
 
 lookup :: ModKey -> Keymap a -> Maybe (KeyGroupName, (Doc, a))
 lookup modkey = Map.lookup modkey . keymapCache
