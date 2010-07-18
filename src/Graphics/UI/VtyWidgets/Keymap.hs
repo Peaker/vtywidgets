@@ -4,7 +4,8 @@ module Graphics.UI.VtyWidgets.Keymap
     (Keymap(keymapGroups),
      Doc, KeyGroupName, ModKey, showModKey,
      lookup, make, fromGroups, fromGroupLists,
-     singleton, singletonKeys, simpleton)
+     singleton, singletonKeys, simpleton,
+     removeKey, removeKeys)
 where
 
 import qualified Graphics.Vty as Vty
@@ -34,6 +35,24 @@ instance Monoid (Keymap a) where
     where
       unshadowedWeakGroups = Map.filter (unshadowed . snd) $ keymapGroups weak
       unshadowed modKeys = all (`Map.notMember` keymapCache strong) . Map.keys $ modKeys
+
+removeKey :: ModKey -> Keymap a -> Keymap a
+removeKey key keymap =
+  case mbGroupName of
+    Nothing -> keymap
+    Just groupName -> make . Map.alter alterGroup groupName . keymapGroups $ keymap
+  where
+    alterGroup Nothing = error "Keymap's cache incompatible with groups"
+    alterGroup (Just (doc, modKeys)) = (,) doc `fmap` removeOrNothing
+      where
+        removeOrNothing = if Map.null removed
+                          then Nothing
+                          else Just removed
+        removed = key `Map.delete` modKeys
+    mbGroupName = fmap fst $ key `Map.lookup` keymapCache keymap
+
+removeKeys :: [ModKey] -> Keymap a -> Keymap a
+removeKeys = foldr (.) id . map removeKey
 
 lookup :: ModKey -> Keymap a -> Maybe (KeyGroupName, (Doc, a))
 lookup modkey = Map.lookup modkey . keymapCache
