@@ -29,6 +29,7 @@ data Model = Model {
   textEditCursor :: Cursor,
   textEditText :: String
   }
+  deriving (Show, Read, Eq, Ord)
 
 instance Binary Model where
   get = liftM2 Model get get
