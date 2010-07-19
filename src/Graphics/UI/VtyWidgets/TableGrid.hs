@@ -39,9 +39,13 @@ makeColumnView attrs table =
       fitToWidth width
       where
         modifyMkSizedImage mkSizedImage size arg =
-          modifySizedImage size $ mkSizedImage size arg
-        modifySizedImage size =
-          flip mappend . TermImage.rect (Rect (pure 0) size) . first . const $ attr
+          (emptyImage size `mappend`) .
+          (`mappend` setAttrImage size) $
+          mkSizedImage size arg
+        emptyImage size =
+          TermImage.rect (Rect (pure 0) size) . const $ (Vty.def_attr, ' ')
+        setAttrImage size =
+          TermImage.rect (Rect (pure 0) size) . first . const $ attr
 
 makeKeymapView :: (Vty.Attr, Int) -> (Vty.Attr, Int) -> Keymap k -> Display a
 makeKeymapView keyAttrWidth valueAttrWidth keymap =
