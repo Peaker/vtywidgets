@@ -32,8 +32,6 @@ import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
 
--- Model:
-
 newtype Model = Model {
   modelCursor :: Vector2 Int
   }
