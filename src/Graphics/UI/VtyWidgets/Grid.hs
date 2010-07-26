@@ -4,7 +4,7 @@
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
      DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
-     Model(..), inModel, initModel, fixModelB)
+     Model(..), inModel, initModel)
 where
 
 import Data.Binary(Binary)
@@ -60,18 +60,6 @@ enumerate2d xss = mapu row (enumerate xss)
   where
     row rowIndex = mapu (add rowIndex) . enumerate
     add rowIndex columnIndex = (,) (Vector2 columnIndex rowIndex)
-
-sqrDist :: Num a => Vector2 a -> Vector2 a -> a
-sqrDist a b = Vector2.uncurry (+) . fmap (join (*)) $ liftA2 (-) a b
-
-fixModelB :: [[Bool]] -> Model -> Model
-fixModelB []   m = m
-fixModelB [[]] m = m
-fixModelB rows (Model cursor) = Model . snd . minimum $ scores
-  where
-    scores = map score . concat . enumerate2d $ rows
-    score (_  , False) = (maxBound, cursor)
-    score (pos, True)  = (sqrDist pos cursor, pos)
 
 --- Size computations:
 
