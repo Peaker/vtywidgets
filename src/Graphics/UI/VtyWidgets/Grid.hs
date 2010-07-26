@@ -3,7 +3,6 @@
 
 module Graphics.UI.VtyWidgets.Grid
     (makeView, make, makeAcc, makeSizes,
-     DelegatedModel, initDelegatedModel, makeDelegated, makeAccDelegated,
      Model(..), inModel, initModel)
 where
 
@@ -16,7 +15,7 @@ import Data.Monoid(mempty, mappend, mconcat)
 import Data.Maybe(maybeToList, fromMaybe, isJust)
 import Data.Vector.Vector2(Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Control.Monad(msum, join)
+import Control.Monad(msum)
 import Control.Applicative(pure, liftA2)
 import Control.Arrow((***), first, second)
 import qualified Graphics.Vty as Vty
@@ -27,7 +26,6 @@ import Graphics.UI.VtyWidgets.Widget(Widget(..))
 import qualified Graphics.UI.VtyWidgets.Placable as Placable
 import Graphics.UI.VtyWidgets.Placable(Placable(..))
 import qualified Graphics.UI.VtyWidgets.Display as Display
-import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 import Graphics.UI.VtyWidgets.Display(Display)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
@@ -237,17 +235,3 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
 
 makeAcc :: k :-> Model -> [[Widget k]] -> k -> Widget k
 makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
-
-type DelegatedModel = (FocusDelegator.Model, Model)
-
-initDelegatedModel :: Bool -> DelegatedModel
-initDelegatedModel = flip (,) initModel . FocusDelegator.initModel
-
-makeDelegated :: (DelegatedModel -> k) -> [[Widget k]] -> DelegatedModel -> Widget k
-makeDelegated conv rows (fdm, m) = focusDelegator
-  where
-    focusDelegator = FocusDelegator.make (\fdm' -> conv (fdm', m)) grid fdm
-    grid = make (\m' -> conv (fdm, m')) rows m
-
-makeAccDelegated :: k :-> DelegatedModel -> [[Widget k]] -> k -> Widget k
-makeAccDelegated acc rows k = makeDelegated (flip (set acc) k) rows (get acc k)

@@ -4,6 +4,7 @@
 import qualified Graphics.Vty as Vty
 import qualified Data.Record.Label as Label
 import Data.Record.Label((:->), mkLabels, label)
+import Data.Record.Label.Tuple(first, second)
 import Data.Monoid(mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
@@ -33,20 +34,20 @@ nth :: Int -> [a] :-> a
 nth n = label (!! n) (nthSet n)
 
 data Model = Model {
-  _modelGrid :: Grid.DelegatedModel,
-  _modelTextEdits :: [TextEdit.DelegatedModel],
+  _modelGrid :: (FocusDelegator.Model, Grid.Model),
+  _modelTextEdits :: [(FocusDelegator.Model, TextEdit.Model)],
   _modelDelegators :: [FocusDelegator.Model]
   }
 $(mkLabels [''Model])
 
-modelGrid :: Model :-> Grid.DelegatedModel
-modelTextEdits :: Model :-> [TextEdit.DelegatedModel]
+modelGrid :: Model :-> (FocusDelegator.Model, Grid.Model)
+modelTextEdits :: Model :-> [(FocusDelegator.Model, TextEdit.Model)]
 modelDelegators :: Model :-> [FocusDelegator.Model]
 
 initModel :: Model
 initModel = Model {
-  _modelGrid = Grid.initDelegatedModel True,
-  _modelTextEdits = map (TextEdit.initDelegatedModel True) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
+  _modelGrid = (FocusDelegator.initModel True, Grid.initModel),
+  _modelTextEdits = map ((,) (FocusDelegator.initModel True) . TextEdit.initModel) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   _modelDelegators = replicate 2 $ FocusDelegator.initModel False
   }
 
@@ -83,20 +84,25 @@ modelEdit fixKeymap model =
                           (Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " ") model
     innerGrid =
       Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
-      makeGrid (pure 0) modelGrid $ map delegatedTextView [0..1] : textEdits
+      makeGrid modelGrid (pure 0) $ map delegatedTextView [0..1] : textEdits
     textEdits =
-      [ [ adaptModel (nth i . modelTextEdits)
-          (TextEdit.makeDelegated "<insert text here>" 5 attr TextEdit.editingAttr)
-          model
+      [ [ makeTextEdit (nth i . modelTextEdits)
         | y <- [0, 1]
         , let i = y*2 + x ]
       | x <- [0, 1] ]
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
     makeGridView alignment =
       Grid.makeView . (map . map) (Align.to alignment)
-    makeGrid alignment acc rows =
-      (Grid.makeAccDelegated acc . (map . map . Widget.atDisplay) (Align.to alignment))
-      rows model
+    makeTextEdit acc =
+      FocusDelegator.makeAcc (first . acc) textEdit model
+      where
+        textEdit = adaptModel (second . acc) (TextEdit.make "<insert text here>" 5 attr TextEdit.editingAttr) model
+    makeGrid acc alignment rows =
+      FocusDelegator.makeAcc (first . acc) grid model
+      where
+        grid = Grid.makeAcc (second . acc)
+               ((map . map . Widget.atDisplay) (Align.to alignment) rows)
+               model
 
 adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget w = Widget.atKeymap (flip (Label.set acc) w `fmap`) (pwidget (Label.get acc w))
