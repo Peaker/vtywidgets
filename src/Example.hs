@@ -5,18 +5,17 @@ import qualified Graphics.Vty as Vty
 import qualified Data.Record.Label as Label
 import Data.Record.Label((:->), mkLabels, label)
 import Data.Record.Label.Tuple(first, second)
+import Data.Record.Label.List(nth)
 import Data.Monoid(mappend)
 import Data.Vector.Vector2(Vector2(..))
 import Prelude hiding ((.))
 import Control.Category((.))
-import Control.Applicative(pure)
 import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
 import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
 import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import qualified Graphics.UI.VtyWidgets.Align as Align
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
@@ -24,14 +23,6 @@ import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
 import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
 import qualified Graphics.UI.VtyWidgets.Run as Run
 import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
-
-nthSet :: Int -> a -> [a] -> [a]
-nthSet _ _ [] = error "IndexError in nthSet"
-nthSet 0 x' (_:xs) = x' : xs
-nthSet n x' (x:xs) = x : nthSet (n-1) x' xs
-
-nth :: Int -> [a] :-> a
-nth n = label (!! n) (nthSet n)
 
 data Model = Model {
   _modelGrid :: (FocusDelegator.Model, Grid.Model),
@@ -64,10 +55,9 @@ main = do
   where
     mainLoop modelMVar = Run.widgetLoopWithOverlay 20 30 . const $ rootWidget
       where
-        rootWidget = modelEdit fixKeymap `fmap`
-                     readMVar modelMVar
-        fixKeymap = (Keymap.simpleton "Quit" quitKey (fail "Quit") `mappend`) .
-                    ((pureModifyMVar_ modelMVar . const) `fmap`)
+        rootWidget = modelEdit fixKeymap `fmap` readMVar modelMVar
+        fixKeymap = (mappend . Keymap.simpleton "Quit" quitKey $ fail "Quit") .
+                    (fmap $ pureModifyMVar_ modelMVar . const)
 
 modelEdit :: (Keymap Model -> Keymap k) -> Model -> Widget k
 modelEdit fixKeymap model =
@@ -76,33 +66,23 @@ modelEdit fixKeymap model =
   innerGrid
   where
     outerGrid innerGridDisp =
-      makeGridView (pure 0)
+      Grid.makeView
       [ [ TextView.make attr "Title\n-----" ],
         [ innerGridDisp ]
       ]
-    delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators)
-                          (Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " ") model
-    innerGrid =
-      Widget.atDisplay (Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6) $
-      makeGrid modelGrid (pure 0) $ map delegatedTextView [0..1] : textEdits
-    textEdits =
-      [ [ makeTextEdit (nth i . modelTextEdits)
-        | y <- [0, 1]
-        , let i = y*2 + x ]
-      | x <- [0, 1] ]
+    delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators) (staticTextView i) model
+    staticTextView i = Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " "
+    innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : textEdits
+    scrollerAround = Widget.atDisplay . Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6
+    textEdits = [ [ makeTextEdit (nth i . modelTextEdits)
+                  | y <- [0, 1]
+                  , let i = y*2 + x ]
+                | x <- [0, 1] ]
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    makeGridView alignment =
-      Grid.makeView . (map . map) (Align.to alignment)
-    makeTextEdit acc =
-      FocusDelegator.makeAcc (first . acc) textEdit model
-      where
-        textEdit = adaptModel (second . acc) (TextEdit.make "<insert text here>" 5 attr TextEdit.editingAttr) model
-    makeGrid acc alignment rows =
-      FocusDelegator.makeAcc (first . acc) grid model
-      where
-        grid = Grid.makeAcc (second . acc)
-               ((map . map . Widget.atDisplay) (Align.to alignment) rows)
-               model
+    makeTextEdit acc = FocusDelegator.makeAcc (first . acc) (textEdit (second . acc)) model
+    textEdit acc = adaptModel acc (TextEdit.make "<insert text here>" 5 attr TextEdit.editingAttr) model
+    makeGrid acc rows = FocusDelegator.makeAcc (first . acc) (grid (second . acc) rows) model
+    grid acc rows = Grid.makeAcc acc rows model
 
 adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w
 adaptModel acc pwidget w = Widget.atKeymap (flip (Label.set acc) w `fmap`) (pwidget (Label.get acc w))

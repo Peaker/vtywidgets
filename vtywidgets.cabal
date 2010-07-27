@@ -42,6 +42,7 @@ Library
                        Graphics.UI.VtyWidgets.Display,
                        Graphics.UI.VtyWidgets.Widget,
                        Graphics.UI.VtyWidgets.Run,
+                       Data.Record.Label.List,
                        Data.Record.Label.Tuple,
                        Data.Vector.Vector2,
                        Data.Vector.Rect
