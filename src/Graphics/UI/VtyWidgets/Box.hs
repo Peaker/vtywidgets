@@ -3,7 +3,7 @@
 
 module Graphics.UI.VtyWidgets.Box
     (makeView, make, makeAcc, makeSizes,
-     Orientation(..), Model(..), initModel)
+     Orientation(..), Model(..), inModel, initModel)
 where
 
 import           Prelude                          hiding ((.))
@@ -22,6 +22,8 @@ newtype Model = Model {
   modelCursor :: Int
   }
   deriving (Show, Read, Eq, Ord, Binary)
+inModel :: (Int -> Int) -> Model -> Model
+inModel f (Model x) = Model (f x)
 
 initModel :: Model
 initModel = Model 0
