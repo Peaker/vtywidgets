@@ -26,6 +26,7 @@ Library
                        vty >= 4.2.1 && < 4.3,  containers == 0.3.*, array >= 0.2,
                        dlist >= 0.5 && < 0.6, transformers >= 0.2.1.0,  binary == 0.5.*
   Exposed-Modules:     Graphics.UI.VtyWidgets.Grid,
+                       Graphics.UI.VtyWidgets.Box,
                        Graphics.UI.VtyWidgets.Keymap,
                        Graphics.UI.VtyWidgets.TermImage,
                        Graphics.UI.VtyWidgets.TextEdit,

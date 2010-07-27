@@ -16,6 +16,7 @@ import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
 import qualified Graphics.UI.VtyWidgets.Widget as Widget
 import Graphics.UI.VtyWidgets.Widget(Widget)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
+import qualified Graphics.UI.VtyWidgets.Box as Box
 import qualified Graphics.UI.VtyWidgets.Grid as Grid
 import qualified Graphics.UI.VtyWidgets.TextView as TextView
 import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
@@ -66,10 +67,7 @@ modelEdit fixKeymap model =
   innerGrid
   where
     outerGrid innerGridDisp =
-      Grid.makeView
-      [ [ TextView.make attr "Title\n-----" ],
-        [ innerGridDisp ]
-      ]
+      Box.makeView Box.Vertical [ TextView.make attr "Title\n-----", innerGridDisp ]
     delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators) (staticTextView i) model
     staticTextView i = Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " "
     innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : textEdits
