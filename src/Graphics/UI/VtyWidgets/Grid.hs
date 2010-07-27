@@ -6,31 +6,31 @@ module Graphics.UI.VtyWidgets.Grid
      Model(..), inModel, initModel)
 where
 
-import Data.Binary(Binary)
-import Data.Function.Utils(result, (~>))
-import Data.List(find, transpose)
-import Data.List.Utils(safeIndex)
-import Data.Record.Label((:->), set, get)
-import Data.Monoid(mempty, mappend, mconcat)
-import Data.Maybe(maybeToList, fromMaybe, isJust)
-import Data.Vector.Vector2(Vector2(..))
-import qualified Data.Vector.Vector2 as Vector2
-import Control.Monad(msum)
-import Control.Applicative(pure, liftA2)
-import Control.Arrow((***), first, second)
-import qualified Graphics.Vty as Vty
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import Graphics.UI.VtyWidgets.Widget(Widget(..))
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
-import Graphics.UI.VtyWidgets.Placable(Placable(..))
-import qualified Graphics.UI.VtyWidgets.Display as Display
-import Graphics.UI.VtyWidgets.Display(Display)
+import           Data.Binary                      (Binary)
+import           Data.Function.Utils              (result, (~>))
+import           Data.List                        (find, transpose)
+import           Data.List.Utils                  (safeIndex)
+import           Data.Record.Label                ((:->), set, get)
+import           Data.Monoid                      (mempty, mappend, mconcat)
+import           Data.Maybe                       (maybeToList, fromMaybe, isJust)
+import           Data.Vector.Vector2              (Vector2(..))
+import qualified Data.Vector.Vector2              as Vector2
+import           Control.Monad                    (msum)
+import           Control.Applicative              (pure, liftA2)
+import           Control.Arrow                    ((***), first, second)
+import qualified Graphics.Vty                     as Vty
+import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import           Graphics.UI.VtyWidgets.Keymap    (Keymap, ModKey)
+import qualified Graphics.UI.VtyWidgets.Widget    as Widget
+import           Graphics.UI.VtyWidgets.Widget    (Widget(..))
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
+import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
+import qualified Graphics.UI.VtyWidgets.Display   as Display
+import           Graphics.UI.VtyWidgets.Display   (Display)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.TermImage(TermImage, Coordinate)
+import           Graphics.UI.VtyWidgets.TermImage (TermImage, Coordinate)
 
 newtype Model = Model {
   modelCursor :: Vector2 Int

@@ -9,12 +9,12 @@ module Data.Vector.Vector2
     ,prop_range)
 where
 
-import Prelude hiding (fst, snd, curry, uncurry, zip)
+import           Prelude             hiding (fst, snd, curry, uncurry, zip)
 import qualified Prelude
-import Control.Applicative(Applicative(..), liftA2, liftA3)
-import Control.Monad(join, liftM2)
-import Data.Array(Ix(..))
-import Data.Binary(Binary(..))
+import           Control.Applicative (Applicative(..), liftA2, liftA3)
+import           Control.Monad       (join, liftM2)
+import           Data.Array          (Ix(..))
+import           Data.Binary         (Binary(..))
 -- import Test.QuickCheck.Arbitrary(Arbitrary(..))
 
 data Vector2 a = Vector2 !a !a

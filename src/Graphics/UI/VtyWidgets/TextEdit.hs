@@ -5,20 +5,20 @@ module Graphics.UI.VtyWidgets.TextEdit
      defaultAttr, editingAttr)
 where
 
-import Data.Binary(Binary(..))
-import Data.Char(chr, isSpace)
-import Data.Monoid(mconcat)
-import Data.List.Split(splitOn)
-import Data.Vector.Vector2(Vector2(..))
-import qualified Data.Vector.Vector2 as Vector2
-import Control.Applicative(pure, liftA2)
-import Control.Arrow(first)
-import Control.Monad(liftM2)
-import qualified Graphics.Vty as Vty
+import           Data.Binary                      (Binary(..))
+import           Data.Char                        (chr, isSpace)
+import           Data.Monoid                      (mconcat)
+import           Data.List.Split                  (splitOn)
+import           Data.Vector.Vector2              (Vector2(..))
+import qualified Data.Vector.Vector2              as Vector2
+import           Control.Applicative              (pure, liftA2)
+import           Control.Arrow                    (first)
+import           Control.Monad                    (liftM2)
+import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import           Graphics.UI.VtyWidgets.Widget    (Widget)
+import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
 type Cursor = Int

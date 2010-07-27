@@ -5,22 +5,22 @@ module Graphics.UI.VtyWidgets.FocusDelegator
     (make, makeAcc, Model(..), initModel)
 where
 
-import Control.Applicative(Applicative(..))
-import Control.Arrow(first, second)
-import Data.Binary(Binary)
-import Data.Vector.Rect(Rect(..))
-import Data.Monoid(mempty, mappend)
-import Data.Record.Label((:->), set, get)
-import Data.Function.Utils(Endo)
-import qualified Graphics.Vty as Vty
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
+import           Control.Applicative              (Applicative(..))
+import           Control.Arrow                    (first, second)
+import           Data.Binary                      (Binary)
+import           Data.Vector.Rect                 (Rect(..))
+import           Data.Monoid                      (mempty, mappend)
+import           Data.Record.Label                ((:->), set, get)
+import           Data.Function.Utils              (Endo)
+import qualified Graphics.Vty                     as Vty
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.TermImage(TermImage)
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import Graphics.UI.VtyWidgets.SizeRange(Size)
-import Graphics.UI.VtyWidgets.Keymap(Keymap)
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import           Graphics.UI.VtyWidgets.TermImage (TermImage)
+import           Graphics.UI.VtyWidgets.Widget    (Widget)
+import           Graphics.UI.VtyWidgets.SizeRange (Size)
+import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
+import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 
 newtype Model = Model {
   focusDelegated :: Bool

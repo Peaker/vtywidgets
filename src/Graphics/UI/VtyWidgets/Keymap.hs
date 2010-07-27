@@ -8,12 +8,12 @@ module Graphics.UI.VtyWidgets.Keymap
      removeKey, removeKeys)
 where
 
-import qualified Graphics.Vty as Vty
-import Prelude hiding (lookup)
-import Control.Arrow(second)
-import Data.Monoid(Monoid(..))
-import qualified Data.Map as Map
-import Data.Map(Map)
+import qualified Graphics.Vty  as Vty
+import           Prelude       hiding (lookup)
+import           Control.Arrow (second)
+import           Data.Monoid   (Monoid(..))
+import qualified Data.Map      as Map
+import           Data.Map      (Map)
 
 type KeyGroupName = String
 type ModKey = ([Vty.Modifier], Vty.Key)

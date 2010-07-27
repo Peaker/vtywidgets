@@ -7,10 +7,10 @@ module Graphics.UI.VtyWidgets.SizeRange
      )
 where
 
-import Data.Function.Utils(Endo)
-import Data.Vector.Vector2(Vector2(..))
-import Data.Monoid(Monoid(..))
-import Control.Applicative(pure)
+import Data.Function.Utils (Endo)
+import Data.Vector.Vector2 (Vector2(..))
+import Data.Monoid         (Monoid(..))
+import Control.Applicative (pure)
 
 type Size = Vector2 Int
 data SizeRange = SizeRange {

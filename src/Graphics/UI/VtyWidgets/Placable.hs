@@ -4,9 +4,9 @@ module Graphics.UI.VtyWidgets.Placable
     (Placable(..), atPlace, atRequestedSize)
 where
 
-import Data.Monoid(Monoid(..))
-import Data.Function.Utils(Endo, result)
-import Graphics.UI.VtyWidgets.SizeRange(Size, SizeRange)
+import Data.Monoid                      (Monoid(..))
+import Data.Function.Utils              (Endo, result)
+import Graphics.UI.VtyWidgets.SizeRange (Size, SizeRange)
 
 data Placable r = Placable {
   pRequestedSize :: SizeRange,

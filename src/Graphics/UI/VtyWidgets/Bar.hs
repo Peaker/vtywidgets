@@ -4,14 +4,14 @@ module Graphics.UI.VtyWidgets.Bar
     (makeHorizontal, makeVertical)
 where
 
-import Data.Vector.Vector2(Vector2(..))
-import qualified Data.Vector.Vector2 as Vector2
-import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.TermImage(TermImage)
+import           Data.Vector.Vector2              (Vector2(..))
+import qualified Data.Vector.Vector2              as Vector2
+import qualified Graphics.Vty                     as Vty
+import           Graphics.UI.VtyWidgets.TermImage (TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.Display(Display)
-import qualified Graphics.UI.VtyWidgets.Display as Display
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange)
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import qualified Graphics.UI.VtyWidgets.Display   as Display
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
 ranges :: Double -> Double -> Int -> (Int, Int, Int)

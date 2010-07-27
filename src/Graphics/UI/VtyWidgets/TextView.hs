@@ -4,10 +4,10 @@ module Graphics.UI.VtyWidgets.TextView
     (make)
 where
 
-import qualified Graphics.Vty as Vty
+import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.Display(Display)
-import qualified Graphics.UI.VtyWidgets.Display as Display
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import qualified Graphics.UI.VtyWidgets.Display   as Display
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 
 make :: Vty.Attr -> String -> Display a

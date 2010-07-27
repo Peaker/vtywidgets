@@ -8,17 +8,17 @@ module Graphics.UI.VtyWidgets.Widget
      strongerKeys, weakerKeys, whenFocused)
 where
 
-import Control.Arrow(first, second)
-import Control.Applicative(liftA2)
-import Data.Monoid(Monoid(..))
-import Data.Function.Utils(Endo)
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
-import Graphics.UI.VtyWidgets.Placable(Placable(..))
-import qualified Graphics.UI.VtyWidgets.Display as Display
-import Graphics.UI.VtyWidgets.Display(Display)
-import Graphics.UI.VtyWidgets.Keymap(Keymap)
-import Graphics.UI.VtyWidgets.TermImage(TermImage)
+import           Control.Arrow                    (first, second)
+import           Control.Applicative              (liftA2)
+import           Data.Monoid                      (Monoid(..))
+import           Data.Function.Utils              (Endo)
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
+import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
+import qualified Graphics.UI.VtyWidgets.Display   as Display
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
+import           Graphics.UI.VtyWidgets.TermImage (TermImage)
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
   deriving (Show, Read, Eq, Ord)

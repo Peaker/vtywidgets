@@ -2,9 +2,9 @@
 
 module Data.List.Utils(safeIndex, groupFst) where
 
-import Data.Maybe(listToMaybe)
-import Data.List(groupBy)
-import Data.Function(on)
+import Data.Maybe    (listToMaybe)
+import Data.List     (groupBy)
+import Data.Function (on)
 
 safeIndex :: Integral ix => ix -> [a] -> Maybe a
 safeIndex n = listToMaybe . drop (fromIntegral n)

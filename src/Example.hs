@@ -1,29 +1,29 @@
 {-# OPTIONS -O2 -Wall #-}
 {-# LANGUAGE TemplateHaskell, TypeOperators #-}
 
-import qualified Graphics.Vty as Vty
-import qualified Data.Record.Label as Label
-import Data.Record.Label((:->), mkLabels, label)
-import Data.Record.Label.Tuple(first, second)
-import Data.Record.Label.List(nth)
-import Data.Monoid(mappend)
-import Data.Vector.Vector2(Vector2(..))
-import Prelude hiding ((.))
-import Control.Category((.))
-import Control.Concurrent.MVar(MVar, newMVar, readMVar, modifyMVar_)
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Keymap(Keymap, ModKey)
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import qualified Graphics.UI.VtyWidgets.Box as Box
-import qualified Graphics.UI.VtyWidgets.Grid as Grid
-import qualified Graphics.UI.VtyWidgets.TextView as TextView
+import qualified Graphics.Vty                          as Vty
+import qualified Data.Record.Label                     as Label
+import           Data.Record.Label                     ((:->), mkLabels, label)
+import           Data.Record.Label.Tuple               (first, second)
+import           Data.Record.Label.List                (nth)
+import           Data.Monoid                           (mappend)
+import           Data.Vector.Vector2                   (Vector2(..))
+import           Prelude                               hiding ((.))
+import           Control.Category                      ((.))
+import           Control.Concurrent.MVar               (MVar, newMVar, readMVar, modifyMVar_)
+import qualified Graphics.UI.VtyWidgets.Keymap         as Keymap
+import           Graphics.UI.VtyWidgets.Keymap         (Keymap, ModKey)
+import qualified Graphics.UI.VtyWidgets.Widget         as Widget
+import           Graphics.UI.VtyWidgets.Widget         (Widget)
+import qualified Graphics.UI.VtyWidgets.SizeRange      as SizeRange
+import qualified Graphics.UI.VtyWidgets.Box            as Box
+import qualified Graphics.UI.VtyWidgets.Grid           as Grid
+import qualified Graphics.UI.VtyWidgets.TextView       as TextView
 import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
-import qualified Graphics.UI.VtyWidgets.Scroll as Scroll
-import qualified Graphics.UI.VtyWidgets.TextEdit as TextEdit
-import qualified Graphics.UI.VtyWidgets.Run as Run
-import System.IO(stderr, hSetBuffering, BufferMode(NoBuffering))
+import qualified Graphics.UI.VtyWidgets.Scroll         as Scroll
+import qualified Graphics.UI.VtyWidgets.TextEdit       as TextEdit
+import qualified Graphics.UI.VtyWidgets.Run            as Run
+import           System.IO                             (stderr, hSetBuffering, BufferMode(NoBuffering))
 
 data Model = Model {
   _modelGrid :: (FocusDelegator.Model, Grid.Model),

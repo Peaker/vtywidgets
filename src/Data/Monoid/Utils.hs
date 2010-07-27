@@ -3,7 +3,7 @@
 
 module Data.Monoid.Utils(inFirst) where
 
-import Data.Monoid(First(..))
+import Data.Monoid (First(..))
 
 instance Functor First where
   fmap = inFirst . fmap

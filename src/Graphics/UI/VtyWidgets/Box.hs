@@ -6,17 +6,17 @@ module Graphics.UI.VtyWidgets.Box
      Orientation(..), Model(..), initModel)
 where
 
-import Prelude hiding ((.))
-import Control.Category((.))
-import Control.Arrow(second)
-import Data.Binary(Binary)
-import Data.Function.Utils(result)
-import Data.Vector.Vector2(Vector2(..))
-import Data.Record.Label((:->), label)
-import Graphics.UI.VtyWidgets.Display(Display)
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import qualified Graphics.UI.VtyWidgets.Grid as Grid
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange(..), Size)
+import           Prelude                          hiding ((.))
+import           Control.Category                 ((.))
+import           Control.Arrow                    (second)
+import           Data.Binary                      (Binary)
+import           Data.Function.Utils              (result)
+import           Data.Vector.Vector2              (Vector2(..))
+import           Data.Record.Label                ((:->), label)
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import           Graphics.UI.VtyWidgets.Widget    (Widget)
+import qualified Graphics.UI.VtyWidgets.Grid      as Grid
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
 
 newtype Model = Model {
   modelCursor :: Int

@@ -3,22 +3,22 @@ module Graphics.UI.VtyWidgets.Scroll
     (centeredView)
 where
 
-import Control.Applicative(pure, liftA2)
-import Data.Maybe(fromMaybe)
-import Data.Monoid(First(..), mempty)
-import Data.Vector.Rect(Coordinate, Rect(..))
-import qualified Data.Vector.Vector2 as Vector2
-import Data.Vector.Vector2(Vector2(..))
-import qualified Graphics.UI.VtyWidgets.Display as Display
-import Graphics.UI.VtyWidgets.Display(Display)
-import Graphics.UI.VtyWidgets.Placable(Placable(..))
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange, Size)
+import           Control.Applicative              (pure, liftA2)
+import           Data.Maybe                       (fromMaybe)
+import           Data.Monoid                      (First(..), mempty)
+import           Data.Vector.Rect                 (Coordinate, Rect(..))
+import qualified Data.Vector.Vector2              as Vector2
+import           Data.Vector.Vector2              (Vector2(..))
+import qualified Graphics.UI.VtyWidgets.Display   as Display
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange, Size)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import qualified Graphics.UI.VtyWidgets.Grid as Grid
-import qualified Graphics.UI.VtyWidgets.Bar as Bar
+import qualified Graphics.UI.VtyWidgets.Grid      as Grid
+import qualified Graphics.UI.VtyWidgets.Bar       as Bar
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.TermImage(TermImage)
+import           Graphics.UI.VtyWidgets.TermImage (TermImage)
 
 -- move small rect into the big one, if it is out of it...
 moveIn :: Rect -> Rect -> Rect

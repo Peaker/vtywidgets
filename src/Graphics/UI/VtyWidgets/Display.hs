@@ -4,15 +4,15 @@ module Graphics.UI.VtyWidgets.Display
     (Display, atImage, atImageArg, expand, make, clip)
 where
 
-import Control.Applicative(pure, liftA2)
-import Data.Function.Utils(Endo, result, argument, inFlip)
+import           Control.Applicative              (pure, liftA2)
+import           Data.Function.Utils              (Endo, result, argument, inFlip)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import Graphics.UI.VtyWidgets.SizeRange(SizeRange, Size)
-import Data.Vector.Rect(Rect(..))
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
-import Graphics.UI.VtyWidgets.Placable(Placable(..))
+import           Graphics.UI.VtyWidgets.SizeRange (SizeRange, Size)
+import           Data.Vector.Rect                 (Rect(..))
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
+import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import Graphics.UI.VtyWidgets.TermImage(TermImage(..))
+import           Graphics.UI.VtyWidgets.TermImage (TermImage(..))
 
 type Display imgarg = Placable (imgarg -> TermImage)
 

@@ -5,21 +5,21 @@ module Graphics.UI.VtyWidgets.Overlay
     (display, widget, widgetAcc, Model(..), initModel, keymapView)
 where
 
-import Data.Binary(Binary)
-import Data.Monoid(mempty, mappend)
-import Data.Maybe(fromMaybe)
-import Data.Record.Label((:->), set, get)
-import Data.Vector.Vector2(Vector2(..))
-import Data.Function.Utils(Endo)
-import qualified Graphics.Vty as Vty
-import Graphics.UI.VtyWidgets.Keymap(ModKey, Doc)
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
+import           Data.Binary                      (Binary)
+import           Data.Monoid                      (mempty, mappend)
+import           Data.Maybe                       (fromMaybe)
+import           Data.Record.Label                ((:->), set, get)
+import           Data.Vector.Vector2              (Vector2(..))
+import           Data.Function.Utils              (Endo)
+import qualified Graphics.Vty                     as Vty
+import           Graphics.UI.VtyWidgets.Keymap    (ModKey, Doc)
+import           Graphics.UI.VtyWidgets.Widget    (Widget)
+import qualified Graphics.UI.VtyWidgets.Widget    as Widget
+import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
-import qualified Graphics.UI.VtyWidgets.Align as Align
-import Graphics.UI.VtyWidgets.Display(Display)
-import Graphics.UI.VtyWidgets.SizeRange(Size)
+import qualified Graphics.UI.VtyWidgets.Align     as Align
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import           Graphics.UI.VtyWidgets.SizeRange (Size)
 
 translateToCenter :: Endo (Display a)
 translateToCenter = Align.to (Vector2 0.5 0.5)

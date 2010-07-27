@@ -4,25 +4,25 @@ module Graphics.UI.VtyWidgets.TableGrid
     (makeColumnView, makeKeymapView)
 where
 
-import Control.Applicative(pure)
-import Control.Arrow(first)
-import Data.Monoid(mappend)
-import Data.Ord(comparing)
-import Data.List(sortBy, intercalate)
-import Data.List.Split(splitEvery, splitOn)
-import Data.Vector.Vector2(Vector2(..))
-import qualified Data.Vector.Vector2 as Vector2
-import Data.Vector.Rect(Rect(..))
-import qualified Data.Map as Map
-import qualified Graphics.Vty as Vty
+import           Control.Applicative              (pure)
+import           Control.Arrow                    (first)
+import           Data.Monoid                      (mappend)
+import           Data.Ord                         (comparing)
+import           Data.List                        (sortBy, intercalate)
+import           Data.List.Split                  (splitEvery, splitOn)
+import           Data.Vector.Vector2              (Vector2(..))
+import qualified Data.Vector.Vector2              as Vector2
+import           Data.Vector.Rect                 (Rect(..))
+import qualified Data.Map                         as Map
+import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Placable as Placable
-import Graphics.UI.VtyWidgets.Keymap(Keymap(keymapGroups))
-import qualified Graphics.UI.VtyWidgets.Align as Align
-import qualified Graphics.UI.VtyWidgets.Grid as Grid
+import qualified Graphics.UI.VtyWidgets.Placable  as Placable
+import           Graphics.UI.VtyWidgets.Keymap    (Keymap(keymapGroups))
+import qualified Graphics.UI.VtyWidgets.Align     as Align
+import qualified Graphics.UI.VtyWidgets.Grid      as Grid
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
-import Graphics.UI.VtyWidgets.Display(Display)
-import qualified Graphics.UI.VtyWidgets.TextView as TextView
+import           Graphics.UI.VtyWidgets.Display   (Display)
+import qualified Graphics.UI.VtyWidgets.TextView  as TextView
 
 fitToWidth :: Int -> String -> String
 fitToWidth width = intercalate "\n" . concatMap (splitEvery width) . splitOn "\n"

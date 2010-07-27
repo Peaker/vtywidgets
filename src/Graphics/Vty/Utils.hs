@@ -6,10 +6,10 @@ module Graphics.Vty.Utils
     (withVty, safeMkVty)
 where
 
-import Data.Monoid(mempty)
-import Control.Exception(bracket)
-import qualified Graphics.Vty as Vty
-import Graphics.Vty(Vty)
+import           Data.Monoid       (mempty)
+import           Control.Exception (bracket)
+import qualified Graphics.Vty      as Vty
+import           Graphics.Vty      (Vty)
 
 safeMkVty :: IO Vty
 safeMkVty = do

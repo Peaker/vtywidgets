@@ -3,22 +3,22 @@
 module Graphics.UI.VtyWidgets.Run(widgetLoop, widgetLoopWithOverlay)
 where
 
-import Control.Monad(forever)
-import Control.Monad.Trans.State(evalStateT, get, put)
-import Control.Monad.IO.Class(MonadIO, liftIO)
-import Data.IORef(newIORef, writeIORef, readIORef)
-import Data.Vector.Vector2(Vector2(..))
-import Data.Maybe(fromMaybe)
-import Data.Monoid(mempty)
-import qualified Graphics.Vty as Vty
-import qualified Graphics.UI.VtyWidgets.Widget as Widget
+import           Control.Monad                    (forever)
+import           Control.Monad.Trans.State        (evalStateT, get, put)
+import           Control.Monad.IO.Class           (MonadIO, liftIO)
+import           Data.IORef                       (newIORef, writeIORef, readIORef)
+import           Data.Vector.Vector2              (Vector2(..))
+import           Data.Maybe                       (fromMaybe)
+import           Data.Monoid                      (mempty)
+import qualified Graphics.Vty                     as Vty
+import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Overlay as Overlay
-import qualified Graphics.UI.VtyWidgets.Keymap as Keymap
-import Graphics.UI.VtyWidgets.Widget(Widget)
-import Graphics.UI.VtyWidgets.SizeRange(Size)
-import Graphics.Vty.Utils(withVty)
-import System.IO(withFile, Handle, IOMode(WriteMode), hPutStrLn, hFlush)
+import qualified Graphics.UI.VtyWidgets.Overlay   as Overlay
+import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import           Graphics.UI.VtyWidgets.Widget    (Widget)
+import           Graphics.UI.VtyWidgets.SizeRange (Size)
+import           Graphics.Vty.Utils               (withVty)
+import           System.IO                        (withFile, Handle, IOMode(WriteMode), hPutStrLn, hFlush)
 
 writeLnFlush :: Handle -> String -> IO ()
 writeLnFlush h str = do

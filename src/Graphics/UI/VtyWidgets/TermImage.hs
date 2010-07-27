@@ -9,24 +9,24 @@ module Graphics.UI.VtyWidgets.TermImage
      Coordinate)
 where
 
-import Data.List(foldl')
-import Data.List.Split(splitOn)
-import Data.List.Utils(safeIndex, groupFst)
-import Data.Function.Utils(Endo, argument)
-import Data.Monoid(Monoid(..), First(First, getFirst))
-import Data.Monoid.Utils(inFirst)
-import Data.Vector.Vector2(Vector2(..))
+import           Data.List           (foldl')
+import           Data.List.Split     (splitOn)
+import           Data.List.Utils     (safeIndex, groupFst)
+import           Data.Function.Utils (Endo, argument)
+import           Data.Monoid         (Monoid(..), First(First, getFirst))
+import           Data.Monoid.Utils   (inFirst)
+import           Data.Vector.Vector2 (Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import Data.Array.Utils(marrayAt)
-import Data.Array((!))
-import Data.Array.ST(runSTArray, newArray)
-import Data.DList(DList)
-import qualified Data.DList as DList
-import qualified Data.Vector.Rect as Rect
-import Data.Vector.Rect(ExpandingRect(..), Rect(..), Coordinate)
-import Control.Monad(forM_)
-import Control.Applicative(pure, liftA2)
-import qualified Graphics.Vty as Vty
+import           Data.Array.Utils    (marrayAt)
+import           Data.Array          ((!))
+import           Data.Array.ST       (runSTArray, newArray)
+import           Data.DList          (DList)
+import qualified Data.DList          as DList
+import qualified Data.Vector.Rect    as Rect
+import           Data.Vector.Rect    (ExpandingRect(..), Rect(..), Coordinate)
+import           Control.Monad       (forM_)
+import           Control.Applicative (pure, liftA2)
+import qualified Graphics.Vty        as Vty
 
 type Pixels = Coordinate -> Rect -> DList (Coordinate, Endo TermChar)
 
