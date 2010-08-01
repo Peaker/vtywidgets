@@ -3,12 +3,15 @@
 module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage, tiCursor, inCursor, render,
      string, stringParse, stringSize, hstrings, vstrings,
-     clip, translate, rect,
-     boundingRect,
+     clip, translate, rect, boundingRect,
+     backgroundColor,
      -- re-export:
      Coordinate)
 where
 
+import           Control.Monad       (forM_)
+import           Control.Applicative (pure, liftA2)
+import           Control.Arrow       (first)
 import           Data.List           (foldl')
 import           Data.List.Split     (splitOn)
 import           Data.List.Utils     (safeIndex, groupFst)
@@ -24,8 +27,6 @@ import           Data.DList          (DList)
 import qualified Data.DList          as DList
 import qualified Data.Vector.Rect    as Rect
 import           Data.Vector.Rect    (ExpandingRect(..), Rect(..), Coordinate)
-import           Control.Monad       (forM_)
-import           Control.Applicative (pure, liftA2)
 import qualified Graphics.Vty        as Vty
 
 type Pixels = Coordinate -> Rect -> DList (Coordinate, Endo TermChar)
@@ -165,3 +166,8 @@ hstrings = combineStrings Vector2.second
 
 vstrings :: [(Vty.Attr, String)] -> TermImage
 vstrings = combineStrings Vector2.first
+
+backgroundColor :: Vty.Color -> Vector2 Int -> TermImage -> TermImage
+backgroundColor c size =
+  flip mappend $
+  rect (Rect (pure 0) size) (first (`Vty.with_back_color` c))

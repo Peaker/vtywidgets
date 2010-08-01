@@ -5,13 +5,14 @@ module Graphics.UI.VtyWidgets.Widget
      Widget(..), inWidget, inWidget2, runWidget,
      atDisplay, atMKeymap, takesFocus, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
      fromDisplay, toDisplay, keymap, image, requestedSize,
-     strongerKeys, weakerKeys, whenFocused)
+     strongerKeys, weakerKeys, whenFocused, colorWhenFocused, coloredFocusableDisplay)
 where
 
 import           Control.Arrow                    (first, second)
-import           Control.Applicative              (liftA2)
+import           Control.Applicative              (pure, liftA2)
 import           Data.Monoid                      (Monoid(..))
 import           Data.Function.Utils              (Endo)
+import           Graphics.Vty                     as Vty
 import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
 import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
@@ -19,6 +20,8 @@ import qualified Graphics.UI.VtyWidgets.Display   as Display
 import           Graphics.UI.VtyWidgets.Display   (Display)
 import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
 import           Graphics.UI.VtyWidgets.TermImage (TermImage)
+import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
+import qualified Graphics.UI.VtyWidgets.Align     as Align
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
   deriving (Show, Read, Eq, Ord)
@@ -96,6 +99,20 @@ whenFocused onSizedImage = atMkSizedImage f
   where
     f mkImage size hf@(HasFocus True) = onSizedImage (`mkImage` hf) size
     f mkImage size hf@(HasFocus False) = mkImage size hf
+
+colorWhenFocused :: Vty.Color -> Endo (Widget k)
+colorWhenFocused c = whenFocused modifyMkImage
+  where
+    modifyMkImage mkImage size =
+      TermImage.backgroundColor c size $
+      mkImage size
+
+coloredFocusableDisplay :: Vty.Color -> Display HasFocus -> Widget k
+coloredFocusableDisplay c =
+  takesFocus .
+  (atDisplay . Align.to . pure $ 0) .
+  colorWhenFocused c .
+  simpleDisplay
 
 simpleDisplay :: Display HasFocus -> Widget k
 simpleDisplay = fromDisplay mempty
