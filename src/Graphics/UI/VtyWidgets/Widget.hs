@@ -102,8 +102,8 @@ atSizedImage modifyImage = atMkSizedImage f
   where
     f mkImage size = modifyImage size . mkImage size
 
-atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
-             Widget a -> Widget a
+atMkImage :: Endo (HasFocus -> TermImage) ->
+             Endo (Widget a)
 atMkImage = inWidget . fmap . first
 
 whenFocused :: Endo (Size -> TermImage) -> Endo (Widget k)
