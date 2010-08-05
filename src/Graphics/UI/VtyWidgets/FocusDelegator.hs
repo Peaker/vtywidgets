@@ -25,7 +25,7 @@ import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 newtype Model = Model {
   focusDelegated :: Bool
   }
-  deriving (Binary)
+  deriving (Eq, Ord, Read, Show, Binary)
 
 initModel :: Bool -> Model
 initModel = Model

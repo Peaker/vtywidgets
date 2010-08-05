@@ -22,25 +22,29 @@ import qualified Graphics.UI.VtyWidgets.TextView       as TextView
 import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 import qualified Graphics.UI.VtyWidgets.Scroll         as Scroll
 import qualified Graphics.UI.VtyWidgets.TextEdit       as TextEdit
+import qualified Graphics.UI.VtyWidgets.Completion     as Completion
 import qualified Graphics.UI.VtyWidgets.Run            as Run
 import           System.IO                             (stderr, hSetBuffering, BufferMode(NoBuffering))
 
 data Model = Model {
   _modelGrid :: (FocusDelegator.Model, Grid.Model),
   _modelTextEdits :: [(FocusDelegator.Model, TextEdit.Model)],
-  _modelDelegators :: [FocusDelegator.Model]
+  _modelDelegators :: [FocusDelegator.Model],
+  _modelCompletions :: [Completion.Model]
   }
 $(mkLabels [''Model])
 
 modelGrid :: Model :-> (FocusDelegator.Model, Grid.Model)
 modelTextEdits :: Model :-> [(FocusDelegator.Model, TextEdit.Model)]
 modelDelegators :: Model :-> [FocusDelegator.Model]
+modelCompletions :: Model :-> [Completion.Model]
 
 initModel :: Model
 initModel = Model {
   _modelGrid = (FocusDelegator.initModel True, Grid.initModel),
   _modelTextEdits = map ((,) (FocusDelegator.initModel True) . TextEdit.initModel) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
-  _modelDelegators = replicate 2 $ FocusDelegator.initModel False
+  _modelDelegators = replicate 2 $ FocusDelegator.initModel False,
+  _modelCompletions = replicate 2 $ Completion.initModel ""
   }
 
 quitKey :: ModKey
@@ -69,9 +73,15 @@ modelEdit fixKeymap model =
     outerGrid innerGridDisp =
       Box.makeView Box.Vertical [ TextView.make attr "Title\n-----", innerGridDisp ]
     delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators) (staticTextView i) model
+    greenFg = Vty.def_attr `Vty.with_fore_color` Vty.green
+    completions i = (["hello", "world", "Mr Jones is a completion expert!"] ++) . map (("Prefix"++) . show) . take 10 $ ([10*i..] :: [Int])
+    completionEdit i = adaptModel
+                       (nth i . modelCompletions)
+                       (Completion.make (completions i) 5 Vty.blue greenFg "<empty>" 1 attr TextEdit.editingAttr)
+                       model
     staticTextView i = Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " "
-    innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : textEdits
-    scrollerAround = Widget.atDisplay . Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 6
+    innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : map completionEdit [0..1] : textEdits
+    scrollerAround = Widget.atDisplay . Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 12
     textEdits = [ [ makeTextEdit (nth i . modelTextEdits)
                   | y <- [0, 1]
                   , let i = y*2 + x ]

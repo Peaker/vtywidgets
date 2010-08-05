@@ -4,7 +4,7 @@ module Graphics.UI.VtyWidgets.TermImage
     (TermChar, TermImage, tiCursor, inCursor, render,
      string, stringParse, stringSize, hstrings, vstrings,
      clip, translate, rect, boundingRect,
-     backgroundColor,
+     onChars, onAttrs, backgroundColor, foregroundColor,
      -- re-export:
      Coordinate)
 where
@@ -81,7 +81,7 @@ rect r f = make r pixels Nothing
       Rect.translate translation $
       r
 
-translate :: Coordinate -> TermImage -> TermImage
+translate :: Coordinate -> Endo TermImage
 translate c =
   (atBoundingRect . Rect.inExpandingRect) (Rect.translate c) .
   (atCursor . fmap . liftA2 (+)) c .
@@ -117,7 +117,7 @@ render (TermImage eBoundingRect pixels (First mCursor)) =
     Rect tl@(Vector2 l t) br@(Vector2 r b) = bRect
     bg = Vty.Background ' ' Vty.def_attr
 
-clip :: Rect -> TermImage -> TermImage
+clip :: Rect -> Endo TermImage
 clip r = (atBoundingRect . Rect.inExpandingRect) (Rect.clip r) .
          atPixels clipPixels
   where
@@ -167,7 +167,14 @@ hstrings = combineStrings Vector2.second
 vstrings :: [(Vty.Attr, String)] -> TermImage
 vstrings = combineStrings Vector2.first
 
-backgroundColor :: Vty.Color -> Vector2 Int -> TermImage -> TermImage
-backgroundColor c size =
-  flip mappend $
-  rect (Rect (pure 0) size) (first (`Vty.with_back_color` c))
+onChars :: Endo TermChar -> Vector2 Int -> Endo TermImage
+onChars f size = flip mappend $ rect (Rect (pure 0) size) f
+
+onAttrs :: Endo Vty.Attr -> Vector2 Int -> Endo TermImage
+onAttrs = onChars . first
+
+backgroundColor :: Vty.Color -> Vector2 Int -> Endo TermImage
+backgroundColor c = onAttrs $ (`Vty.with_back_color` c)
+
+foregroundColor :: Vty.Color -> Vector2 Int -> Endo TermImage
+foregroundColor c = onAttrs $ (`Vty.with_fore_color` c)

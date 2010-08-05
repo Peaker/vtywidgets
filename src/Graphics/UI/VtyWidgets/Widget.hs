@@ -3,9 +3,14 @@
 module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
-     atDisplay, atMKeymap, takesFocus, atKeymap, atMkImage, atMkSizedImage, make, simpleDisplay,
-     fromDisplay, toDisplay, keymap, image, requestedSize,
-     strongerKeys, weakerKeys, whenFocused, colorWhenFocused, coloredFocusableDisplay)
+     atDisplay, atMKeymap, takesFocus, noTakeFocus, atKeymap, atMkImage, atMkSizedImage, atSizedImage,
+     make, simpleDisplay,
+     fromDisplay, toDisplay,
+     keymap, image, requestedSize,
+     strongerKeys, weakerKeys,
+     whenFocused,
+     backgroundColorWhenFocused,
+     coloredFocusableDisplay)
 where
 
 import           Control.Arrow                    (first, second)
@@ -72,23 +77,30 @@ atMKeymap :: (Maybe (Keymap a) ->
              Widget a -> Widget b
 atMKeymap = inWidget . fmap . second
 
-takesFocus :: Widget a -> Widget a
+noTakeFocus :: Endo (Widget a)
+noTakeFocus = atMKeymap . const $ Nothing
+
+takesFocus :: Endo (Widget a)
 takesFocus = atMKeymap $ maybe (Just mempty) Just
 
 atKeymap :: (Keymap a -> Keymap b) ->
             Widget a -> Widget b
 atKeymap = atMKeymap . fmap
 
-strongerKeys :: Keymap a -> Widget a -> Widget a
+strongerKeys :: Keymap a -> Endo (Widget a)
 strongerKeys = atKeymap . mappend
 
-weakerKeys :: Keymap a -> Widget a -> Widget a
+weakerKeys :: Keymap a -> Endo (Widget a)
 weakerKeys = atKeymap . flip mappend
 
-atMkSizedImage :: ((Size -> HasFocus -> TermImage) ->
-                   Size -> HasFocus -> TermImage) ->
-                  Widget a -> Widget a
+atMkSizedImage :: Endo (Size -> HasFocus -> TermImage) ->
+                  Endo (Widget a)
 atMkSizedImage = atDisplay . Placable.atPlace
+
+atSizedImage :: (Size -> Endo TermImage) -> Endo (Widget a)
+atSizedImage modifyImage = atMkSizedImage f
+  where
+    f mkImage size = modifyImage size . mkImage size
 
 atMkImage :: ((HasFocus -> TermImage) -> HasFocus -> TermImage) ->
              Widget a -> Widget a
@@ -100,8 +112,8 @@ whenFocused onSizedImage = atMkSizedImage f
     f mkImage size hf@(HasFocus True) = onSizedImage (`mkImage` hf) size
     f mkImage size hf@(HasFocus False) = mkImage size hf
 
-colorWhenFocused :: Vty.Color -> Endo (Widget k)
-colorWhenFocused c = whenFocused modifyMkImage
+backgroundColorWhenFocused :: Vty.Color -> Endo (Widget k)
+backgroundColorWhenFocused c = whenFocused modifyMkImage
   where
     modifyMkImage mkImage size =
       TermImage.backgroundColor c size $
@@ -111,7 +123,7 @@ coloredFocusableDisplay :: Vty.Color -> Display HasFocus -> Widget k
 coloredFocusableDisplay c =
   takesFocus .
   (atDisplay . Align.to . pure $ 0) .
-  colorWhenFocused c .
+  backgroundColorWhenFocused c .
   simpleDisplay
 
 simpleDisplay :: Display HasFocus -> Widget k

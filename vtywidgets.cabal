@@ -30,6 +30,7 @@ Library
                        Graphics.UI.VtyWidgets.Keymap,
                        Graphics.UI.VtyWidgets.TermImage,
                        Graphics.UI.VtyWidgets.TextEdit,
+                       Graphics.UI.VtyWidgets.Completion,
                        Graphics.UI.VtyWidgets.TextView,
                        Graphics.UI.VtyWidgets.Scroll,
                        Graphics.UI.VtyWidgets.Bar,

@@ -6,9 +6,10 @@ module Graphics.UI.VtyWidgets.Keymap
      overlap, lookup,
      make, fromGroups, fromGroupLists,
      singleton, simpleton,
-     KeyGroup, simpletonGroup, fromGroup,
+     KeyGroup, simpletonGroup,
+     fromKeyGroup, fromKeyGroups,
      removeKey, removeKeys,
-     removeGroup, removeGroups)
+     removeKeyGroup, removeKeyGroups)
 where
 
 import qualified Graphics.Vty  as Vty
@@ -78,11 +79,11 @@ compose = foldr (.) id
 removeKeys :: [ModKey] -> Keymap a -> Keymap a
 removeKeys = compose . map removeKey
 
-removeGroup :: KeyGroup -> Keymap a -> Keymap a
-removeGroup = removeKeys . snd
+removeKeyGroup :: KeyGroup -> Keymap a -> Keymap a
+removeKeyGroup = removeKeys . snd
 
-removeGroups :: [KeyGroup] -> Keymap a -> Keymap a
-removeGroups = compose . map removeGroup
+removeKeyGroups :: [KeyGroup] -> Keymap a -> Keymap a
+removeKeyGroups = compose . map removeKeyGroup
 
 lookup :: ModKey -> Keymap a -> Maybe (KeyGroupName, (Doc, a))
 lookup modkey = Map.lookup modkey . keymapCache
@@ -100,13 +101,16 @@ fromGroupLists = fromGroups . (map . second . second) Map.fromList
 fromGroups :: [(KeyGroupName, (Doc, Map ModKey a))] -> Keymap a
 fromGroups = make . Map.fromList
 
-fromGroup :: KeyGroup -> Doc -> a -> Keymap a
-fromGroup (keyGroupName, keys) doc a =
+fromKeyGroup :: KeyGroup -> Doc -> a -> Keymap a
+fromKeyGroup (keyGroupName, keys) doc a =
   make . Map.singleton keyGroupName $ (doc, Map.fromList . map (flip (,) a) $ keys)
+
+fromKeyGroups :: [KeyGroup] -> Doc -> a -> Keymap a
+fromKeyGroups = mconcat . map fromKeyGroup
 
 singleton :: KeyGroupName -> Doc -> ModKey -> a -> Keymap a
 singleton keyGroupName doc key a =
-  fromGroup (keyGroupName, [key]) doc a
+  fromKeyGroup (keyGroupName, [key]) doc a
 
 simpleton :: Doc -> ModKey -> a -> Keymap a
 simpleton doc key = singleton (showModKey key) doc key

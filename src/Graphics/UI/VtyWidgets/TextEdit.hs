@@ -45,8 +45,8 @@ tillEndOfWord xs = spaces ++ nonSpaces
     spaces = takeWhile isSpace xs
     nonSpaces = takeWhile (not . isSpace) . dropWhile isSpace $ xs
 
--- Note: maxLines prevents the *user* from exceeding it, not the given
--- text...
+-- | Note: maxLines prevents the *user* from exceeding it, not the
+-- | given text...
 make :: String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
 make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
   Widget.make requestedSize $ const (mkImage, keymap)
@@ -95,6 +95,7 @@ make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
     homeKeys = simpleK Vty.KHome ++ ctrlCharK 'a'
     endKeys = simpleK Vty.KEnd ++ ctrlCharK 'e'
 
+    -- TODO: Use keyGroup/fromKeyGroup
     multiKey doc keys value =
       mconcat . map (flip (Keymap.simpleton doc) value) $ keys
 

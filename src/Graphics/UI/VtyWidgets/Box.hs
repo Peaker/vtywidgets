@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Box
-    (makeView, make, makeAcc, makeSizes,
+    (makeSizes, makeView, make, makeAcc, makeCombined,
      Orientation(..), Model(..), inModel, initModel)
 where
 
@@ -66,3 +66,6 @@ make o conv rows model = Grid.make (conv . fromGridModel o) (pack o rows) (toGri
 
 makeAcc :: Orientation -> k :-> Model -> [Widget k] -> k -> Widget k
 makeAcc o acc rows = Grid.makeAcc (modelLabel o . acc) (pack o rows)
+
+makeCombined :: Orientation -> [Widget k] -> Widget k
+makeCombined o = Grid.makeCombined . pack o

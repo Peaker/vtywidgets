@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Grid
-    (makeView, make, makeAcc, makeSizes,
+    (makeSizes, makeView, make, makeAcc, makeCombined,
      Model(..), inModel, initModel)
 where
 
@@ -233,3 +233,10 @@ make conv rows model = Widget.make requestedSize mkImageKeymap
 
 makeAcc :: k :-> Model -> [[Widget k]] -> k -> Widget k
 makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
+
+-- | A combined grid sends its key inputs to all of the children
+makeCombined :: [[Widget k]] -> Widget k
+makeCombined rows =
+  Widget.fromDisplay (mconcat . map Widget.keymap . concat $ rows) .
+  makeView .
+  (map . map) Widget.toDisplay $ rows
