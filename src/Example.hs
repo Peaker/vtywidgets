@@ -6,7 +6,7 @@ import qualified Data.Record.Label                     as Label
 import           Data.Record.Label                     ((:->), mkLabels, label)
 import           Data.Record.Label.Tuple               (first, second)
 import           Data.Record.Label.List                (nth)
-import           Data.Monoid                           (mappend)
+import           Data.Monoid                           (mempty, mappend)
 import           Data.Vector.Vector2                   (Vector2(..))
 import           Prelude                               hiding ((.))
 import           Control.Category                      ((.))
@@ -30,21 +30,21 @@ data Model = Model {
   _modelGrid :: (FocusDelegator.Model, Grid.Model),
   _modelTextEdits :: [(FocusDelegator.Model, TextEdit.Model)],
   _modelDelegators :: [FocusDelegator.Model],
-  _modelCompletions :: [Completion.Model]
+  _modelCompletion :: Completion.Model
   }
 $(mkLabels [''Model])
 
 modelGrid :: Model :-> (FocusDelegator.Model, Grid.Model)
 modelTextEdits :: Model :-> [(FocusDelegator.Model, TextEdit.Model)]
 modelDelegators :: Model :-> [FocusDelegator.Model]
-modelCompletions :: Model :-> [Completion.Model]
+modelCompletion :: Model :-> Completion.Model
 
 initModel :: Model
 initModel = Model {
   _modelGrid = (FocusDelegator.initModel True, Grid.initModel),
   _modelTextEdits = map ((,) (FocusDelegator.initModel True) . TextEdit.initModel) ["abc\ndef", "i\nlala", "oopsy daisy", "hehe"],
   _modelDelegators = replicate 2 $ FocusDelegator.initModel False,
-  _modelCompletions = replicate 2 $ Completion.initModel ""
+  _modelCompletion = Completion.initModel ""
   }
 
 quitKey :: ModKey
@@ -74,17 +74,17 @@ modelEdit fixKeymap model =
       Box.makeView Box.Vertical [ TextView.make attr "Title\n-----", innerGridDisp ]
     delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators) (staticTextView i) model
     fg color = Vty.def_attr `Vty.with_fore_color` color
-    completions i = (["hello", "world", "Mr Jones: completion expert"] ++) .
+    completions = (["hello", "world", "Mr Jones: completion expert"] ++) .
                     map (("Prefix"++) . show) . take 10 $
-                    ([10*i..] :: [Int])
-    completionEdit i = adaptModel
-                       (nth i . modelCompletions)
-                       (Completion.makeSimple (completions i) 5 Vty.blue
-                        (fg Vty.green) (fg Vty.red)
-                        "<empty>" 1 attr TextEdit.editingAttr)
-                       model
+                    ([0..] :: [Int])
+    completionEdit = adaptModel
+                     modelCompletion
+                     (Completion.makeSimple completions 5 Vty.blue
+                      (fg Vty.green) (fg Vty.red)
+                      "<empty>" 1 attr TextEdit.editingAttr)
+                     model
     staticTextView i = Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " "
-    innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : map completionEdit [0..1] : textEdits
+    innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : [mempty, completionEdit] : textEdits
     scrollerAround = Widget.atDisplay . Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 12
     textEdits = [ [ makeTextEdit (nth i . modelTextEdits)
                   | y <- [0, 1]
