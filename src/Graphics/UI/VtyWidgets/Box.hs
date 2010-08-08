@@ -10,7 +10,7 @@ import           Prelude                          hiding ((.))
 import           Control.Category                 ((.))
 import           Control.Arrow                    (second)
 import           Data.Binary                      (Binary)
-import           Data.Function.Utils              (result)
+import           Data.Function.Utils              (Endo, result)
 import           Data.Vector.Vector2              (Vector2(..))
 import           Data.Record.Label                ((:->), label)
 import           Graphics.UI.VtyWidgets.Display   (Display)
@@ -22,7 +22,7 @@ newtype Model = Model {
   modelCursor :: Int
   }
   deriving (Show, Read, Eq, Ord, Binary)
-inModel :: (Int -> Int) -> Model -> Model
+inModel :: Endo Int -> Endo Model
 inModel f (Model x) = Model (f x)
 
 initModel :: Model

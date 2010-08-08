@@ -127,7 +127,7 @@ coloredFocusableDisplay c =
   simpleDisplay
 
 simpleDisplay :: Display HasFocus -> Widget k
-simpleDisplay = fromDisplay mempty
+simpleDisplay = fromDisplay . pure $ Nothing
 
 clip :: Endo (Widget k)
 clip = atDisplay Display.clip
