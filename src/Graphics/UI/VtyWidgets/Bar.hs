@@ -24,17 +24,17 @@ ranges low high size = (before, inside, after)
     inside = size - (before + after)
 
 outAttr :: Vty.Attr
-outAttr = Vty.def_attr `Vty.with_fore_color` Vty.green
+outAttr = Vty.def_attr `Vty.with_fore_color` Vty.green `Vty.with_back_color` Vty.white
 
 inAttr :: Vty.Attr
-inAttr = Vty.def_attr `Vty.with_back_color` Vty.white
+inAttr = Vty.def_attr `Vty.with_back_color` Vty.green
 
 makeStrings :: Int -> Int -> Int -> [(Vty.Attr, String)]
 makeStrings before inside after =
   concat
-  [replicate before (outAttr, "#"),
+  [replicate before (outAttr, " "),
    replicate inside (inAttr, "#"),
-   replicate after (outAttr, "#")]
+   replicate after (outAttr, " ")]
 
 makeDisplay :: (Vector2 Int -> Int) ->
              ([(Vty.Attr, String)] -> TermImage) ->
