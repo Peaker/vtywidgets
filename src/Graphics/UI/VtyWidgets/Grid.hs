@@ -12,7 +12,7 @@ import           Data.List                        (find, transpose)
 import           Data.List.Utils                  (safeIndex)
 import           Data.Record.Label                ((:->), set, get)
 import           Data.Monoid                      (mempty, mappend, mconcat)
-import           Data.Maybe                       (maybeToList, fromMaybe, isJust)
+import           Data.Maybe                       (catMaybes, fromMaybe, isJust)
 import           Data.Vector.Vector2              (Vector2(..))
 import qualified Data.Vector.Vector2              as Vector2
 import           Control.Monad                    (msum)
@@ -149,6 +149,14 @@ kUp :: ModKey
 kUp    = ([], Vty.KUp)
 kDown :: ModKey
 kDown  = ([], Vty.KDown)
+kPgDown :: ModKey
+kPgDown = ([], Vty.KPageDown)
+kPgUp :: ModKey
+kPgUp = ([], Vty.KPageUp)
+kHome :: ModKey
+kHome = ([], Vty.KHome)
+kEnd :: ModKey
+kEnd = ([], Vty.KEnd)
 
 -- | length2d assumes the given list has a square shape
 length2d :: [[a]] -> Vector2 Int
@@ -156,22 +164,30 @@ mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
 mkNavKeymap []            _ = mempty
 mkNavKeymap [[]]          _ = mempty
 mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
-  mconcat . concat $ [
-    movement "left"  kLeft  leftOfCursor,
-    movement "right" kRight rightOfCursor,
-    movement "up"    kUp    aboveCursor,
-    movement "down"  kDown  belowCursor
+  mconcat . catMaybes $ [
+    movement "left"      kLeft   leftOfCursor,
+    movement "right"     kRight  rightOfCursor,
+    movement "up"        kUp     aboveCursor,
+    movement "down"      kDown   belowCursor,
+    movement "top"       kPgUp   topCursor,
+    movement "bottom"    kPgDown bottomCursor,
+    movement "leftmost"  kHome   leftMostCursor,
+    movement "rightmost" kEnd    rightMostCursor
     ]
   where
-    movement dirName key pos
-                  = maybeToList . fmap (Keymap.simpleton ("Move " ++ dirName) key) $ pos
-    size          = length2d wantFocusRows
-    Vector2 cappedX cappedY
-                  = capCursor size cursor
-    leftOfCursor  = fmap (`Vector2` cappedY) . findMove . reverse . take cursorX $ curRow
-    aboveCursor   = fmap (cappedX `Vector2`) . findMove . reverse . take cursorY $ curColumn
-    rightOfCursor = fmap (`Vector2` cappedY) . findMove . drop (cursorX+1) $ curRow
-    belowCursor   = fmap (cappedX `Vector2`) . findMove . drop (cursorY+1) $ curColumn
+    Vector2 cappedX cappedY = capCursor size cursor
+    movement dirName key pos = Keymap.simpleton ("Move " ++ dirName) key `fmap` pos
+    size = length2d wantFocusRows
+    x = fmap (cappedX `Vector2`) . findMove
+    y = fmap (`Vector2` cappedY) . findMove
+    leftOfCursor    = y . reverse . take cursorX $ curRow
+    aboveCursor     = x . reverse . take cursorY $ curColumn
+    rightOfCursor   = y . drop (cursorX+1) $ curRow
+    belowCursor     = x . drop (cursorY+1) $ curColumn
+    topCursor       = x . take (min 1 cursorY) $ curColumn
+    leftMostCursor  = y . take (min 1 cursorX) $ curRow
+    bottomCursor    = x . take 1 . reverse . drop (cursorY+1) $ curColumn
+    rightMostCursor = y . take 1 . reverse . drop (cursorX+1) $ curRow
     findMove      = fmap fst . find snd
     curRow        = enumerate $ wantFocusRows !! cappedY
     curColumn     = enumerate $ transpose wantFocusRows !! cappedX
