@@ -32,6 +32,7 @@ data Keymap a = Keymap {
     keymapGroups :: Map KeyGroupName (Doc, Map ModKey a)
   , keymapCache :: Map ModKey (KeyGroupName, (Doc, a))
   }
+  deriving (Eq, Ord, Show)
 
 instance Functor Keymap where
   fmap f (Keymap groups cache) =

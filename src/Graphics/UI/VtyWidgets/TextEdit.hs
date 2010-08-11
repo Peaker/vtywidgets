@@ -49,19 +49,17 @@ tillEndOfWord xs = spaces ++ nonSpaces
 -- | given text...
 make :: String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
 make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
-  Widget.make requestedSize $ const (mkImage, keymap)
+  Widget.fromTuple makeTuple
   where
-    attr True = focusedAttr
-    attr False = unfocusedAttr
+    makeTuple (Widget.HasFocus hf) = (requestedSize, const (image (mkAttr hf) text, keymap))
+    mkAttr True = focusedAttr
+    mkAttr False = unfocusedAttr
     emptyStringSize = if null text
                       then fst . TermImage.stringParse $ emptyString
                       else pure 0
     requestedSize = SizeRange.fixedSize (Vector2.first (+1) $ liftA2 max emptyStringSize (Vector2 width height))
-    mkImage (Widget.HasFocus hf) =
-      if null text
-      then TermImage.string (attr hf) emptyString
-      else setCursor . TermImage.string (attr hf) $
-           text
+    image attr [] = TermImage.string attr emptyString
+    image attr t  = setCursor . TermImage.string attr $ t
 
     setCursor = TermImage.inCursor . const . Just $ Vector2 cursorX cursorY
     (before, after) = splitAt cursor text

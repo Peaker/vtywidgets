@@ -4,7 +4,7 @@ module Graphics.UI.VtyWidgets.Completion
     (Model(..), initModel, make, makeSimple)
 where
 
-import           Data.Function.Utils              (result, Endo)
+import           Data.Function.Utils              (Endo)
 import           Data.Monoid                      (mempty)
 import           Data.Binary                      (Binary(..))
 import           Data.List                        (isPrefixOf)
@@ -37,7 +37,7 @@ initModel :: String -> Model
 initModel s = Model (TextEdit.initModel s) Box.initModel
 
 setCursor :: Maybe TermImage.Coordinate -> Endo (Widget a)
-setCursor = Widget.atMkImage . result . TermImage.inCursor . const
+setCursor = Widget.atImage . TermImage.inCursor . const
 
 -- | See TextEdit.make for more documentation
 make :: [(String, Int)] -> Int -> Vty.Color -> Vty.Attr -> Vty.Attr ->

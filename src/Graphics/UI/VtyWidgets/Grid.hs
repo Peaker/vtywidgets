@@ -7,17 +7,16 @@ module Graphics.UI.VtyWidgets.Grid
 where
 
 import           Data.Binary                      (Binary)
-import           Data.Function.Utils              (result, (~>))
+import           Data.Function.Utils              (argument, result)
 import           Data.List                        (find, transpose)
 import           Data.List.Utils                  (safeIndex)
 import           Data.Record.Label                ((:->), set, get)
-import           Data.Monoid                      (mempty, mappend, mconcat)
-import           Data.Maybe                       (catMaybes, fromMaybe, isJust)
+import           Data.Monoid                      (mappend, mconcat)
+import           Data.Maybe                       (isJust)
 import           Data.Vector.Vector2              (Vector2(..))
 import qualified Data.Vector.Vector2              as Vector2
-import           Control.Monad                    (msum)
 import           Control.Applicative              (pure, liftA2)
-import           Control.Arrow                    ((***), first, second)
+import           Control.Arrow                    (first, second)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
 import           Graphics.UI.VtyWidgets.Keymap    (Keymap, ModKey)
@@ -42,6 +41,8 @@ inModel f (Model cursor) = Model (f cursor)
 initModel :: Model
 initModel = Model (pure 0)
 
+-- | length2d assumes the given list has a square shape
+length2d :: [[a]] -> Vector2 Int
 length2d [] = pure 0
 length2d xs@(x:_) = Vector2 (length x) (length xs)
 
@@ -96,8 +97,8 @@ makeSizes rows = (requestedSize, mkSizes)
 
 type Placement = (Coordinate, Size)
 
-makePlacements :: [[SizeRange]] -> (SizeRange, Size -> [[Placement]])
-makePlacements = (result . second . result) placements makeSizes
+makePlacements :: [[Placable r]] -> (SizeRange, Size -> [[Placement]])
+makePlacements = (result . second . result) placements makeSizes . (map . map) Placable.pRequestedSize
   where
     placements sizes = zipWith zip positions sizes
       where
@@ -128,10 +129,7 @@ feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 makeView :: [[Display a]] -> Display a
 makeView rows = Display.make requestedSize mkImage
   where
-    (requestedSize, mkPlacements) =
-      makePlacements .
-      (map . map) Placable.pRequestedSize $
-      rows
+    (requestedSize, mkPlacements) = makePlacements $ rows
     mkImage givenSize imgarg =
       combineImages givenSize .
       (zipWith . zipWith) feedPlacable (mkPlacements givenSize) .
@@ -158,13 +156,11 @@ kHome = ([], Vty.KHome)
 kEnd :: ModKey
 kEnd = ([], Vty.KEnd)
 
--- | length2d assumes the given list has a square shape
-length2d :: [[a]] -> Vector2 Int
-mkNavKeymap :: [[Bool]] -> Vector2 Int -> Keymap (Vector2 Int)
-mkNavKeymap []            _ = mempty
-mkNavKeymap [[]]          _ = mempty
-mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
-  mconcat . catMaybes $ [
+mkNavMKeymap :: [[Bool]] -> Model -> Maybe (Keymap Model)
+mkNavMKeymap []            _ = Nothing
+mkNavMKeymap [[]]          _ = Nothing
+mkNavMKeymap wantFocusRows (Model cursor@(Vector2 cursorX cursorY)) =
+  mconcat $ [
     movement "left"      kLeft   leftOfCursor,
     movement "right"     kRight  rightOfCursor,
     movement "up"        kUp     aboveCursor,
@@ -176,7 +172,7 @@ mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
     ]
   where
     Vector2 cappedX cappedY = capCursor size cursor
-    movement dirName key pos = Keymap.simpleton ("Move " ++ dirName) key `fmap` pos
+    movement dirName key pos = (Keymap.simpleton ("Move " ++ dirName) key . Model) `fmap` pos
     size = length2d wantFocusRows
     x = fmap (cappedX `Vector2`) . findMove
     y = fmap (`Vector2` cappedY) . findMove
@@ -193,57 +189,39 @@ mkNavKeymap wantFocusRows cursor@(Vector2 cursorX cursorY) =
     curColumn     = enumerate $ transpose wantFocusRows !! cappedX
 
 make :: (Model -> k) -> [[Widget k]] -> Model -> Widget k
-make conv rows model = Widget.make requestedSize mkImageKeymap
+make conv rows model@(Model gcursor@(Vector2 gx gy)) =
+  Widget.fromTuple $ makeTuple
   where
-    gcursor@(Vector2 gx gy) = modelCursor model
-    widgetRows = (map . map) Widget.unWidget rows
-    
-    -- TODO: Reduce duplication with makeView
-    (requestedSize, mkPlacements) =
-      makePlacements . (map . map) Placable.pRequestedSize $ widgetRows
-    mkImageKeymap givenSize = (mkImage, keymap)
+    makeTuple hf = (requestedSize, mkImageKeymap)
       where
-        -- Get rid of the Placable, and put the Placement and actual
-        -- Size with each item:
-        placementWidgetRows = (zipWith . zipWith) feedPlacable
-                              (mkPlacements givenSize) widgetRows
-
-        wantFocusRows = (map . map) (isJust . snd . snd) placementWidgetRows
-        navKeymap = fmap (conv . Model) .
-                    mkNavKeymap wantFocusRows $
-                    gcursor
-
-        -- Disable the cursor and HasFocus of inactive children, and
-        -- replace their keymap with a Nothing. Only the active child gets
-        -- a Just around his keymap:
-
-        childWidgetRows = (map . mapu) childWidget . enumerate2d $ placementWidgetRows
-        childWidget index =
-          second
-          (if gcursor == index
-           then curChild
-           else unCurChild)
-
-        curChild = second Just -- Keymap
-
-        unCurChild = ((Widget.inHasFocus . const) False ~>
-                      (TermImage.inCursor . const) Nothing) ***
-                     const Nothing
-
-        mkImage hf = combineImages givenSize .
-                     -- Get the TermImage:
-                     (map . map . second) (($hf) . fst) $
-                     childWidgetRows
-
-        childKeymap = fromMaybe mempty $ snd . snd =<< safeIndex gx =<< safeIndex gy childWidgetRows
-        keymap =
-          -- Use msum to figure out whether at least one of the
-          -- children has a Just keymap, and not a Nothing. If all are
-          -- Nothing, we want to also remain Nothing, thus the use of
-          -- (fmap . const) on the result of msum:
-          (fmap . const) (fromMaybe mempty childKeymap `mappend` navKeymap) .
-          msum . map (snd . snd) . concat $
-          placementWidgetRows
+        neutralize f = (map . map) (onEach f) . enumerate2d
+        onEach f (index, item)
+          | index == gcursor = item
+          | otherwise        = f item
+        -- TODO: Enumerate immediately so I can fix hf...
+        placableRows =
+          (map . map) (($ hf) . Widget.unWidget) .
+          neutralize (Widget.inWidget . argument . const $ Widget.HasFocus False) $
+          rows
+        -- TODO: Reduce duplication with makeView
+        (requestedSize, mkPlacements) = makePlacements placableRows
+        mkImageKeymap givenSize = (image, mKeymap)
+          where
+            -- Get rid of the Placable, and put the Placement and actual
+            -- Size with each item:
+            placedItems = (zipWith . zipWith) feedPlacable
+                          (mkPlacements givenSize) placableRows
+            wantFocusRows = (map . map) (isJust . snd . snd) placedItems
+            uncursor = (TermImage.inCursor . const) Nothing
+            image = combineImages givenSize .
+                    neutralize (second uncursor) .
+                    (map . map . second) fst $
+                    placedItems
+            navMKeymap = (fmap . fmap) conv $ mkNavMKeymap wantFocusRows model
+            mKeymap = (`mappend` navMKeymap) $
+                      snd . snd =<<
+                      safeIndex gx =<<
+                      safeIndex gy placedItems
 
 --- Convenience
 
@@ -253,6 +231,5 @@ makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
 -- | A combined grid sends its key inputs to all of the children
 makeCombined :: [[Widget k]] -> Widget k
 makeCombined rows =
-  Widget.fromDisplay (mconcat . map Widget.keymap . concat $ rows) .
-  makeView .
-  (map . map) Widget.toDisplay $ rows
+  Widget.fromDisplay (mconcat . map Widget.keymap . concat $ rows) $
+  \hf -> makeView . (map . map) (($ hf) . Widget.toDisplay) $ rows
