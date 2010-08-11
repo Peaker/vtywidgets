@@ -45,15 +45,15 @@ make :: [(String, Int)] -> Int -> Vty.Color -> Vty.Attr -> Vty.Attr ->
 make options maxCompletions selectedCompletionBGColor
      completionBeforeAttr completionAfterAttr
      emptyString maxLines unfocusedAttr focusedAttr model =
-  Box.makeCombined Box.Vertical [
-    Widget.strongerKeys (completeKeymap $ fmap fst currentCompletion) .
-    fmap setTextEditModel $
-      TextEdit.make emptyString maxLines unfocusedAttr focusedAttr textEditModel,
-    setCursor Nothing .
-    Widget.atDisplay (Spacer.indent 4 . scroller) $
-      Box.make Box.Vertical setBoxModel completionTexts boxModel
-    ]
+  Widget.whenFocused addCompletionBox textEdit
   where
+    addCompletionBox = Box.makeCombined Box.Vertical . (: [completionsBox])
+    textEdit = Widget.strongerKeys (completeKeymap $ fmap fst currentCompletion) .
+               fmap setTextEditModel $
+               TextEdit.make emptyString maxLines unfocusedAttr focusedAttr textEditModel
+    completionsBox = setCursor Nothing .
+                     Widget.atDisplay (Spacer.indent 4 . scroller) $
+                     Box.make Box.Vertical setBoxModel completionTexts boxModel
     scroller = Scroll.centeredView . SizeRange.fixedSize $ Vector2 (maxWidth+1) maxCompletions
     maxWidth = maximum . (0:) .
                map (length . fst) $ activeCompletions
