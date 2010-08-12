@@ -14,6 +14,7 @@ import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Overlay   as Overlay
+import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import           Graphics.UI.VtyWidgets.SizeRange (Size)
@@ -53,23 +54,15 @@ widgetLoop makeWidget =
       w <- liftIO . makeWidget $ size
       return (Widget.runWidget w size)
 
-widgetLoopWithOverlay :: Int -> Int -> (Size -> IO (Widget (IO ()))) -> IO ()
-widgetLoopWithOverlay keysWidth descriptionWidth makeWidget =
+widgetLoopWithOverlay :: TableGrid.Theme -> (Size -> IO (Widget (IO ()))) -> IO ()
+widgetLoopWithOverlay theme makeWidget =
   widgetLoop . makeWidget' =<< newIORef (Overlay.initModel True)
   where
     makeWidget' overlayModelRef size = do
       w <- makeWidget size
       overlayModel <- readIORef overlayModelRef
       return $
-        Overlay.keymapView size (writeIORef overlayModelRef) overlayModel
-        showModKey hideModKey
-        keyAttr valueAttr w
+        Overlay.keymapView theme size (writeIORef overlayModelRef) overlayModel
+        showModKey hideModKey w
     showModKey = ([], Vty.KFun 6)
     hideModKey = showModKey
-    keyAttr   = (Vty.def_attr
-                 `Vty.with_fore_color` Vty.green
-                 `Vty.with_back_color` Vty.blue, keysWidth)
-    valueAttr = (Vty.def_attr
-                 `Vty.with_fore_color` Vty.red
-                 `Vty.with_back_color` Vty.blue
-                 `Vty.with_style` Vty.bold, descriptionWidth)

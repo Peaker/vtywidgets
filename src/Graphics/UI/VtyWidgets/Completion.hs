@@ -1,7 +1,8 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Completion
-    (Model(..), initModel, make, makeSimple)
+    (Model(..), initModel, make, makeSimple,
+     Theme(..), standardTheme)
 where
 
 import           Data.Function.Utils              (Endo)
@@ -39,22 +40,26 @@ initModel s = Model (TextEdit.initModel s) Box.initModel
 setCursor :: Maybe TermImage.Coordinate -> Endo (Widget a)
 setCursor = Widget.atImage . TermImage.inCursor . const
 
+data Theme = Theme {
+  themeSelectedBGColor :: Vty.Color,
+  themePrefixAttr :: Vty.Attr,
+  themeSuffixAttr :: Vty.Attr,
+  themeTextEdit :: TextEdit.Theme
+  }
+
 -- | See TextEdit.make for more documentation
-make :: [(String, Int)] -> Int -> Vty.Color -> Vty.Attr -> Vty.Attr ->
-        String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
-make options maxCompletions selectedCompletionBGColor
-     completionBeforeAttr completionAfterAttr
-     emptyString maxLines unfocusedAttr focusedAttr model =
+make :: Theme -> [(String, Int)] -> Int -> String -> Int -> Model -> Widget Model
+make theme options maxCompletions emptyString maxLines model =
   Widget.whenFocused addCompletionBox textEdit
   where
     addCompletionBox = Box.makeCombined Box.Vertical . (: [completionsBox])
     textEdit = Widget.strongerKeys (completeKeymap $ fmap fst currentCompletion) .
                fmap setTextEditModel $
-               TextEdit.make emptyString maxLines unfocusedAttr focusedAttr textEditModel
+               TextEdit.make (themeTextEdit theme) emptyString maxLines textEditModel
     completionsBox = setCursor Nothing .
                      Widget.atDisplay (Spacer.indent 4 . scroller) $
                      Box.make Box.Vertical setBoxModel completionTexts boxModel
-    scroller = Scroll.centeredView . SizeRange.fixedSize $ Vector2 (maxWidth+1) maxCompletions
+    scroller = Scroll.centeredView Scroll.standardTheme . SizeRange.fixedSize $ Vector2 (maxWidth+1) maxCompletions
     maxWidth = maximum . (0:) .
                map (length . fst) $ activeCompletions
     currentCompletion = index `safeIndex` activeCompletions
@@ -65,13 +70,13 @@ make options maxCompletions selectedCompletionBGColor
     completionTexts = map makeSingleCompletionView activeCompletions
     makeSingleCompletionView (completion, cursor) =
       (setCursor . Just $ Vector2 cursor 0) .
-      Widget.coloredFocusableDisplay selectedCompletionBGColor $
+      Widget.coloredFocusableDisplay (themeSelectedBGColor theme) $
         Box.makeView Box.Horizontal [
-          TextView.make completionBeforeAttr before,
-          TextView.make completionAfterAttr after
+          TextView.make (themePrefixAttr theme) prefix,
+          TextView.make (themeSuffixAttr theme) suffix
           ]
       where
-        (before, after) = splitAt cursor completion
+        (prefix, suffix) = splitAt cursor completion
     activeCompletions = filter ((text `isPrefixOf`) . fst) options
     Model textEditModel rawBoxModel = model
     boxModel = Box.inModel (max 0 . min (length activeCompletions - 1)) rawBoxModel
@@ -80,14 +85,19 @@ make options maxCompletions selectedCompletionBGColor
     setTextEditModel textEditModel' = Model textEditModel' boxModel
     setBoxModel boxModel' = Model textEditModel boxModel'
 
-makeSimple :: [String] -> Int -> Vty.Color -> Vty.Attr -> Vty.Attr ->
-              String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
-makeSimple options maxCompletions selectedCompletionBGColor
-  completionBeforeAttr completionAfterAttr
-  emptyString maxLines unfocusedAttr focusedAttr model =
-    make cursorOptions maxCompletions selectedCompletionBGColor
-         completionBeforeAttr completionAfterAttr
-         emptyString maxLines unfocusedAttr focusedAttr model
+makeSimple :: Theme -> [String] -> Int -> String -> Int -> Model -> Widget Model
+makeSimple theme options maxCompletions emptyString maxLines model =
+    make theme cursorOptions maxCompletions emptyString maxLines model
   where
     cursorOptions = map (flip (,) cursor) options
     cursor = length . TextEdit.textEditText . completionTextEdit $ model
+
+standardTheme :: Theme
+standardTheme = Theme {
+  themeSelectedBGColor = Vty.blue,
+  themePrefixAttr = fg Vty.green,
+  themeSuffixAttr = fg Vty.red,
+  themeTextEdit = TextEdit.standardTheme
+  }
+  where
+    fg color = Vty.def_attr `Vty.with_fore_color` color

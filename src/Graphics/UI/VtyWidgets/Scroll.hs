@@ -1,6 +1,6 @@
 {-# OPTIONS -O2 -Wall #-}
 module Graphics.UI.VtyWidgets.Scroll
-    (centeredView)
+    (centeredView, Theme(..), standardTheme)
 where
 
 import           Control.Applicative              (pure, liftA2)
@@ -19,6 +19,11 @@ import qualified Graphics.UI.VtyWidgets.Grid      as Grid
 import qualified Graphics.UI.VtyWidgets.Bar       as Bar
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import           Graphics.UI.VtyWidgets.TermImage (TermImage)
+
+data Theme = Theme {
+  themeHBar :: Bar.Theme,
+  themeVBar :: Bar.Theme
+  }
 
 -- move small rect into the big one, if it is out of it...
 moveIn :: Rect -> Rect -> Rect
@@ -65,12 +70,12 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 -- r |            |
 -- : \____________/
 
-sizedCenteredView :: SizeRange
+sizedCenteredView :: Theme -> SizeRange
                      -- ^ Size range of the scroller itself, including bars
                      -> Display a
                      -- ^ The display to scroll through
                      -> Display a
-sizedCenteredView sizeRange' (Placable sizeRange mkImage) =
+sizedCenteredView theme sizeRange' (Placable sizeRange mkImage) =
   Display.make sizeRange' mkGridImage
   where
     mkGridImage givenSize imgarg = image'
@@ -80,8 +85,8 @@ sizedCenteredView sizeRange' (Placable sizeRange mkImage) =
         bigEnough = liftA2 (>=) givenSize scrollSize
         barsNeeded = Vector2 True True /= bigEnough
 
-        hbar = Bar.makeHorizontal 3
-        vbar = Bar.makeVertical 3
+        hbar = Bar.makeHorizontal (themeHBar theme) 3
+        vbar = Bar.makeVertical (themeVBar theme) 3
 
         image = mkImage scrollSize imgarg
         image' = if barsNeeded
@@ -101,8 +106,8 @@ sizedCenteredView sizeRange' (Placable sizeRange mkImage) =
         makeBar m range = Display.atImageArg (const range) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
-                  conditionalMakeBar hbarNeeded Bar.makeHorizontal hrange ],
-                [ conditionalMakeBar vbarNeeded Bar.makeVertical   vrange,
+                  conditionalMakeBar hbarNeeded (Bar.makeHorizontal $ themeHBar theme) hrange ],
+                [ conditionalMakeBar vbarNeeded (Bar.makeVertical $ themeVBar theme)   vrange,
                   Display.make (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
           where
             sSize = getSSize rows
@@ -115,15 +120,19 @@ sizedCenteredView sizeRange' (Placable sizeRange mkImage) =
             hrange = mkRange Vector2.fst
             vrange = mkRange Vector2.snd
 
-centeredView :: SizeRange
+centeredView :: Theme ->
+                SizeRange
                 -- ^ Size range of the scroller itself, including bars
                 -> Display a
                 -- ^ The display to scroll through
                 -> Display a
-centeredView requestedSize display =
-  sizedCenteredView requestedSize' display
+centeredView theme requestedSize display =
+  sizedCenteredView theme requestedSize' display
   where
     requestedSize' = SizeRange.atBothSizes
                      (liftA2 min . fmap (+1) $ maxSize)
                      requestedSize
     maxSize = SizeRange.srMaxSize . Placable.pRequestedSize $ display
+
+standardTheme :: Theme
+standardTheme = Theme Bar.standardTheme Bar.standardTheme

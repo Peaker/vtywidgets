@@ -1,8 +1,8 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TextEdit
-    (make, Model(..), initModel,
-     defaultAttr, editingAttr)
+    (Model(..), initModel, make,
+     Theme(..), standardTheme)
 where
 
 import           Data.Binary                      (Binary(..))
@@ -45,15 +45,20 @@ tillEndOfWord xs = spaces ++ nonSpaces
     spaces = takeWhile isSpace xs
     nonSpaces = takeWhile (not . isSpace) . dropWhile isSpace $ xs
 
+data Theme = Theme {
+  themeFocusedAttr :: Vty.Attr,
+  themeUnfocusedAttr :: Vty.Attr
+  }
+
 -- | Note: maxLines prevents the *user* from exceeding it, not the
 -- | given text...
-make :: String -> Int -> Vty.Attr -> Vty.Attr -> Model -> Widget Model
-make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
+make :: Theme -> String -> Int -> Model -> Widget Model
+make theme emptyString maxLines (Model cursor text) =
   Widget.fromTuple makeTuple
   where
     makeTuple (Widget.HasFocus hf) = (requestedSize, const (image (mkAttr hf) text, keymap))
-    mkAttr True = focusedAttr
-    mkAttr False = unfocusedAttr
+    mkAttr True = themeFocusedAttr theme
+    mkAttr False = themeUnfocusedAttr theme
     emptyStringSize = if null text
                       then fst . TermImage.stringParse $ emptyString
                       else pure 0
@@ -176,6 +181,7 @@ make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
         [ Keymap.fromGroupLists [ ("Alphabet", ("Insert", insertKeys)) ] ]
 
         ]
+
     insert l = if (length . splitLines) text' <= max height maxLines
                then (cursor', text')
                else (cursor, text)
@@ -191,8 +197,8 @@ make emptyString maxLines unfocusedAttr focusedAttr (Model cursor text) =
       [ (k, insert "\n")
       | k <- simpleK Vty.KEnter ]
 
-defaultAttr :: Vty.Attr
-defaultAttr = Vty.def_attr
-
-editingAttr :: Vty.Attr
-editingAttr = Vty.def_attr `Vty.with_back_color` Vty.blue
+standardTheme :: Theme
+standardTheme = Theme {
+  themeFocusedAttr   = Vty.def_attr `Vty.with_fore_color` Vty.yellow `Vty.with_back_color` Vty.blue,
+  themeUnfocusedAttr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
+  }

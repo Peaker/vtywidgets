@@ -23,6 +23,7 @@ import qualified Graphics.UI.VtyWidgets.FocusDelegator as FocusDelegator
 import qualified Graphics.UI.VtyWidgets.Scroll         as Scroll
 import qualified Graphics.UI.VtyWidgets.TextEdit       as TextEdit
 import qualified Graphics.UI.VtyWidgets.Completion     as Completion
+import qualified Graphics.UI.VtyWidgets.TableGrid      as TableGrid
 import qualified Graphics.UI.VtyWidgets.Run            as Run
 import           System.IO                             (stderr, hSetBuffering, BufferMode(NoBuffering))
 
@@ -58,7 +59,7 @@ main = do
   hSetBuffering stderr NoBuffering
   mainLoop =<< newMVar initModel
   where
-    mainLoop modelMVar = Run.widgetLoopWithOverlay 20 30 . const $ rootWidget
+    mainLoop modelMVar = Run.widgetLoopWithOverlay TableGrid.standardTheme . const $ rootWidget
       where
         rootWidget = modelEdit fixKeymap `fmap` readMVar modelMVar
         fixKeymap = (mappend . Keymap.simpleton "Quit" quitKey $ fail "Quit") .
@@ -72,28 +73,25 @@ modelEdit fixKeymap model =
   where
     outerGrid innerGridDisp =
       Box.makeView Box.Vertical [ TextView.make attr "Title\n-----", innerGridDisp ]
-    delegatedTextView i = FocusDelegator.makeAcc (nth i . modelDelegators) (staticTextView i) model
-    fg color = Vty.def_attr `Vty.with_fore_color` color
+    delegatedTextView i = makeFocusDelegator (nth i . modelDelegators) (staticTextView i) model
     completions = (["hello", "world", "Mr Jones: completion expert"] ++) .
                     map (("Prefix"++) . show) . take 10 $
                     ([0..] :: [Int])
-    completionEdit = adaptModel
-                     modelCompletion
-                     (Completion.makeSimple completions 5 Vty.blue
-                      (fg Vty.green) (fg Vty.red)
-                      "<empty>" 1 attr TextEdit.editingAttr)
+    completionEdit = adaptModel modelCompletion
+                     (Completion.makeSimple Completion.standardTheme completions 5 "<empty>" 1)
                      model
     staticTextView i = Widget.simpleDisplay . TextView.make Vty.def_attr $ "static" ++ show i ++ " "
     innerGrid = scrollerAround . makeGrid modelGrid $ map delegatedTextView [0..1] : [mempty, completionEdit] : textEdits
-    scrollerAround = Widget.atDisplay . Scroll.centeredView . SizeRange.fixedSize $ Vector2 90 12
+    scrollerAround = Widget.atDisplay . Scroll.centeredView Scroll.standardTheme . SizeRange.fixedSize $ Vector2 90 12
     textEdits = [ [ makeTextEdit (nth i . modelTextEdits)
                   | y <- [0, 1]
                   , let i = y*2 + x ]
                 | x <- [0, 1] ]
     attr = Vty.def_attr `Vty.with_fore_color` Vty.yellow
-    makeTextEdit acc = FocusDelegator.makeAcc (first . acc) (textEdit (second . acc)) model
-    textEdit acc = adaptModel acc (TextEdit.make "<insert text here>" 5 attr TextEdit.editingAttr) model
-    makeGrid acc rows = FocusDelegator.makeAcc (first . acc) (grid (second . acc) rows) model
+    makeFocusDelegator = FocusDelegator.makeAcc FocusDelegator.standardTheme
+    makeTextEdit acc = makeFocusDelegator (first . acc) (textEdit (second . acc)) model
+    textEdit acc = adaptModel acc (TextEdit.make TextEdit.standardTheme "<insert text here>" 5) model
+    makeGrid acc rows = makeFocusDelegator (first . acc) (grid (second . acc) rows) model
     grid acc rows = Grid.makeAcc acc rows model
 
 adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w

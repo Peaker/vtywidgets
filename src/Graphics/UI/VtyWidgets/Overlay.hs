@@ -11,7 +11,6 @@ import           Data.Maybe                       (fromMaybe)
 import           Data.Record.Label                ((:->), set, get)
 import           Data.Vector.Vector2              (Vector2(..))
 import           Data.Function.Utils              (Endo)
-import qualified Graphics.Vty                     as Vty
 import           Graphics.UI.VtyWidgets.Keymap    (ModKey, Doc)
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
@@ -53,18 +52,17 @@ widgetAcc :: k :-> Model ->
 widgetAcc acc startShowing stopShowing overlayWidget child k =
   widget startShowing stopShowing overlayWidget (flip (set acc) k) child (get acc k)
 
-keymapView :: Size -> (Model -> k) -> Model ->
+keymapView :: TableGrid.Theme -> Size -> (Model -> k) -> Model ->
               ModKey -> ModKey ->
-              (Vty.Attr, Int) -> (Vty.Attr, Int) ->
               Widget k -> Widget k
-keymapView size convert overlayModel showModKey hideModKey keyAttr valueAttr w =
+keymapView theme size convert overlayModel showModKey hideModKey w =
   overlayedKeymapWidget
   where
     overlayedKeymapWidget =
       widget (showDoc, showModKey) (hideDoc, hideModKey)
              kv convert w overlayModel
     kv = Widget.simpleDisplay .
-         TableGrid.makeKeymapView keyAttr valueAttr .
+         TableGrid.makeKeymapView theme .
          fromMaybe mempty $
          -- We form a cycle here, as we extract the keymap of the
          -- widget which is built by overlaying the keymap table of

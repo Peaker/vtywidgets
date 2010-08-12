@@ -2,7 +2,8 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.FocusDelegator
-    (make, makeAcc, Model(..), initModel)
+    (make, makeAcc, Model(..), initModel,
+     Theme(..), standardTheme)
 where
 
 import           Data.Binary                      (Binary)
@@ -13,6 +14,10 @@ import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
 import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
+
+data Theme = Theme {
+  themeBGColor :: Vty.Color
+  }
 
 newtype Model = Model {
   focusDelegated :: Bool
@@ -34,16 +39,21 @@ delegatingKeymap = Keymap.simpleton "Leave" stopDelegatingKey (Model False)
 notDelegatingKeymap :: Keymap Model
 notDelegatingKeymap = Keymap.simpleton "Enter" startDelegatingKey (Model True)
 
-make :: (Model -> k) -> Widget k -> Model -> Widget k
-make conv child (Model isDelegating) =
+make :: Theme -> (Model -> k) -> Widget k -> Model -> Widget k
+make theme conv child (Model isDelegating) =
   if isDelegating
     then Widget.weakerKeys (conv `fmap` delegatingKeymap) child
     else Widget.whenFocused ((Widget.atImage . TermImage.inCursor . const) Nothing .
-                             (Widget.atSizedImage . TermImage.backgroundColor) Vty.blue) .
+                             (Widget.atSizedImage . TermImage.backgroundColor) (themeBGColor theme)) .
          Widget.takesFocus .
          (Widget.atKeymap . const) (conv `fmap` notDelegatingKeymap) $
          child
 
-makeAcc :: k :-> Model -> Widget k -> k -> Widget k
-makeAcc acc child k =
-  make (flip (set acc) k) child (get acc k)
+makeAcc :: Theme -> k :-> Model -> Widget k -> k -> Widget k
+makeAcc theme acc child k =
+  make theme (flip (set acc) k) child (get acc k)
+
+standardTheme :: Theme
+standardTheme = Theme {
+  themeBGColor = Vty.blue
+  }

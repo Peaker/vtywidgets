@@ -1,10 +1,10 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TableGrid
-    (makeColumnView, makeKeymapView)
+    (makeColumnView, makeKeymapView, Theme(..), standardTheme)
 where
 
-import           Control.Applicative              (pure)
+import           Control.Applicative              (pure, liftA2)
 import           Control.Arrow                    (first)
 import           Data.Monoid                      (mappend)
 import           Data.Ord                         (comparing)
@@ -23,6 +23,13 @@ import qualified Graphics.UI.VtyWidgets.Grid      as Grid
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import           Graphics.UI.VtyWidgets.Display   (Display)
 import qualified Graphics.UI.VtyWidgets.TextView  as TextView
+
+data Theme = Theme {
+  themeKeymapKeyGroupNameAttr :: Vty.Attr,
+  themeKeymapKeyGroupNameWidth :: Int,
+  themeKeymapDescriptionAttr :: Vty.Attr,
+  themeKeymapDescriptionWidth :: Int
+  }
 
 fitToWidth :: Int -> String -> String
 fitToWidth width = intercalate "\n" . concatMap (splitEvery width) . splitOn "\n"
@@ -47,10 +54,32 @@ makeColumnView attrs table =
         setAttrImage size =
           TermImage.rect (Rect (pure 0) size) . first . const $ attr
 
-makeKeymapView :: (Vty.Attr, Int) -> (Vty.Attr, Int) -> Keymap k -> Display a
-makeKeymapView keyAttrWidth valueAttrWidth keymap =
-  makeColumnView [keyAttrWidth, valueAttrWidth] .
+makeKeymapView :: Theme -> Keymap k -> Display a
+makeKeymapView theme keymap =
+  makeColumnView [liftA2 (,)
+                  themeKeymapKeyGroupNameAttr
+                  themeKeymapKeyGroupNameWidth
+                  theme,
+                  liftA2 (,)
+                  themeKeymapDescriptionAttr
+                  themeKeymapDescriptionWidth
+                  theme] .
   map (\(x, y) -> [x, y]) .
   sortBy (comparing snd) .
   Map.toList . Map.map fst . keymapGroups $
   keymap
+
+standardTheme :: Theme
+standardTheme = Theme {
+  themeKeymapKeyGroupNameWidth = 20,
+  themeKeymapKeyGroupNameAttr =
+     Vty.def_attr
+     `Vty.with_fore_color` Vty.green
+     `Vty.with_back_color` Vty.blue,
+  themeKeymapDescriptionWidth = 30,
+  themeKeymapDescriptionAttr =
+    Vty.def_attr
+    `Vty.with_fore_color` Vty.red
+    `Vty.with_back_color` Vty.blue
+    `Vty.with_style` Vty.bold
+  }
