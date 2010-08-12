@@ -1,5 +1,8 @@
 * Display should have a Functor in it
 
+* Big "Theme" type with "standard" attributes for text edits,
+  completions, etc, and a fromTheme for each widget
+
 * Get rid of Attr arguments to stuff, and use post-processing on the
   image to change attributes?
 * Widgets that take a lot of "configuration" should either not take it
@@ -15,18 +18,8 @@
   * Keymap -> Eventmap
   * Add DirectionEntry event type, and move Grid to that position
 
-* Scroll:
-  * If I make a "follow-view", I need it to be in State, which makes
-    it less composable...
-  * Maybe need FRP framework so Scroll is exposed to all of the model
-    changes, or maybe Scroll can get a history or such
-
-* Cleanups:
-  * Maybe succumb to inclusive/inclusive Haskell ranges?
-  * Use AddLimits or such instead of the maxBoundHack stuff
-  * Scroll, Grid are pretty ugly
-  * Various "make" widget funcs, move various params that the
-    SizeRange doesn't depend on to be imgarg
+* Use AddBounds or such instead of the maxBoundHack stuff
+* Scroll, Grid are pretty ugly
 
 * TextEdit:
   * Keep track of diffs

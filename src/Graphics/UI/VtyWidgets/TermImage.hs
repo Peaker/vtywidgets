@@ -20,7 +20,7 @@ import           Data.Monoid         (Monoid(..), First(First, getFirst))
 import           Data.Monoid.Utils   (inFirst)
 import           Data.Vector.Vector2 (Vector2(..))
 import qualified Data.Vector.Vector2 as Vector2
-import           Data.Array.Utils    (marrayAt)
+import           Data.Array.Utils    (modifyArrayAt)
 import           Data.Array          ((!))
 import           Data.Array.ST       (runSTArray, newArray)
 import           Data.DList          (DList)
@@ -101,7 +101,7 @@ render (TermImage eBoundingRect pixels (First mCursor)) =
       -- axis
       array <- newArray (tl, br) (Vty.def_attr, ' ')
       forM_ (DList.toList . pixels (Vector2 0 0) $ bRect) $
-            uncurry (marrayAt array)
+            uncurry (modifyArrayAt array)
       return array
     img = Vty.vert_cat $
           replicate (min t b) (Vty.char Vty.def_attr ' ') ++
