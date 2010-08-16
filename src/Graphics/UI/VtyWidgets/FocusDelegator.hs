@@ -12,8 +12,9 @@ import           Data.Record.Label                ((:->), set, get)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
-import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
+import           Graphics.UI.VtyWidgets.EventMap  (EventMap)
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 
 data Theme = Theme {
@@ -30,26 +31,26 @@ inModel f = Model . f . focusDelegated
 initModel :: Bool -> Model
 initModel = Model
 
-stopDelegatingKey :: Keymap.ModKey
-stopDelegatingKey = ([], Vty.KEsc)
+stopDelegatingKey :: ModKey
+stopDelegatingKey = ModKey [] Vty.KEsc
 
-startDelegatingKey :: Keymap.ModKey
-startDelegatingKey = ([], Vty.KEnter)
+startDelegatingKey :: ModKey
+startDelegatingKey = ModKey [] Vty.KEnter
 
-delegatingKeymap :: Keymap Model
-delegatingKeymap = Keymap.simpleton "Leave" stopDelegatingKey (Model False)
+delegatingKeyMap :: EventMap ModKey Model
+delegatingKeyMap = EventMap.simpleton "Leave" stopDelegatingKey (Model False)
 
-notDelegatingKeymap :: Keymap Model
-notDelegatingKeymap = Keymap.simpleton "Enter" startDelegatingKey (Model True)
+notDelegatingKeyMap :: EventMap ModKey Model
+notDelegatingKeyMap = EventMap.simpleton "Enter" startDelegatingKey (Model True)
 
 make :: Theme -> (Model -> k) -> Widget k -> Model -> Widget k
 make theme conv child (Model isDelegating) =
   if isDelegating
-    then Widget.weakerKeys (conv `fmap` delegatingKeymap) child
+    then Widget.weakerEvents (conv `fmap` Widget.fromKeymap delegatingKeyMap) child
     else Widget.whenFocused ((Widget.atImage . TermImage.inCursor . const) Nothing .
                              (Widget.atSizedImage . TermImage.backgroundColor) (themeBGColor theme)) .
          Widget.takesFocus .
-         (Widget.atKeymap . const) (conv `fmap` notDelegatingKeymap) .
+         (Widget.atEventMap . const) (conv `fmap` Widget.fromKeymap notDelegatingKeyMap) .
          (Widget.atHasFocus . const) False $
          child
 

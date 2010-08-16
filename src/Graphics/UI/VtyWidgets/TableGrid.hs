@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TableGrid
-    (makeColumnView, makeKeymapView, Theme(..), standardTheme)
+    (makeColumnView, makeEventMapView, Theme(..), standardTheme)
 where
 
 import           Control.Applicative              (pure, liftA2)
@@ -17,7 +17,7 @@ import qualified Data.Map                         as Map
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
-import           Graphics.UI.VtyWidgets.Keymap    (Keymap(keymapGroups))
+import           Graphics.UI.VtyWidgets.EventMap  (EventMap(eventMapGroups))
 import qualified Graphics.UI.VtyWidgets.Align     as Align
 import qualified Graphics.UI.VtyWidgets.Grid      as Grid
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
@@ -25,10 +25,10 @@ import           Graphics.UI.VtyWidgets.Display   (Display)
 import qualified Graphics.UI.VtyWidgets.TextView  as TextView
 
 data Theme = Theme {
-  themeKeymapKeyGroupNameAttr :: Vty.Attr,
-  themeKeymapKeyGroupNameWidth :: Int,
-  themeKeymapDescriptionAttr :: Vty.Attr,
-  themeKeymapDescriptionWidth :: Int
+  themeEventMapKeyGroupNameAttr :: Vty.Attr,
+  themeEventMapKeyGroupNameWidth :: Int,
+  themeEventMapDescriptionAttr :: Vty.Attr,
+  themeEventMapDescriptionWidth :: Int
   }
 
 fitToWidth :: Int -> String -> String
@@ -54,30 +54,30 @@ makeColumnView attrs table =
         setAttrImage size =
           TermImage.rect (Rect (pure 0) size) . first . const $ attr
 
-makeKeymapView :: Theme -> Keymap k -> Display a
-makeKeymapView theme keymap =
+makeEventMapView :: Theme -> EventMap e k -> Display a
+makeEventMapView theme eventMap =
   makeColumnView [liftA2 (,)
-                  themeKeymapKeyGroupNameAttr
-                  themeKeymapKeyGroupNameWidth
+                  themeEventMapKeyGroupNameAttr
+                  themeEventMapKeyGroupNameWidth
                   theme,
                   liftA2 (,)
-                  themeKeymapDescriptionAttr
-                  themeKeymapDescriptionWidth
+                  themeEventMapDescriptionAttr
+                  themeEventMapDescriptionWidth
                   theme] .
   map (\(x, y) -> [x, y]) .
   sortBy (comparing snd) .
-  Map.toList . Map.map fst . keymapGroups $
-  keymap
+  Map.toList . Map.map fst . eventMapGroups $
+  eventMap
 
 standardTheme :: Theme
 standardTheme = Theme {
-  themeKeymapKeyGroupNameWidth = 20,
-  themeKeymapKeyGroupNameAttr =
+  themeEventMapKeyGroupNameWidth = 20,
+  themeEventMapKeyGroupNameAttr =
      Vty.def_attr
      `Vty.with_fore_color` Vty.green
      `Vty.with_back_color` Vty.blue,
-  themeKeymapDescriptionWidth = 30,
-  themeKeymapDescriptionAttr =
+  themeEventMapDescriptionWidth = 30,
+  themeEventMapDescriptionAttr =
     Vty.def_attr
     `Vty.with_fore_color` Vty.red
     `Vty.with_back_color` Vty.blue

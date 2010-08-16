@@ -6,13 +6,13 @@ import qualified Data.Record.Label                     as Label
 import           Data.Record.Label                     ((:->), mkLabels, label)
 import           Data.Record.Label.Tuple               (first, second)
 import           Data.Record.Label.List                (nth)
-import           Data.Monoid                           (mempty, mappend)
+import           Data.Monoid                           (mempty)
 import           Data.Vector.Vector2                   (Vector2(..))
 import           Prelude                               hiding ((.))
 import           Control.Category                      ((.))
 import           Control.Concurrent.MVar               (MVar, newMVar, readMVar, modifyMVar_)
-import qualified Graphics.UI.VtyWidgets.Keymap         as Keymap
-import           Graphics.UI.VtyWidgets.Keymap         (Keymap, ModKey)
+import qualified Graphics.UI.VtyWidgets.EventMap       as EventMap
+import           Graphics.UI.VtyWidgets.ModKey         (ModKey(..))
 import qualified Graphics.UI.VtyWidgets.Widget         as Widget
 import           Graphics.UI.VtyWidgets.Widget         (Widget)
 import qualified Graphics.UI.VtyWidgets.SizeRange      as SizeRange
@@ -49,7 +49,7 @@ initModel = Model {
   }
 
 quitKey :: ModKey
-quitKey = ([Vty.MCtrl], Vty.KASCII 'q')
+quitKey = ModKey [Vty.MCtrl] (Vty.KASCII 'q')
 
 pureModifyMVar_ :: MVar a -> (a -> a) -> IO ()
 pureModifyMVar_ mv f = modifyMVar_ mv (return . f)
@@ -61,13 +61,14 @@ main = do
   where
     mainLoop modelMVar = Run.widgetLoopWithOverlay TableGrid.standardTheme . const $ rootWidget
       where
-        rootWidget = modelEdit fixKeymap `fmap` readMVar modelMVar
-        fixKeymap = (mappend . Keymap.simpleton "Quit" quitKey $ fail "Quit") .
-                    (fmap $ pureModifyMVar_ modelMVar . const)
+        rootWidget = (Widget.strongerEvents (Widget.fromKeymap quitKeymap) .
+                      (Widget.atEventMap . fmap) (pureModifyMVar_ modelMVar . const) .
+                      modelEdit) `fmap`
+                     readMVar modelMVar
+        quitKeymap = EventMap.simpleton "Quit" quitKey $ fail "Quit"
 
-modelEdit :: (Keymap Model -> Keymap k) -> Model -> Widget k
-modelEdit fixKeymap model =
-  Widget.atKeymap fixKeymap .
+modelEdit :: Model -> Widget Model
+modelEdit model =
   Widget.atDisplay outerGrid $
   innerGrid
   where
@@ -95,4 +96,4 @@ modelEdit fixKeymap model =
     grid acc rows = Grid.makeAcc acc rows model
 
 adaptModel :: w :-> p -> (p -> Widget p) -> w -> Widget w
-adaptModel acc pwidget w = Widget.atKeymap (flip (Label.set acc) w `fmap`) (pwidget (Label.get acc w))
+adaptModel acc pwidget w = Widget.atEventMap (flip (Label.set acc) w `fmap`) (pwidget (Label.get acc w))

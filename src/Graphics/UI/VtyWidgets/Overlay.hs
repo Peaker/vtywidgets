@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.Overlay
-    (display, widget, widgetAcc, Model(..), initModel, keymapView)
+    (display, widget, widgetAcc, Model(..), initModel, eventMapView)
 where
 
 import           Data.Binary                      (Binary)
@@ -11,10 +11,11 @@ import           Data.Maybe                       (fromMaybe)
 import           Data.Record.Label                ((:->), set, get)
 import           Data.Vector.Vector2              (Vector2(..))
 import           Data.Function.Utils              (Endo)
-import           Graphics.UI.VtyWidgets.Keymap    (ModKey, Doc)
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import           Graphics.UI.VtyWidgets.EventMap  (Doc)
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
 import qualified Graphics.UI.VtyWidgets.Align     as Align
 import           Graphics.UI.VtyWidgets.Display   (Display)
@@ -37,38 +38,38 @@ initModel = Model
 widget :: (Doc, ModKey) -> (Doc, ModKey) -> Widget k -> (Model -> k) -> Widget k -> Model -> Widget k
 widget startShowing stopShowing overlayWidget conv child (Model isOverlaying) =
   if isOverlaying
-  then appendKeymap stopShowing False $
+  then appendEventMap stopShowing False $
        child `mappend` Widget.atDisplay translateToCenter overlayWidget
-  else appendKeymap startShowing True
+  else appendEventMap startShowing True
        child
   where
-    appendKeymap docModKey toShow =
-      Widget.strongerKeys (mkKeymap docModKey toShow)
-    mkKeymap docModKey toShow =
-      uncurry Keymap.simpleton docModKey . conv . Model $ toShow
+    appendEventMap docModKey toShow =
+      Widget.strongerEvents (Widget.fromKeymap $ mkKeyMap docModKey toShow)
+    mkKeyMap docModKey toShow =
+      uncurry EventMap.simpleton docModKey . conv . Model $ toShow
 
 widgetAcc :: k :-> Model ->
              (Doc, ModKey) -> (Doc, ModKey) -> Widget k -> Widget k -> k -> Widget k
 widgetAcc acc startShowing stopShowing overlayWidget child k =
   widget startShowing stopShowing overlayWidget (flip (set acc) k) child (get acc k)
 
-keymapView :: TableGrid.Theme -> Size -> (Model -> k) -> Model ->
+eventMapView :: TableGrid.Theme -> Size -> (Model -> k) -> Model ->
               ModKey -> ModKey ->
               Widget k -> Widget k
-keymapView theme size convert overlayModel showModKey hideModKey w =
-  overlayedKeymapWidget
+eventMapView theme size convert overlayModel showModKey hideModKey w =
+  overlayedEventMapWidget
   where
-    overlayedKeymapWidget =
+    overlayedEventMapWidget =
       widget (showDoc, showModKey) (hideDoc, hideModKey)
              kv convert w overlayModel
     kv = Widget.simpleDisplay .
-         TableGrid.makeKeymapView theme .
+         TableGrid.makeEventMapView theme .
          fromMaybe mempty $
-         -- We form a cycle here, as we extract the keymap of the
-         -- widget which is built by overlaying the keymap table of
-         -- the same keymap. This should be Ok because we use
-         -- simpleDisplay above which generates an empty keymap which
+         -- We form a cycle here, as we extract the eventMap of the
+         -- widget which is built by overlaying the eventMap table of
+         -- the same eventMap. This should be Ok because we use
+         -- simpleDisplay above which generates an empty eventMap which
          -- doesn't depend on any of this.
-         Widget.keymap overlayedKeymapWidget size
+         Widget.eventMap overlayedEventMapWidget size
     showDoc = "Keybindings: show"
     hideDoc = "Keybindings: hide"

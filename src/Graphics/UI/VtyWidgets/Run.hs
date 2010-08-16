@@ -15,7 +15,8 @@ import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Overlay   as Overlay
 import qualified Graphics.UI.VtyWidgets.TableGrid as TableGrid
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import           Graphics.UI.VtyWidgets.SizeRange (Size)
 import           Graphics.Vty.Utils               (withVty)
@@ -44,7 +45,7 @@ widgetLoop makeWidget =
             debugLog $ "Resized to: " ++ show size'
           Vty.EvKey key mods ->
             maybe (return ()) (liftIO . snd . snd) .
-            Keymap.lookup (mods, key) .
+            EventMap.lookup (Widget.KeyEvent $ ModKey mods key) .
             fromMaybe mempty . snd =<<
             makeWidget'
           _ -> return ()
@@ -62,7 +63,7 @@ widgetLoopWithOverlay theme makeWidget =
       w <- makeWidget size
       overlayModel <- readIORef overlayModelRef
       return $
-        Overlay.keymapView theme size (writeIORef overlayModelRef) overlayModel
+        Overlay.eventMapView theme size (writeIORef overlayModelRef) overlayModel
         showModKey hideModKey w
-    showModKey = ([], Vty.KFun 6)
+    showModKey = ModKey [] (Vty.KFun 6)
     hideModKey = showModKey

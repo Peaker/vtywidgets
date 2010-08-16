@@ -15,7 +15,8 @@ import qualified Graphics.Vty                     as Vty
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import qualified Graphics.UI.VtyWidgets.TextEdit  as TextEdit
 import qualified Graphics.UI.VtyWidgets.Box       as Box
 import qualified Graphics.UI.VtyWidgets.Spacer    as Spacer
@@ -53,7 +54,7 @@ make theme options maxCompletions emptyString maxLines model =
   Widget.whenFocused addCompletionBox textEdit
   where
     addCompletionBox = Box.makeCombined Box.Vertical . (: [completionsBox])
-    textEdit = Widget.strongerKeys (completeKeymap $ fmap fst currentCompletion) .
+    textEdit = Widget.strongerEvents (Widget.fromKeymap . completeEventMap $ fmap fst currentCompletion) .
                fmap setTextEditModel $
                TextEdit.make (themeTextEdit theme) emptyString maxLines textEditModel
     completionsBox = setCursor Nothing .
@@ -63,9 +64,9 @@ make theme options maxCompletions emptyString maxLines model =
     maxWidth = maximum . (0:) .
                map (length . fst) $ activeCompletions
     currentCompletion = index `safeIndex` activeCompletions
-    completeKeymap Nothing = mempty
-    completeKeymap (Just completionText) =
-      Keymap.simpleton ("Complete to " ++ completionText) ([], Vty.KASCII '\t') $
+    completeEventMap Nothing = mempty
+    completeEventMap (Just completionText) =
+      EventMap.simpleton ("Complete to " ++ completionText) (ModKey [] (Vty.KASCII '\t')) $
       setTextEditModel (TextEdit.initModel completionText)
     completionTexts = map makeSingleCompletionView activeCompletions
     makeSingleCompletionView (completion, cursor) =

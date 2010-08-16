@@ -16,7 +16,8 @@ import           Control.Arrow                    (first)
 import           Control.Monad                    (liftM2)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
@@ -54,9 +55,11 @@ data Theme = Theme {
 -- | given text...
 make :: Theme -> String -> Int -> Model -> Widget Model
 make theme emptyString maxLines (Model cursor text) =
-  Widget.fromTuple makeTuple
+  Widget.fromKeymapTuple makeTuple
   where
-    makeTuple (Widget.HasFocus hf) = (requestedSize, const (image (mkAttr hf) text, keymap))
+    makeTuple (Widget.HasFocus hf) =
+      (requestedSize,
+       const (image (mkAttr hf) text, Just eventMap))
     mkAttr True = themeFocusedAttr theme
     mkAttr False = themeUnfocusedAttr theme
     emptyStringSize = if null text
@@ -90,9 +93,10 @@ make theme emptyString maxLines (Model cursor text) =
     backDeleteWord = backDelete . length . tillEndOfWord . reverse $ before
     deleteWord = delete . length . tillEndOfWord $ after
 
-    ctrlCharK k = [([Vty.MCtrl], Vty.KASCII k)]
-    altCharK k = [ ([m], Vty.KASCII k) | m <- [Vty.MAlt, Vty.MMeta] ]
-    simpleK k = [([], k)]
+    ctrlCharK k = [ModKey [Vty.MCtrl] (Vty.KASCII k)]
+    altCharK k = [ ModKey [m] (Vty.KASCII k)
+                 | m <- [Vty.MAlt, Vty.MMeta] ]
+    simpleK k = [ModKey [] k]
     charK k = simpleK (Vty.KASCII k)
 
     homeKeys = simpleK Vty.KHome ++ ctrlCharK 'a'
@@ -100,13 +104,12 @@ make theme emptyString maxLines (Model cursor text) =
 
     -- TODO: Use keyGroup/fromKeyGroup
     multiKey doc keys value =
-      mconcat . map (flip (Keymap.simpleton doc) value) $ keys
+      mconcat . map (flip (EventMap.simpleton doc) value) $ keys
 
-    homeKeymap doc = multiKey doc homeKeys
-    endKeymap doc = multiKey doc endKeys
+    homeEventMap doc = multiKey doc homeKeys
+    endEventMap doc = multiKey doc endKeys
 
-    keymap =
-      Just .
+    eventMap =
       fmap (uncurry Model . first fromIntegral) . mconcat . concat $ [
         [ multiKey "Move left" (simpleK Vty.KLeft) $
           moveRelative (-1)
@@ -124,19 +127,19 @@ make theme emptyString maxLines (Model cursor text) =
           moveRelative (length curLineAfter + 1 + min cursorX (length nextLine))
         | cursorY < height-1 ],
 
-        [ homeKeymap "Move to beginning of line" $
+        [ homeEventMap "Move to beginning of line" $
           moveRelative (-cursorX)
         | cursorX > 0 ],
 
-        [ endKeymap "Move to end of line" $
+        [ endEventMap "Move to end of line" $
           moveRelative (length curLineAfter)
         | not . null $ curLineAfter ],
 
-        [ homeKeymap "Move to beginning of text" $
+        [ homeEventMap "Move to beginning of text" $
           moveAbsolute 0
         | cursorX == 0 && cursor > 0 ],
 
-        [ endKeymap "Move to end of text" $
+        [ endEventMap "Move to end of text" $
           moveAbsolute textLength
         | null curLineAfter && cursor < textLength ],
 
@@ -178,7 +181,7 @@ make theme emptyString maxLines (Model cursor text) =
           backDelete (length curLineBefore)
         | not . null $ curLineBefore ],
 
-        [ Keymap.fromGroupLists [ ("Alphabet", ("Insert", insertKeys)) ] ]
+        [ EventMap.fromGroupLists [ ("Alphabet", ("Insert", insertKeys)) ] ]
 
         ]
 

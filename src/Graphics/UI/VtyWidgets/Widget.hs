@@ -4,13 +4,16 @@ module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
      atHasFocus, atPlacable,
-     atMKeymap, atKeymap, atImage, atMkSizedImage, atSizedImage,
+     Event(..), EventMap, KeyMap, fromKeymap,
+     atMEventMap, atEventMap,
+     atImage, atMkSizedImage, atSizedImage,
      atMkDisplay, atDisplay,
      takesFocus, noTakeFocus,
-     make, fromTuple, simpleMkDisplay, simpleDisplay,
+     make, fromTuple, fromKeymapTuple,
+     simpleMkDisplay, simpleDisplay,
      fromDisplay, toDisplay,
-     keymap, image, requestedSize,
-     strongerKeys, weakerKeys,
+     eventMap, image, requestedSize,
+     strongerEvents, weakerEvents,
      whenFocused,
      backgroundColorWhenFocused,
      coloredFocusableMkDisplay,
@@ -21,23 +24,33 @@ import           Control.Arrow                    (first, second)
 import           Control.Applicative              (pure)
 import           Data.Monoid                      (Monoid(..))
 import           Data.Function.Utils              (Endo, argument, result, inFlip)
-import           Graphics.Vty                     as Vty
+import qualified Graphics.Vty                     as Vty
 import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
 import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
 import qualified Graphics.UI.VtyWidgets.Display   as Display
 import           Graphics.UI.VtyWidgets.Display   (Display)
-import           Graphics.UI.VtyWidgets.Keymap    (Keymap)
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey)
 import           Graphics.UI.VtyWidgets.TermImage (TermImage)
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import qualified Graphics.UI.VtyWidgets.Align     as Align
+
+-- internal convenience alias
+type EM = EventMap.EventMap
+
+-- TODO: Add Enter events
+newtype Event = KeyEvent ModKey
+  deriving (Eq, Ord, Show)
+type EventMap = EM Event
+type KeyMap = EM ModKey
 
 newtype HasFocus = HasFocus { hasFocus :: Bool }
   deriving (Show, Read, Eq, Ord)
 inHasFocus :: Endo Bool -> Endo HasFocus
 inHasFocus f = HasFocus . f . hasFocus
 
-type InWidget k = HasFocus -> Placable (TermImage, Maybe (Keymap k))
+type InWidget k = HasFocus -> Placable (TermImage, Maybe (EventMap k))
 newtype Widget k = Widget { unWidget :: InWidget k }
 inWidget :: (InWidget k -> InWidget k') ->
             Widget k -> Widget k'
@@ -50,16 +63,16 @@ instance Monoid (Widget k) where
   mempty = Widget mempty
   mappend = inWidget2 mappend
 
-fromDisplay :: (Size -> Maybe (Keymap k)) -> (HasFocus -> Display ()) -> Widget k
-fromDisplay mkKeymap mkDisplay = Widget $ Placable.atPlace mkImageToWidgetTuple . mkDisplay
+fromDisplay :: (Size -> Maybe (EventMap k)) -> (HasFocus -> Display ()) -> Widget k
+fromDisplay mkEventMap mkDisplay = Widget $ Placable.atPlace mkImageToWidgetTuple . mkDisplay
   where
-    mkImageToWidgetTuple mkImage size = (mkImage size (), mkKeymap size)
+    mkImageToWidgetTuple mkImage size = (mkImage size (), mkEventMap size)
 
 toDisplay :: Widget k -> HasFocus -> Display a
 toDisplay w hf = fmap (const . fst) . ($ hf) . unWidget $ w
 
 atMkDisplay :: Endo (HasFocus -> Display ()) -> Endo (Widget k)
-atMkDisplay f w = fromDisplay (keymap w) . f . toDisplay $ w
+atMkDisplay f w = fromDisplay (eventMap w) . f . toDisplay $ w
 
 atDisplay :: Endo (Display ()) -> Endo (Widget k)
 atDisplay = atMkDisplay . result
@@ -73,11 +86,11 @@ simpleDisplay = simpleMkDisplay . const
 requestedSize :: Widget k -> HasFocus -> SizeRange
 requestedSize = (result . result) Placable.pRequestedSize unWidget
 
-runWidget :: Widget k -> Size -> (TermImage, Maybe (Keymap k))
+runWidget :: Widget k -> Size -> (TermImage, Maybe (EventMap k))
 runWidget widget size = Placable.pPlace (unWidget widget $ HasFocus True) size
 
-keymap :: Widget k -> Size -> Maybe (Keymap k)
-keymap w = snd . runWidget w
+eventMap :: Widget k -> Size -> Maybe (EventMap k)
+eventMap w = snd . runWidget w
 
 image :: Widget k -> Size -> TermImage
 image w = fst . runWidget w
@@ -85,24 +98,24 @@ image w = fst . runWidget w
 atHasFocus :: Endo Bool -> Endo (Widget a)
 atHasFocus = inWidget . argument . inHasFocus
 
-atPlacable :: (Placable (TermImage, Maybe (Keymap k)) ->
-               Placable (TermImage, Maybe (Keymap k'))) ->
+atPlacable :: (Placable (TermImage, Maybe (EventMap k)) ->
+               Placable (TermImage, Maybe (EventMap k'))) ->
               Widget k -> Widget k'
 atPlacable = inWidget . result
 
 atImage :: Endo TermImage -> Endo (Widget a)
 atImage = atPlacable . fmap . first
 
-atMKeymap :: (Maybe (Keymap a) -> Maybe (Keymap b)) ->
+atMEventMap :: (Maybe (EventMap a) -> Maybe (EventMap b)) ->
              Widget a -> Widget b
-atMKeymap = atPlacable . fmap . second
+atMEventMap = atPlacable . fmap . second
 
-atKeymap :: (Keymap a -> Keymap b) ->
+atEventMap :: (EventMap a -> EventMap b) ->
             Widget a -> Widget b
-atKeymap = atMKeymap . fmap
+atEventMap = atMEventMap . fmap
 
 instance Functor Widget where
-  fmap = atKeymap . fmap
+  fmap = atEventMap . fmap
 
 atMkSizedImage :: Endo (Size -> TermImage) ->
                   Endo (Widget a)
@@ -114,16 +127,16 @@ atSizedImage modifyImage = atMkSizedImage f
     f mkImage size = modifyImage size $ mkImage size
 
 noTakeFocus :: Endo (Widget a)
-noTakeFocus = atMKeymap . const $ Nothing
+noTakeFocus = atMEventMap . const $ Nothing
 
 takesFocus :: Endo (Widget a)
-takesFocus = atMKeymap $ maybe (Just mempty) Just
+takesFocus = atMEventMap $ maybe (Just mempty) Just
 
-strongerKeys :: Keymap a -> Endo (Widget a)
-strongerKeys = atKeymap . mappend
+strongerEvents :: EventMap a -> Endo (Widget a)
+strongerEvents = atEventMap . mappend
 
-weakerKeys :: Keymap a -> Endo (Widget a)
-weakerKeys = atKeymap . flip mappend
+weakerEvents :: EventMap a -> Endo (Widget a)
+weakerEvents = atEventMap . flip mappend
 
 whenFocused :: Endo (Widget k) -> Endo (Widget k)
 whenFocused f (Widget mkPlacable) = Widget mkPlacable'
@@ -149,8 +162,14 @@ coloredFocusableDisplay c = coloredFocusableMkDisplay c . const
 clip :: Endo (Widget k)
 clip = atDisplay Display.clip
 
-make :: (HasFocus -> Placable (TermImage, Maybe (Keymap k))) -> Widget k
+make :: (HasFocus -> Placable (TermImage, Maybe (EventMap k))) -> Widget k
 make = clip . Widget
 
-fromTuple :: (HasFocus -> (SizeRange, Size -> (TermImage, Maybe (Keymap k)))) -> Widget k
+fromTuple :: (HasFocus -> (SizeRange, Size -> (TermImage, Maybe (EventMap k)))) -> Widget k
 fromTuple = (argument . result . uncurry) Placable make
+
+fromKeymap :: KeyMap k -> EventMap k
+fromKeymap = EventMap.mapKeys KeyEvent
+
+fromKeymapTuple :: (HasFocus -> (SizeRange, Size -> (TermImage, Maybe (KeyMap k)))) -> Widget k
+fromKeymapTuple = (argument . result . second . result . second . fmap) fromKeymap fromTuple

@@ -18,8 +18,8 @@ import qualified Data.Vector.Vector2              as Vector2
 import           Control.Applicative              (pure, liftA2)
 import           Control.Arrow                    (first, second)
 import qualified Graphics.Vty                     as Vty
-import qualified Graphics.UI.VtyWidgets.Keymap    as Keymap
-import           Graphics.UI.VtyWidgets.Keymap    (Keymap, ModKey)
+import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
+import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
 import           Graphics.UI.VtyWidgets.Widget    (Widget(..))
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
@@ -139,28 +139,28 @@ makeView rows = Display.make requestedSize mkImage
 
 --- Widgets:
 
-kLeft :: ModKey
-kLeft  = ([], Vty.KLeft)
-kRight :: ModKey
-kRight = ([], Vty.KRight)
-kUp :: ModKey
-kUp    = ([], Vty.KUp)
-kDown :: ModKey
-kDown  = ([], Vty.KDown)
+kLeft   :: ModKey
+kLeft    = ModKey [] Vty.KLeft
+kRight  :: ModKey
+kRight   = ModKey [] Vty.KRight
+kUp     :: ModKey
+kUp      = ModKey [] Vty.KUp
+kDown   :: ModKey
+kDown    = ModKey [] Vty.KDown
 kPgDown :: ModKey
-kPgDown = ([], Vty.KPageDown)
-kPgUp :: ModKey
-kPgUp = ([], Vty.KPageUp)
-kHome :: ModKey
-kHome = ([], Vty.KHome)
-kEnd :: ModKey
-kEnd = ([], Vty.KEnd)
+kPgDown  = ModKey [] Vty.KPageDown
+kPgUp   :: ModKey
+kPgUp    = ModKey [] Vty.KPageUp
+kHome   :: ModKey
+kHome    = ModKey [] Vty.KHome
+kEnd    :: ModKey
+kEnd     = ModKey [] Vty.KEnd
 
-mkNavMKeymap :: [[Bool]] -> Model -> Maybe (Keymap Model)
-mkNavMKeymap []            _ = Nothing
-mkNavMKeymap [[]]          _ = Nothing
-mkNavMKeymap wantFocusRows (Model cursor@(Vector2 cursorX cursorY)) =
-  mconcat $ [
+mkNavMEventMap :: [[Bool]] -> Model -> Maybe (Widget.EventMap Model)
+mkNavMEventMap []            _ = Nothing
+mkNavMEventMap [[]]          _ = Nothing
+mkNavMEventMap wantFocusRows (Model cursor@(Vector2 cursorX cursorY)) =
+  fmap Widget.fromKeymap . mconcat $ [
     movement "left"      kLeft   leftOfCursor,
     movement "right"     kRight  rightOfCursor,
     movement "up"        kUp     aboveCursor,
@@ -172,7 +172,7 @@ mkNavMKeymap wantFocusRows (Model cursor@(Vector2 cursorX cursorY)) =
     ]
   where
     Vector2 cappedX cappedY = capCursor size cursor
-    movement dirName key pos = (Keymap.simpleton ("Move " ++ dirName) key . Model) `fmap` pos
+    movement dirName key pos = (EventMap.simpleton ("Move " ++ dirName) key . Model) `fmap` pos
     size = length2d wantFocusRows
     x = fmap (cappedX `Vector2`) . findMove
     y = fmap (`Vector2` cappedY) . findMove
@@ -192,7 +192,7 @@ make :: (Model -> k) -> [[Widget k]] -> Model -> Widget k
 make conv rows model@(Model gcursor@(Vector2 gx gy)) =
   Widget.fromTuple $ makeTuple
   where
-    makeTuple hf = (requestedSize, mkImageKeymap)
+    makeTuple hf = (requestedSize, mkImageEventMap)
       where
         neutralize f = (map . map) (onEach f) . enumerate2d
         onEach f (index, item)
@@ -205,7 +205,7 @@ make conv rows model@(Model gcursor@(Vector2 gx gy)) =
           rows
         -- TODO: Reduce duplication with makeView
         (requestedSize, mkPlacements) = makePlacements placableRows
-        mkImageKeymap givenSize = (image, mKeymap)
+        mkImageEventMap givenSize = (image, mEventMap)
           where
             -- Get rid of the Placable, and put the Placement and actual
             -- Size with each item:
@@ -217,8 +217,8 @@ make conv rows model@(Model gcursor@(Vector2 gx gy)) =
                     neutralize (second uncursor) .
                     (map . map . second) fst $
                     placedItems
-            navMKeymap = (fmap . fmap) conv $ mkNavMKeymap wantFocusRows model
-            mKeymap = (`mappend` navMKeymap) $
+            navMEventMap = (fmap . fmap) conv $ mkNavMEventMap wantFocusRows model
+            mEventMap = (`mappend` navMEventMap) $
                       snd . snd =<<
                       safeIndex gx =<<
                       safeIndex gy placedItems
@@ -231,5 +231,5 @@ makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
 -- | A combined grid sends its key inputs to all of the children
 makeCombined :: [[Widget k]] -> Widget k
 makeCombined rows =
-  Widget.fromDisplay (mconcat . map Widget.keymap . concat $ rows) $
+  Widget.fromDisplay (mconcat . map Widget.eventMap . concat $ rows) $
   \hf -> makeView . (map . map) (($ hf) . Widget.toDisplay) $ rows
