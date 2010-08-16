@@ -1,10 +1,3 @@
-* Display should have a Functor in it
-
-* Big "Theme" type with "standard" attributes for text edits,
-  completions, etc, and a fromTheme for each widget
-
-* Get rid of Attr arguments to stuff, and use post-processing on the
-  image to change attributes?
 * Widgets that take a lot of "configuration" should either not take it
   (compose the attrs outside) or should take a record that has
   defaults

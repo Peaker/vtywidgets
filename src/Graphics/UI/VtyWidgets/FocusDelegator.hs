@@ -2,10 +2,11 @@
 {-# LANGUAGE TypeOperators, GeneralizedNewtypeDeriving #-}
 
 module Graphics.UI.VtyWidgets.FocusDelegator
-    (make, makeAcc, Model(..), initModel,
+    (make, makeAcc, Model(..), inModel, initModel,
      Theme(..), standardTheme)
 where
 
+import           Data.Function.Utils              (Endo)
 import           Data.Binary                      (Binary)
 import           Data.Record.Label                ((:->), set, get)
 import qualified Graphics.Vty                     as Vty
@@ -23,6 +24,8 @@ newtype Model = Model {
   focusDelegated :: Bool
   }
   deriving (Eq, Ord, Read, Show, Binary)
+inModel :: Endo Bool -> Endo Model
+inModel f = Model . f . focusDelegated
 
 initModel :: Bool -> Model
 initModel = Model
