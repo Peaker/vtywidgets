@@ -1,7 +1,7 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.TextEdit
-    (Model(..), initModel, make,
+    (Model(..), initModel, make, lineEdit,
      Theme(..), standardTheme)
 where
 
@@ -196,6 +196,9 @@ make theme emptyString maxLines (Model cursor text) =
       ++
       [ (k, insert "\n")
       | k <- simpleK Vty.KEnter ]
+
+lineEdit :: Theme -> String -> Model -> Widget Model
+lineEdit theme emptyString = make theme emptyString 1
 
 standardTheme :: Theme
 standardTheme = Theme {

@@ -82,8 +82,8 @@ keymap w = snd . runWidget w
 image :: Widget k -> Size -> TermImage
 image w = fst . runWidget w
 
-atHasFocus :: Endo HasFocus -> Endo (Widget a)
-atHasFocus = inWidget . argument
+atHasFocus :: Endo Bool -> Endo (Widget a)
+atHasFocus = inWidget . argument . inHasFocus
 
 atPlacable :: (Placable (TermImage, Maybe (Keymap k)) ->
                Placable (TermImage, Maybe (Keymap k'))) ->

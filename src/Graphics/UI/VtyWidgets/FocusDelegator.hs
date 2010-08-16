@@ -49,7 +49,8 @@ make theme conv child (Model isDelegating) =
     else Widget.whenFocused ((Widget.atImage . TermImage.inCursor . const) Nothing .
                              (Widget.atSizedImage . TermImage.backgroundColor) (themeBGColor theme)) .
          Widget.takesFocus .
-         (Widget.atKeymap . const) (conv `fmap` notDelegatingKeymap) $
+         (Widget.atKeymap . const) (conv `fmap` notDelegatingKeymap) .
+         (Widget.atHasFocus . const) False $
          child
 
 makeAcc :: Theme -> k :-> Model -> Widget k -> k -> Widget k
