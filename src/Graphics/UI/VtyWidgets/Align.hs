@@ -14,11 +14,11 @@ import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 
 type Alignment = Vector2 Double
 
-to :: Alignment -> Endo (Display a)
+to :: Functor f => Alignment -> Endo (Display f)
 to alignment display = Placable.atPlace alignImage display
   where
     maxSize = srMaxSize . Placable.pRequestedSize $ display
-    alignImage mkImage givenSize = TermImage.translate translation . mkImage size
+    alignImage mkImage givenSize = TermImage.translate translation `fmap` mkImage size
       where
         translation = fmap round . liftA2 (*) alignment . fmap fromIntegral $ extraSize
         extraSize = liftA2 (-) givenSize size

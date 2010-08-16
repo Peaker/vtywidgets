@@ -1,11 +1,11 @@
 {-# OPTIONS -O2 -Wall #-}
 
 module Graphics.UI.VtyWidgets.Display
-    (Display, atImage, atImageArg, expand, make, clip)
+    (Display, atImage, atSizedImage, expand, make, clip)
 where
 
 import           Control.Applicative              (pure, liftA2)
-import           Data.Function.Utils              (Endo, result, argument, inFlip)
+import           Data.Function.Utils              (Endo, result)
 import qualified Graphics.UI.VtyWidgets.SizeRange as SizeRange
 import           Graphics.UI.VtyWidgets.SizeRange (SizeRange, Size)
 import           Data.Vector.Rect                 (Rect(..))
@@ -14,22 +14,22 @@ import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import           Graphics.UI.VtyWidgets.TermImage (TermImage(..))
 
-type Display imgarg = Placable (imgarg -> TermImage)
+type Display f = Placable (f TermImage)
 
-atImage :: Endo TermImage -> Endo (Display imgarg)
-atImage = fmap . result
-atImageArg :: (imgarg' -> imgarg) ->
-              Display imgarg -> Display imgarg'
-atImageArg = fmap . argument
+atImage :: Functor f => Endo TermImage -> Endo (Display f)
+atImage = fmap . fmap
 
-clip :: Endo (Display imgarg)
-clip = (Placable.atPlace . inFlip . result) clip'
+atSizedImage :: Functor f => (Size -> Endo TermImage) -> Endo (Display f)
+atSizedImage f = Placable.atPlace placeFunc
   where
-    clip' mkImage size = TermImage.clip (Rect (pure 0) size) (mkImage size)
+    placeFunc mkFImage size = fmap (f size) $ mkFImage size
 
-make :: SizeRange -> (Size -> imgarg -> TermImage) -> Display imgarg
+clip :: Functor f => Endo (Display f)
+clip = atSizedImage (TermImage.clip . Rect (pure 0))
+
+make :: Functor f => SizeRange -> (Size -> f TermImage) -> Display f
 make = (result . result) clip Placable
 
-expand :: Size -> Endo (Display imgarg)
+expand :: Functor f => Size -> Endo (Display f)
 expand extra = (Placable.atRequestedSize . SizeRange.atBothSizes . liftA2 (+)) extra .
                (atImage . TermImage.translate . fmap (`div` 2)) extra

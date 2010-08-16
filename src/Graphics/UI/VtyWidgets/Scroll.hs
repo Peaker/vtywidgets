@@ -4,6 +4,8 @@ module Graphics.UI.VtyWidgets.Scroll
 where
 
 import           Control.Applicative              (pure, liftA2)
+import           Control.Arrow                    (first)
+import           Data.Functor.Identity            (Identity(..))
 import           Data.Maybe                       (fromMaybe)
 import           Data.Monoid                      (First(..), mempty)
 import           Data.Vector.Rect                 (Coordinate, Rect(..))
@@ -72,13 +74,13 @@ makeCenteredImage showSize imageSize = centered (Rect (pure 0) showSize) (Rect (
 
 sizedCenteredView :: Theme -> SizeRange
                      -- ^ Size range of the scroller itself, including bars
-                     -> Display a
+                     -> Display f
                      -- ^ The display to scroll through
-                     -> Display a
+                     -> Display f
 sizedCenteredView theme sizeRange' (Placable sizeRange mkImage) =
   Display.make sizeRange' mkGridImage
   where
-    mkGridImage givenSize imgarg = image'
+    mkGridImage givenSize = fImage'
       where
         -- Just use the maximum size for the scrollable:
         scrollSize = SizeRange.srMaxSize sizeRange
@@ -88,10 +90,10 @@ sizedCenteredView theme sizeRange' (Placable sizeRange mkImage) =
         hbar = Bar.makeHorizontal (themeHBar theme) 3
         vbar = Bar.makeVertical (themeVBar theme) 3
 
-        image = mkImage scrollSize imgarg
-        image' = if barsNeeded
-                 then Placable.pPlace (Grid.makeView rows) givenSize imgarg
-                 else image
+        fImage = mkImage scrollSize
+        fImage' = if barsNeeded
+                  then Placable.pPlace (Grid.makeView rows) givenSize
+                  else fImage
         getSSize rs = sSize
           where
             [[_, _],
@@ -103,22 +105,21 @@ sizedCenteredView theme sizeRange' (Placable sizeRange mkImage) =
                            [ vbar, mempty ]]
         Vector2 hbarNeeded vbarNeeded = liftA2 (<) wcSize scrollSize
 
-        makeBar m range = Display.atImageArg (const range) $ m 3
+        makeBar m range = Placable.atPlace (Identity . ($range)) $ m 3
         conditionalMakeBar p = if p then makeBar else mempty
         rows = [[ mempty,
                   conditionalMakeBar hbarNeeded (Bar.makeHorizontal $ themeHBar theme) hrange ],
                 [ conditionalMakeBar vbarNeeded (Bar.makeVertical $ themeVBar theme)   vrange,
-                  Display.make (SizeRange.expanding 0 0) ((const . const) scrollImage) ]]
+                  Display.make (SizeRange.expanding 0 0) (const . const $ scrollImage) ]]
           where
             sSize = getSSize rows
-            (Rect leftTop rightBottom, scrollImage) =
-              makeCenteredImage sSize scrollSize image
-            mkRange dim = (dimRange leftTop, dimRange rightBottom)
+            fPair = fmap (first toRange . makeCenteredImage sSize scrollSize) fImage
+            toRange (Rect leftTop rightBottom) = (mkRange Vector2.fst, mkRange Vector2.snd)
               where
-                fiDim = fromIntegral . dim
-                dimRange = (/fiDim scrollSize) . fiDim
-            hrange = mkRange Vector2.fst
-            vrange = mkRange Vector2.snd
+                mkRange dim = (dimRange leftTop, dimRange rightBottom)
+                  where
+                    fiDim = fromIntegral . dim
+                    dimRange = (/fiDim scrollSize) . fiDim
 
 centeredView :: Theme ->
                 SizeRange

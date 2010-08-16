@@ -6,6 +6,8 @@ module Graphics.UI.VtyWidgets.Grid
      Model(..), inModel, initModel)
 where
 
+import           Control.Applicative              (Applicative)
+import           Data.Traversable                 (Traversable, sequenceA)
 import           Data.Binary                      (Binary)
 import           Data.Function.Utils              (argument, result)
 import           Data.List                        (find, transpose)
@@ -126,16 +128,23 @@ combineImages size =
 feedPlacable :: Placement -> Placable a -> (Placement, a)
 feedPlacable pl@(_, size) placable = (pl, Placable.pPlace placable size)
 
-makeView :: [[Display a]] -> Display a
+sequenceA2d :: (Traversable t1, Applicative f, Traversable t2) =>
+               t1 (t2 (f a)) -> f (t1 (t2 a))
+sequenceA2d = sequenceA . fmap sequenceA
+
+makeView :: Applicative f => [[Display f]] -> Display f
 makeView rows = Display.make requestedSize mkImage
   where
     (requestedSize, mkPlacements) = makePlacements $ rows
-    mkImage givenSize imgarg =
-      combineImages givenSize .
-      (zipWith . zipWith) feedPlacable (mkPlacements givenSize) .
-      -- Penetrate [[Placable (..)]] and feed the arg
-      (map . map . fmap) ($ imgarg) $
+    mkImage givenSize =
+      fmap (combineImages givenSize) .
+      -- f [[(Placement, TermImage)]]
+      sequenceA2d .
+      -- [[f (Placement, TermImage)]]
+      (map . map) placementIntoFunctor .
+      (zipWith . zipWith) feedPlacable (mkPlacements givenSize) $
       rows
+    placementIntoFunctor (placement, f) = fmap ((,) placement) f
 
 --- Widgets:
 

@@ -4,7 +4,7 @@ module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
      atHasFocus, atPlacable,
-     atMKeymap, atKeymap, atImage, atMkSizedImage, atSizedImage,
+     atMKeymap, atKeymap, atImage, atSizedImage,
      atMkDisplay, atDisplay,
      takesFocus, noTakeFocus,
      make, fromTuple, simpleMkDisplay, simpleDisplay,
@@ -18,9 +18,10 @@ module Graphics.UI.VtyWidgets.Widget
 where
 
 import           Control.Arrow                    (first, second)
-import           Control.Applicative              (pure)
+import           Control.Applicative              (Applicative(..))
 import           Data.Monoid                      (Monoid(..))
-import           Data.Function.Utils              (Endo, argument, result, inFlip)
+import           Data.Functor.Identity            (Identity(..))
+import           Data.Function.Utils              (Endo, argument, result)
 import           Graphics.Vty                     as Vty
 import           Graphics.UI.VtyWidgets.SizeRange (SizeRange(..), Size)
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
@@ -50,24 +51,24 @@ instance Monoid (Widget k) where
   mempty = Widget mempty
   mappend = inWidget2 mappend
 
-fromDisplay :: (Size -> Maybe (Keymap k)) -> (HasFocus -> Display ()) -> Widget k
+fromDisplay :: (Size -> Maybe (Keymap k)) -> (HasFocus -> Display Identity) -> Widget k
 fromDisplay mkKeymap mkDisplay = Widget $ Placable.atPlace mkImageToWidgetTuple . mkDisplay
   where
-    mkImageToWidgetTuple mkImage size = (mkImage size (), mkKeymap size)
+    mkImageToWidgetTuple mkImage size = (runIdentity $ mkImage size, mkKeymap size)
 
-toDisplay :: Widget k -> HasFocus -> Display a
-toDisplay w hf = fmap (const . fst) . ($ hf) . unWidget $ w
+toDisplay :: Applicative f => Widget k -> HasFocus -> Display f
+toDisplay w hf = fmap (pure . fst) . ($ hf) . unWidget $ w
 
-atMkDisplay :: Endo (HasFocus -> Display ()) -> Endo (Widget k)
+atMkDisplay :: Endo (HasFocus -> Display Identity) -> Endo (Widget k)
 atMkDisplay f w = fromDisplay (keymap w) . f . toDisplay $ w
 
-atDisplay :: Endo (Display ()) -> Endo (Widget k)
+atDisplay :: Endo (Display Identity) -> Endo (Widget k)
 atDisplay = atMkDisplay . result
 
-simpleMkDisplay :: (HasFocus -> Display ()) -> Widget k
+simpleMkDisplay :: (HasFocus -> Display Identity) -> Widget k
 simpleMkDisplay = fromDisplay . pure $ Nothing
 
-simpleDisplay :: Display () -> Widget k
+simpleDisplay :: Display Identity -> Widget k
 simpleDisplay = simpleMkDisplay . const
 
 requestedSize :: Widget k -> HasFocus -> SizeRange
@@ -104,14 +105,8 @@ atKeymap = atMKeymap . fmap
 instance Functor Widget where
   fmap = atKeymap . fmap
 
-atMkSizedImage :: Endo (Size -> TermImage) ->
-                  Endo (Widget a)
-atMkSizedImage = atDisplay . Placable.atPlace . inFlip . result
-
 atSizedImage :: (Size -> Endo TermImage) -> Endo (Widget a)
-atSizedImage modifyImage = atMkSizedImage f
-  where
-    f mkImage size = modifyImage size $ mkImage size
+atSizedImage = atDisplay . Display.atSizedImage
 
 noTakeFocus :: Endo (Widget a)
 noTakeFocus = atMKeymap . const $ Nothing
@@ -136,14 +131,14 @@ whenFocused f (Widget mkPlacable) = Widget mkPlacable'
 backgroundColorWhenFocused :: Vty.Color -> Endo (Widget k)
 backgroundColorWhenFocused = whenFocused . atSizedImage . TermImage.backgroundColor
 
-coloredFocusableMkDisplay :: Vty.Color -> (HasFocus -> Display ()) -> Widget k
+coloredFocusableMkDisplay :: Vty.Color -> (HasFocus -> Display Identity) -> Widget k
 coloredFocusableMkDisplay c =
   takesFocus .
   (atDisplay . Align.to . pure $ 0) .
   backgroundColorWhenFocused c .
   simpleMkDisplay
 
-coloredFocusableDisplay :: Vty.Color -> Display () -> Widget k
+coloredFocusableDisplay :: Vty.Color -> Display Identity -> Widget k
 coloredFocusableDisplay c = coloredFocusableMkDisplay c . const
 
 clip :: Endo (Widget k)

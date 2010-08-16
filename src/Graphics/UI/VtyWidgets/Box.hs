@@ -9,6 +9,7 @@ where
 import           Prelude                          hiding ((.))
 import           Control.Category                 ((.))
 import           Control.Arrow                    (second)
+import           Control.Applicative              (Applicative)
 import           Data.Binary                      (Binary)
 import           Data.Function.Utils              (Endo, result)
 import           Data.Vector.Vector2              (Vector2(..))
@@ -58,7 +59,7 @@ modelLabel o = label (toGridModel o) (const . fromGridModel o)
 makeSizes :: Orientation -> [SizeRange] -> (SizeRange, Size -> [Size])
 makeSizes o = (second . result) (unpack o) . Grid.makeSizes . pack o
 
-makeView :: Orientation -> [Display a] -> Display a
+makeView :: Applicative f => Orientation -> [Display f] -> Display f
 makeView o = Grid.makeView . pack o
 
 make :: Orientation -> (Model -> k) -> [Widget k] -> Model -> Widget k

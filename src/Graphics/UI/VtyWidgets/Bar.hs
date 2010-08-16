@@ -36,7 +36,7 @@ makeStrings theme before inside after =
    replicate inside (themeInAttr theme, "#"),
    replicate after (themeOutAttr theme, " ")]
 
-type MakeBar = Theme -> Int -> Display (Double, Double)
+type MakeBar = Theme -> Int -> Display ((->) (Double, Double))
 
 makeDisplay :: (Vector2 Int -> Int) ->
                ([(Vty.Attr, String)] -> TermImage) ->

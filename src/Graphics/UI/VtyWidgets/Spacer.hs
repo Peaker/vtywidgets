@@ -5,6 +5,7 @@ module Graphics.UI.VtyWidgets.Spacer
      indent)
 where
 
+import           Control.Applicative              (Applicative(..))
 import           Data.Vector.Vector2              (Vector2(..))
 import           Data.Monoid                      (mempty)
 import           Graphics.UI.VtyWidgets.SizeRange (SizeRange, Size)
@@ -13,23 +14,23 @@ import           Graphics.UI.VtyWidgets.Display   (Display)
 import qualified Graphics.UI.VtyWidgets.Display   as Display
 import qualified Graphics.UI.VtyWidgets.Box       as Box
 
-make :: SizeRange -> Display a
-make sizeRange = Display.make sizeRange mempty
+make :: Applicative f => SizeRange -> Display f
+make sizeRange = Display.make sizeRange (const $ pure mempty)
 
-makeFixed :: Size -> Display a
+makeFixed :: Applicative f => Size -> Display f
 makeFixed = make . SizeRange.fixedSize
 
-makeHorizontal :: Display a
+makeHorizontal :: Applicative f => Display f
 makeHorizontal = make $ SizeRange.horizontallyExpanding 0 0
 
-makeVertical :: Display a
+makeVertical :: Applicative f => Display f
 makeVertical = make $ SizeRange.verticallyExpanding 0 0
 
-makeWidthSpace :: Int -> Display a
+makeWidthSpace :: Applicative f => Int -> Display f
 makeWidthSpace width = makeFixed $ Vector2 width 0
 
-makeHeightSpace :: Int -> Display a
+makeHeightSpace :: Applicative f => Int -> Display f
 makeHeightSpace height = makeFixed $ Vector2 0 height
 
-indent :: Int -> Display a -> Display a
+indent :: Applicative f => Int -> Display f -> Display f
 indent width disp = Box.makeView Box.Horizontal [makeWidthSpace width, disp]
