@@ -1,7 +1,9 @@
 * Nicer navigation:
-  * Widget's EventMap should have Widget.Event as its key
 
-  * Add DirectionEntry event type, and move Grid to that position
+  * Add DirectionEntry event type but then (Model -> k) is not enough
+    for Grid, because it gets a "k" from applying DirectionEntry event
+    to child, and ALSO has its own Model to change. So maybe (Model ->
+    k -> k)? Or some other solution?
 
 * Widgets that take a lot of "configuration" should either not take it
   (compose the attrs outside) or should take a record that has

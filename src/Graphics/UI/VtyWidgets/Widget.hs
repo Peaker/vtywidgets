@@ -4,6 +4,7 @@ module Graphics.UI.VtyWidgets.Widget
     (HasFocus(..), inHasFocus,
      Widget(..), inWidget, inWidget2, runWidget,
      atHasFocus, atPlacable,
+     Direction(..),
      Event(..), EventMap, KeyMap, fromKeymap,
      atMEventMap, atEventMap,
      atImage, atMkSizedImage, atSizedImage,
@@ -39,8 +40,11 @@ import qualified Graphics.UI.VtyWidgets.Align     as Align
 -- internal convenience alias
 type EM = EventMap.EventMap
 
--- TODO: Add Enter events
-newtype Event = KeyEvent ModKey
+data Direction = Left | Right | Top | Bottom
+  deriving (Eq, Ord, Read, Show)
+
+data Event = KeyEvent ModKey |
+             EnterEvent Direction
   deriving (Eq, Ord, Show)
 type EventMap = EM Event
 type KeyMap = EM ModKey

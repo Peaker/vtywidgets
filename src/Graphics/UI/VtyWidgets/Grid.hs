@@ -21,7 +21,7 @@ import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.EventMap  as EventMap
 import           Graphics.UI.VtyWidgets.ModKey    (ModKey(..))
 import qualified Graphics.UI.VtyWidgets.Widget    as Widget
-import           Graphics.UI.VtyWidgets.Widget    (Widget(..))
+import           Graphics.UI.VtyWidgets.Widget    (Widget(..), Direction(..))
 import qualified Graphics.UI.VtyWidgets.Placable  as Placable
 import           Graphics.UI.VtyWidgets.Placable  (Placable(..))
 import qualified Graphics.UI.VtyWidgets.Display   as Display
@@ -156,23 +156,24 @@ kHome    = ModKey [] Vty.KHome
 kEnd    :: ModKey
 kEnd     = ModKey [] Vty.KEnd
 
-mkNavMEventMap :: [[Bool]] -> Model -> Maybe (Widget.EventMap Model)
+mkNavMEventMap :: [[Bool]] -> Model -> Maybe (Widget.EventMap (Direction, Model))
 mkNavMEventMap []            _ = Nothing
 mkNavMEventMap [[]]          _ = Nothing
 mkNavMEventMap wantFocusRows (Model cursor@(Vector2 cursorX cursorY)) =
   fmap Widget.fromKeymap . mconcat $ [
-    movement "left"      kLeft   leftOfCursor,
-    movement "right"     kRight  rightOfCursor,
-    movement "up"        kUp     aboveCursor,
-    movement "down"      kDown   belowCursor,
-    movement "top"       kPgUp   topCursor,
-    movement "bottom"    kPgDown bottomCursor,
-    movement "leftmost"  kHome   leftMostCursor,
-    movement "rightmost" kEnd    rightMostCursor
+    movement "left"      kLeft   Right  leftOfCursor,
+    movement "right"     kRight  Left   rightOfCursor,
+    movement "up"        kUp     Bottom aboveCursor,
+    movement "down"      kDown   Top    belowCursor,
+    movement "top"       kPgUp   Bottom topCursor,
+    movement "bottom"    kPgDown Top    bottomCursor,
+    movement "leftmost"  kHome   Right  leftMostCursor,
+    movement "rightmost" kEnd    Left   rightMostCursor
     ]
   where
     Vector2 cappedX cappedY = capCursor size cursor
-    movement dirName key pos = (EventMap.simpleton ("Move " ++ dirName) key . Model) `fmap` pos
+    movement dirName key dir pos =
+      (EventMap.simpleton ("Move " ++ dirName) key . ((,) dir) . Model) `fmap` pos
     size = length2d wantFocusRows
     x = fmap (cappedX `Vector2`) . findMove
     y = fmap (`Vector2` cappedY) . findMove
