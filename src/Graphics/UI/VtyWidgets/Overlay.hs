@@ -8,7 +8,7 @@ where
 import           Data.Binary                      (Binary)
 import           Data.Monoid                      (mempty, mappend)
 import           Data.Maybe                       (fromMaybe)
-import           Data.Record.Label                ((:->), set, get)
+import           Data.Record.Label                ((:->), setL, getL)
 import           Data.Vector.Vector2              (Vector2(..))
 import           Data.Function.Utils              (Endo)
 import           Graphics.UI.VtyWidgets.Keymap    (ModKey, Doc)
@@ -50,7 +50,7 @@ widget startShowing stopShowing overlayWidget conv child (Model isOverlaying) =
 widgetAcc :: k :-> Model ->
              (Doc, ModKey) -> (Doc, ModKey) -> Widget k -> Widget k -> k -> Widget k
 widgetAcc acc startShowing stopShowing overlayWidget child k =
-  widget startShowing stopShowing overlayWidget (flip (set acc) k) child (get acc k)
+  widget startShowing stopShowing overlayWidget (flip (setL acc) k) child (getL acc k)
 
 keymapView :: TableGrid.Theme -> Size -> (Model -> k) -> Model ->
               ModKey -> ModKey ->

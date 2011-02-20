@@ -10,7 +10,7 @@ import           Data.Binary                      (Binary)
 import           Data.Function.Utils              (argument, result)
 import           Data.List                        (find, transpose)
 import           Data.List.Utils                  (safeIndex)
-import           Data.Record.Label                ((:->), set, get)
+import           Data.Record.Label                ((:->), setL, getL)
 import           Data.Monoid                      (mappend, mconcat)
 import           Data.Maybe                       (isJust)
 import           Data.Vector.Vector2              (Vector2(..))
@@ -226,7 +226,7 @@ make conv rows model@(Model gcursor@(Vector2 gx gy)) =
 --- Convenience
 
 makeAcc :: k :-> Model -> [[Widget k]] -> k -> Widget k
-makeAcc acc rows k = make (flip (set acc) k) rows (get acc k)
+makeAcc acc rows k = make (flip (setL acc) k) rows (getL acc k)
 
 -- | A combined grid sends its key inputs to all of the children
 makeCombined :: [[Widget k]] -> Widget k

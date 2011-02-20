@@ -12,7 +12,7 @@ import           Control.Arrow                    (second)
 import           Data.Binary                      (Binary)
 import           Data.Function.Utils              (Endo, result)
 import           Data.Vector.Vector2              (Vector2(..))
-import           Data.Record.Label                ((:->), label)
+import           Data.Record.Label                ((:->), lens)
 import           Graphics.UI.VtyWidgets.Display   (Display)
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
 import qualified Graphics.UI.VtyWidgets.Grid      as Grid
@@ -53,7 +53,7 @@ fromGridModel Vertical (Grid.Model (Vector2 0 y)) = Model y
 fromGridModel Vertical (Grid.Model (Vector2 _ _)) = error "Grid model of vertical box with non-zero x in cursor"
 
 modelLabel :: Orientation -> Model :-> Grid.Model
-modelLabel o = label (toGridModel o) (const . fromGridModel o)
+modelLabel o = lens (toGridModel o) (const . fromGridModel o)
 
 makeSizes :: Orientation -> [SizeRange] -> (SizeRange, Size -> [Size])
 makeSizes o = (second . result) (unpack o) . Grid.makeSizes . pack o

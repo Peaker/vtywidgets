@@ -8,7 +8,7 @@ where
 
 import           Data.Function.Utils              (Endo)
 import           Data.Binary                      (Binary)
-import           Data.Record.Label                ((:->), set, get)
+import           Data.Record.Label                ((:->), setL, getL)
 import qualified Graphics.Vty                     as Vty
 import qualified Graphics.UI.VtyWidgets.TermImage as TermImage
 import           Graphics.UI.VtyWidgets.Widget    (Widget)
@@ -55,7 +55,7 @@ make theme conv child (Model isDelegating) =
 
 makeAcc :: Theme -> k :-> Model -> Widget k -> k -> Widget k
 makeAcc theme acc child k =
-  make theme (flip (set acc) k) child (get acc k)
+  make theme (flip (setL acc) k) child (getL acc k)
 
 standardTheme :: Theme
 standardTheme = Theme {
